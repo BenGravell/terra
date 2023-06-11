@@ -26,10 +26,18 @@ def load_data():
     countries_dict = country_data.get_country_dict()
     # English speaking
     df_english = pd.read_csv("data/english_speaking.csv")
-    return human_freedom_df, countries_dict, df_english
+    # Country codes alpha3
+    df_codes_alpha_3 = pd.read_csv("data/country_codes_alpha_3.csv")
+    # Flag emoji
+    df_flag_emoji = pd.read_csv("data/country_flag_emoji.csv")
+    return human_freedom_df, countries_dict, df_english, df_codes_alpha_3, df_flag_emoji
 
 
-human_freedom_df, countries_dict, df_english = load_data()
+human_freedom_df, countries_dict, df_english, df_codes_alpha_3, df_flag_emoji = load_data()
+
+# Emoji
+df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
+COUNTRY_TO_EMOJI = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
 
 
 NONE_COUNTRY = "(none)"
@@ -162,8 +170,12 @@ with st.sidebar:
         )
 
 
-st.image("assets/terra.jpg", width=200)
-st.caption("🌎 Find the right country for you!")
+st.title("🌎 :blue[Terra]", anchor=False)
+terra_question = 'This app is designed to answer the question "which country should I live in?"'
+terra_explanation = 'Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match.'
+terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
+terra_help = f'{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}'
+st.caption("Find the right country for you!", help=terra_help)
 
 
 # Human Freedom
@@ -218,9 +230,12 @@ pf_score_weight /= weight_sum
 ef_score_weight /= weight_sum
 cf_score_weight /= weight_sum
 
-df["overall_score"] = (
-    df["pf_score"] * pf_score_weight + df["ef_score"] * ef_score_weight + df["cf_score"] * cf_score_weight
-)
+
+df["pf_score_weighted"] = df["pf_score"] * pf_score_weight
+df["ef_score_weighted"] = df["ef_score"] * ef_score_weight
+df["cf_score_weighted"] = df["cf_score"] * cf_score_weight
+
+df["overall_score"] = df["pf_score_weighted"] + df["ef_score_weighted"] + df["cf_score_weighted"]
 df = df.sort_values("overall_score", ascending=False)
 
 
@@ -243,28 +258,53 @@ else:
 
     # Best match
     best_match_country = str(df.iloc[0].country)
+    best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
 
-    st.markdown(f"## Your Best Match Country is: :blue[{best_match_country}]")
+    st.header(f"Your Best Match Country: :blue[{best_match_country}] {best_match_country_emoji}", anchor=False)
     st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
 
     # Top N best matches
-    st.subheader(f"Top Match Countries ({N})")
+    st.header(f"Top Match Countries ({N})", anchor=False)
     column_remap = {
         "overall_score": "Overall Score",
         "pf_score": "Personal Freedom Score",
         "ef_score": "Economic Freedom Score",
         "cf_score": "Cultural Fit Score",
+        "pf_score_weighted": "Personal Freedom Score (weighted)",
+        "ef_score_weighted": "Economic Freedom Score (weighted)",
+        "cf_score_weighted": "Cultural Fit Score (weighted)",
     }
-    st.dataframe(
-        df.head(N)
-        .set_index("country")[["overall_score", "cf_score", "pf_score", "ef_score"]]
-        .rename(columns=column_remap),
-        use_container_width=True,
+    df_top_N = df.head(N).rename(columns=column_remap)
+
+    def pct_fmt(x):
+        return f"{round(100*x, 2):.0f}%"
+
+    fig = px.bar(
+        df_top_N,
+        x="country",
+        y=["Personal Freedom Score (weighted)", "Economic Freedom Score (weighted)", "Cultural Fit Score (weighted)"],
     )
+    for idx, row in df_top_N.iterrows():
+        fig.add_annotation(
+            x=row.country,
+            y=row['Overall Score'],
+            yanchor="bottom",
+            showarrow=False,
+            align="left",
+            text=f"{pct_fmt(row['Overall Score'])}",
+            font={"size": 12},
+        )
+    fig.update_layout(legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=-0.2,
+            xanchor="left",
+            x=0
+        ))
+    st.plotly_chart(fig, use_container_width=True)
 
     # TODO replace pyplot radar plots with plotly radar plots
     # See https://plotly.com/python/radar-chart/
-    @st.cache_data
     def get_radar(country_names, user_ideal):
         dimensions = distance_calculations.compute_dimensions(
             [countries_dict[country_name] for country_name in country_names]
@@ -274,14 +314,14 @@ else:
         return radar
 
     with st.expander("Culture Fit"):
-        radar = get_radar(country_names=df.head(N).country, user_ideal=user_ideal)
+        radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
         st.caption("", help="The dashed :red[red shape] depicts your preferences.")
         st.pyplot(radar)
 
     # All matches
-    st.subheader(f"All Matching Countries ({df.shape[0]})")
+    st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
 
-    with st.expander("Results Data"):
+    with st.expander("Raw Results Data"):
         st.dataframe(df.set_index("country"), use_container_width=True)
 
     def generate_choropleth(df, name):
