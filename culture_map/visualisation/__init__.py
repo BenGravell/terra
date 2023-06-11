@@ -71,7 +71,6 @@ def generate_scatterplot(
     return fig
 
 
-@st.cache_data
 def generate_radar_plot(
         dimensions: distance_calculations.PandasDataFrame,
         reference: distance_calculations.PandasDataFrame | None = None
@@ -100,7 +99,7 @@ def generate_choropleth(
                         hover_name="country", color_continuous_scale=px.colors.sequential.Plasma)
     return fig
 
-@st.cache_data
+
 def make_spider(
         col: int,
         title: str,
