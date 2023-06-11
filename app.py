@@ -244,11 +244,11 @@ else:
     # Best match
     best_match_country = str(df.iloc[0].country)
 
-    st.markdown(f"## Your Best Match Nation is: :blue[{best_match_country}]")
+    st.markdown(f"## Your Best Match Country is: :blue[{best_match_country}]")
     st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
 
     # Top N best matches
-    st.subheader(f"Top Match Nations ({N})")
+    st.subheader(f"Top Match Countries ({N})")
     column_remap = {
         "overall_score": "Overall Score",
         "pf_score": "Personal Freedom Score",
@@ -279,7 +279,7 @@ else:
         st.pyplot(radar)
 
     # All matches
-    st.subheader(f"All Matching Nations ({df.shape[0]})")
+    st.subheader(f"All Matching Countries ({df.shape[0]})")
 
     with st.expander("Results Data"):
         st.dataframe(df.set_index("country"), use_container_width=True)
