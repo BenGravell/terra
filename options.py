@@ -28,6 +28,7 @@ PLOTLY_MAP_PROJECTION_TYPES = [
     "sinusoidal",
 ]
 
+EPS = 1e-6
 
 @dataclass
 class AppOptions:
@@ -51,10 +52,6 @@ class AppOptions:
     ef_score_min: float = 0.0
     english_ratio_min: float = 0.0
 
-    do_filter_culture_fit: bool = False
-    do_filter_freedom: bool = False
-    do_filter_english: bool = False
-
     # Weights
     cf_score_weight: float = 1.0
     pf_score_weight: float = 0.0
@@ -65,3 +62,15 @@ class AppOptions:
     show_radar: bool = False
     field_for_world_map: str = "overall_score"
     world_map_projection_type: str = "kavrayskiy7"
+
+    @property
+    def do_filter_culture_fit(self):
+        return not self.cf_score_min < EPS
+    
+    @property
+    def do_filter_freedom(self):
+        return not (self.pf_score_min < EPS and self.ef_score_min < EPS)
+
+    @property
+    def do_filter_english(self):
+        return not self.english_ratio_min < EPS

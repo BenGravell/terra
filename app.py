@@ -49,6 +49,9 @@ def load_country_to_emoji():
 human_freedom_df, countries_dict, df_english = load_data()
 COUNTRY_TO_EMOJI = load_country_to_emoji()
 
+# Basic derived data
+all_countries = list(countries_dict.values())
+
 
 def culture_fit_reference_callback():
     if state.culture_fit_reference_country == NONE_COUNTRY:
@@ -93,11 +96,6 @@ def get_options_from_ui(app_options=None):
     if app_options is None:
         app_options = AppOptions()
 
-    with st.expander("Time range options"):
-        st.caption("", help="Years over which to aggregate statistics. Only used by Human Freedom scores.")
-        app_options.year_min = st.slider("Year Min", min_value=2000, max_value=2020, value=app_options.year_min)
-        app_options.year_max = st.slider("Year Max", min_value=2000, max_value=2020, value=app_options.year_max)
-
     with st.expander("Culture Fit preferences"):
         st.caption(
             "",
@@ -118,20 +116,19 @@ def get_options_from_ui(app_options=None):
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
     with st.expander("Filters"):
-        app_options.do_filter_culture_fit = st.checkbox(
-            label="Use Culture Fit filter?", value=app_options.do_filter_culture_fit
+        app_options.year_min, app_options.year_max = st.slider(
+            "Year Range",
+            min_value=2000,
+            max_value=2020,
+            value=(app_options.year_min, app_options.year_max),
+            help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
         )
         app_options.cf_score_min = st.slider(
             "Culture Fit Score Min",
             min_value=0.0,
             max_value=1.0,
             value=app_options.cf_score_min,
-            disabled=not app_options.do_filter_culture_fit,
             key="cf_score_min",
-        )
-
-        app_options.do_filter_freedom = st.checkbox(
-            label="Use Human Freedom filters?", value=app_options.do_filter_freedom
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
@@ -139,7 +136,6 @@ def get_options_from_ui(app_options=None):
             max_value=1.0,
             value=app_options.pf_score_min,
             help=personal_freedom_score_help,
-            disabled=not app_options.do_filter_freedom,
             key="pf_score_min",
         )
         app_options.ef_score_min = st.slider(
@@ -148,19 +144,13 @@ def get_options_from_ui(app_options=None):
             max_value=1.0,
             value=app_options.ef_score_min,
             help=economic_freedom_score_help,
-            disabled=not app_options.do_filter_freedom,
             key="ef_score_min",
-        )
-
-        app_options.do_filter_english = st.checkbox(
-            label="Use English Speaking filter?", value=app_options.do_filter_english
         )
         app_options.english_ratio_min = st.slider(
             "English Speaking Ratio Min",
             min_value=0.0,
             max_value=1.0,
             value=app_options.english_ratio_min,
-            disabled=not app_options.do_filter_english,
             key="english_ratio_min",
         )
 
@@ -218,7 +208,7 @@ def get_options_from_ui(app_options=None):
 
 
 # Options
-# app_options = get_options_from_query_params()
+app_options = get_options_from_query_params()
 app_options = AppOptions()
 
 with st.sidebar:
@@ -237,190 +227,194 @@ with st.sidebar:
         app_options = get_options_from_ui(app_options)
         submit_button = st.form_submit_button(label="Update Options", on_click=options_callback)
 
-# # Set the query params with all the app_options
-# st.experimental_set_query_params(**dataclasses.asdict(app_options))
+# Set the query params with all the app_options
+st.experimental_set_query_params(**dataclasses.asdict(app_options))
 
 
-# Title section
-st.title("🌎 :blue[Terra]", anchor=False)
-terra_question = 'This app is designed to answer the question "which country should I live in?"'
-terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
-terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
-terra_help = f"{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}"
-st.caption("Find the right country for you!", help=terra_help)
+def render_ui_section_title():
+    st.title("🌎 :blue[Terra]", anchor=False)
+    terra_question = 'This app is designed to answer the question "which country should I live in?"'
+    terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
+    terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
+    terra_help = f"{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}"
+    st.caption("Find the right country for you!", help=terra_help)
 
 
-# Human Freedom
-human_freedom_df = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
+def main():
+    render_ui_section_title()
 
-df = human_freedom_df.groupby(["country"])[["pf_score", "ef_score"]].mean()
-df[["pf_score", "ef_score"]] = df[["pf_score", "ef_score"]] * 0.1  # undo 10X scaling
+    # Options validation
+    if not app_options.year_min <= app_options.year_max:
+        st.error(
+            f"Invalid time range selected ({app_options.year_min} > {app_options.year_max}), please correct and resubmit options."
+        )
+        return
 
-df = df.reset_index()
+    # Human Freedom
+    human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
 
+    df = human_freedom_df_year_filtered.groupby(["country"])[["pf_score", "ef_score"]].mean()
+    df[["pf_score", "ef_score"]] = df[["pf_score", "ef_score"]] * 0.1  # undo 10X scaling
 
-# Cultural Fit
-# Derived from https://culture-map.streamlit.app/Country_Match?ref=blog.streamlit.io
-user_ideal = country_data.types.CountryInfo(
-    id=999,
-    title="user",
-    slug="user",
-    pdi=app_options.culture_fit_preference_pdi,
-    idv=app_options.culture_fit_preference_idv,
-    mas=app_options.culture_fit_preference_mas,
-    uai=app_options.culture_fit_preference_uai,
-    lto=app_options.culture_fit_preference_lto,
-    ind=app_options.culture_fit_preference_ind,
-    ivr=app_options.culture_fit_preference_ind,  # not a typo
-    adjective="user",
-)
+    df = df.reset_index()
 
-
-all_countries = list(countries_dict.values())
-
-distances, max_distance = distance_calculations.compute_distances(
-    countries_from=[user_ideal], countries_to=all_countries, distance_metric="Cosine"
-)
-distances = distances.sort_values("user")
-culture_fit_score = (1 - distances).reset_index()
-culture_fit_score = culture_fit_score.rename(columns={"index": "country", "user": "cf_score"})
-
-df = df.merge(culture_fit_score, on="country")
-
-
-# Language
-# From https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population
-# Percentage of people who speak English as a mother tongue or foreign language
-
-if app_options.do_filter_english:
-    df = df.merge(df_english[["country", "english_ratio"]], on="country")
-
-
-# Overall Score
-weight_sum = app_options.pf_score_weight + app_options.ef_score_weight + app_options.cf_score_weight
-app_options.pf_score_weight /= weight_sum
-app_options.ef_score_weight /= weight_sum
-app_options.cf_score_weight /= weight_sum
-
-
-df["pf_score_weighted"] = df["pf_score"] * app_options.pf_score_weight
-df["ef_score_weighted"] = df["ef_score"] * app_options.ef_score_weight
-df["cf_score_weighted"] = df["cf_score"] * app_options.cf_score_weight
-
-df["overall_score"] = df["pf_score_weighted"] + df["ef_score_weighted"] + df["cf_score_weighted"]
-df = df.sort_values("overall_score", ascending=False)
-
-
-# Filters
-df["acceptable"] = True
-if app_options.do_filter_culture_fit:
-    df["acceptable"] = df["acceptable"] & (df["cf_score"] > app_options.cf_score_min)
-if app_options.do_filter_freedom:
-    df["acceptable"] = (
-        df["acceptable"] & (df["pf_score"] > app_options.pf_score_min) & (df["ef_score"] > app_options.ef_score_min)
+    # Cultural Fit
+    # Derived from https://culture-map.streamlit.app/Country_Match?ref=blog.streamlit.io
+    user_ideal = country_data.types.CountryInfo(
+        id=999,
+        title="user",
+        slug="user",
+        pdi=app_options.culture_fit_preference_pdi,
+        idv=app_options.culture_fit_preference_idv,
+        mas=app_options.culture_fit_preference_mas,
+        uai=app_options.culture_fit_preference_uai,
+        lto=app_options.culture_fit_preference_lto,
+        ind=app_options.culture_fit_preference_ind,
+        ivr=app_options.culture_fit_preference_ind,  # not a typo
+        adjective="user",
     )
-if app_options.do_filter_english:
-    df["acceptable"] = df["acceptable"] & (df["english_ratio"] > app_options.english_ratio_min)
 
-df = df[df["acceptable"]]
+    distances, max_distance = distance_calculations.compute_distances(
+        countries_from=[user_ideal], countries_to=all_countries, distance_metric="Cosine"
+    )
+    distances = distances.sort_values("user")
+    culture_fit_score = (1 - distances).reset_index()
+    culture_fit_score = culture_fit_score.rename(columns={"index": "country", "user": "cf_score"})
 
+    df = df.merge(culture_fit_score, on="country")
 
-if df.shape[0] == 0:
-    st.warning("No matches found! Try adjusting the filters to be less strict.")
-else:
-    # Results
+    # Language
+    # From https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population
+    # Percentage of people who speak English as a mother tongue or foreign language
 
-    # Best match
-    best_match_country = str(df.iloc[0].country)
-    best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
+    if app_options.do_filter_english:
+        df = df.merge(df_english[["country", "english_ratio"]], on="country")
 
-    st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
-    with st.expander("Flag", expanded=True):
-        st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
+    # Overall Score
+    weight_sum = app_options.pf_score_weight + app_options.ef_score_weight + app_options.cf_score_weight
+    app_options.pf_score_weight /= weight_sum
+    app_options.ef_score_weight /= weight_sum
+    app_options.cf_score_weight /= weight_sum
 
-    best_match_country_slug = best_match_country.lower().replace(" ", "-")
-    cia_world_factbook_url = f"https://www.cia.gov/the-world-factbook/countries/{best_match_country_slug}/"
-    with st.expander(f"CIA World Factbook", expanded=True):
-        st.markdown(f"([open in new tab]({cia_world_factbook_url}))")
-        st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+    df["pf_score_weighted"] = df["pf_score"] * app_options.pf_score_weight
+    df["ef_score_weighted"] = df["ef_score"] * app_options.ef_score_weight
+    df["cf_score_weighted"] = df["cf_score"] * app_options.cf_score_weight
 
-    # Top N best matches
-    st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
-    column_remap = {
-        "overall_score": "Overall Score",
-        "pf_score": "Personal Freedom Score",
-        "ef_score": "Economic Freedom Score",
-        "cf_score": "Cultural Fit Score",
-        "pf_score_weighted": "Personal Freedom Score (weighted)",
-        "ef_score_weighted": "Economic Freedom Score (weighted)",
-        "cf_score_weighted": "Cultural Fit Score (weighted)",
-    }
-    df_top_N = df.head(app_options.N).rename(columns=column_remap)
+    df["overall_score"] = df["pf_score_weighted"] + df["ef_score_weighted"] + df["cf_score_weighted"]
+    df = df.sort_values("overall_score", ascending=False)
 
-    def pct_fmt(x):
-        return f"{round(100*x, 2):.0f}%"
-
-    with st.expander("Score Contributions", expanded=True):
-        fig = px.bar(
-            df_top_N,
-            x="country",
-            y=[
-                "Personal Freedom Score (weighted)",
-                "Economic Freedom Score (weighted)",
-                "Cultural Fit Score (weighted)",
-            ],
+    # Filters
+    df["acceptable"] = True
+    if app_options.do_filter_culture_fit:
+        df["acceptable"] = df["acceptable"] & (df["cf_score"] > app_options.cf_score_min)
+    if app_options.do_filter_freedom:
+        df["acceptable"] = (
+            df["acceptable"] & (df["pf_score"] > app_options.pf_score_min) & (df["ef_score"] > app_options.ef_score_min)
         )
-        for idx, row in df_top_N.iterrows():
-            fig.add_annotation(
-                x=row.country,
-                y=row["Overall Score"],
-                yanchor="bottom",
-                showarrow=False,
-                align="left",
-                text=f"{pct_fmt(row['Overall Score'])}",
-                font={"size": 12},
+    if app_options.do_filter_english:
+        df["acceptable"] = df["acceptable"] & (df["english_ratio"] > app_options.english_ratio_min)
+
+    df = df[df["acceptable"]]
+
+    if df.shape[0] == 0:
+        st.warning("No matches found! Try adjusting the filters to be less strict.")
+    else:
+        # Results
+
+        # Best match
+        best_match_country = str(df.iloc[0].country)
+        best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
+
+        st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
+        with st.expander("Flag", expanded=True):
+            st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
+
+        best_match_country_slug = best_match_country.lower().replace(" ", "-")
+        cia_world_factbook_url = f"https://www.cia.gov/the-world-factbook/countries/{best_match_country_slug}/"
+        with st.expander(f"CIA World Factbook", expanded=True):
+            st.markdown(f"([open in new tab]({cia_world_factbook_url}))")
+            st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+
+        # Top N best matches
+        st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
+        column_remap = {
+            "overall_score": "Overall Score",
+            "pf_score": "Personal Freedom Score",
+            "ef_score": "Economic Freedom Score",
+            "cf_score": "Cultural Fit Score",
+            "pf_score_weighted": "Personal Freedom Score (weighted)",
+            "ef_score_weighted": "Economic Freedom Score (weighted)",
+            "cf_score_weighted": "Cultural Fit Score (weighted)",
+        }
+        df_top_N = df.head(app_options.N).rename(columns=column_remap)
+
+        def pct_fmt(x):
+            return f"{round(100*x, 2):.0f}%"
+
+        with st.expander("Score Contributions", expanded=True):
+            fig = px.bar(
+                df_top_N,
+                x="country",
+                y=[
+                    "Personal Freedom Score (weighted)",
+                    "Economic Freedom Score (weighted)",
+                    "Cultural Fit Score (weighted)",
+                ],
             )
-        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
-        st.plotly_chart(fig, use_container_width=True)
+            for idx, row in df_top_N.iterrows():
+                fig.add_annotation(
+                    x=row.country,
+                    y=row["Overall Score"],
+                    yanchor="bottom",
+                    showarrow=False,
+                    align="left",
+                    text=f"{pct_fmt(row['Overall Score'])}",
+                    font={"size": 12},
+                )
+            fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
+            st.plotly_chart(fig, use_container_width=True)
 
-    # TODO replace pyplot radar plots with plotly radar plots
-    # See https://plotly.com/python/radar-chart/
-    def get_radar(country_names, user_ideal):
-        dimensions = distance_calculations.compute_dimensions(
-            [countries_dict[country_name] for country_name in country_names]
-        )
-        reference = distance_calculations.compute_dimensions([user_ideal])
-        radar = visualisation.generate_radar_plot(dimensions, reference)
-        return radar
+        # TODO replace pyplot radar plots with plotly radar plots
+        # See https://plotly.com/python/radar-chart/
+        def get_radar(country_names, user_ideal):
+            dimensions = distance_calculations.compute_dimensions(
+                [countries_dict[country_name] for country_name in country_names]
+            )
+            reference = distance_calculations.compute_dimensions([user_ideal])
+            radar = visualisation.generate_radar_plot(dimensions, reference)
+            return radar
 
-    if app_options.show_radar:
-        with st.expander("Culture Fit"):
-            radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
-            st.caption("", help="The dashed :red[red shape] depicts your preferences.")
-            st.pyplot(radar)
+        if app_options.show_radar:
+            with st.expander("Culture Fit"):
+                radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
+                st.caption("", help="The dashed :red[red shape] depicts your preferences.")
+                st.pyplot(radar)
 
-    # All matches
-    st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
+        # All matches
+        st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
 
-    def generate_choropleth(df, name):
-        df = df.reset_index()
-        fig = px.choropleth(
-            df,
-            locationmode="country names",
-            locations="country",
-            color=name,
-            hover_name="country",
-            color_continuous_scale=px.colors.sequential.deep_r,
-        )
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-        return fig
+        def generate_choropleth(df, name):
+            df = df.reset_index()
+            fig = px.choropleth(
+                df,
+                locationmode="country names",
+                locations="country",
+                color=name,
+                hover_name="country",
+                color_continuous_scale=px.colors.sequential.deep_r,
+            )
+            fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+            return fig
 
-    with st.expander("World Map", expanded=True):
-        fig = generate_choropleth(df, app_options.field_for_world_map)
-        fig.update_geos(projection_type=app_options.world_map_projection_type)
-        fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
-        fig.update_layout(geo_bgcolor="#0E1117")
-        st.plotly_chart(fig, use_container_width=True)
+        with st.expander("World Map", expanded=True):
+            fig = generate_choropleth(df, app_options.field_for_world_map)
+            fig.update_geos(projection_type=app_options.world_map_projection_type)
+            fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
+            fig.update_layout(geo_bgcolor="#0E1117")
+            st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Raw Results Data"):
-        st.dataframe(df.set_index("country"), use_container_width=True)
+        with st.expander("Raw Results Data"):
+            st.dataframe(df.set_index("country"), use_container_width=True)
+
+
+main()
