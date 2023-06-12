@@ -113,9 +113,7 @@ def get_options_from_ui(app_options=None):
             slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
             help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): {dimension_info["question"]} \n\n {dimension_info["description"]}'
 
-            preference_val = st.slider(
-                slider_str, min_value=0, max_value=100, help=help_str, key=dimension
-            )
+            preference_val = st.slider(slider_str, min_value=0, max_value=100, help=help_str, key=dimension)
 
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
@@ -220,7 +218,6 @@ def get_options():
             state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
     else:
         app_options = state.app_options
-
 
     with st.sidebar:
         with st.form(key="reference_country_form"):
