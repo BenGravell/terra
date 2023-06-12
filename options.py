@@ -34,11 +34,7 @@ EPS = 1e-6
 class AppOptions:
     """Class for app options."""
 
-    # Time range
-    year_min: int = 2015
-    year_max: int = 2020
-
-    # Culture fit
+    # Culture Fit
     culture_fit_preference_pdi: int = 50
     culture_fit_preference_idv: int = 50
     culture_fit_preference_mas: int = 50
@@ -47,6 +43,8 @@ class AppOptions:
     culture_fit_preference_ind: int = 50
 
     # Filters
+    year_min: int = 2015
+    year_max: int = 2020
     cf_score_min: float = 0.0
     pf_score_min: float = 0.0
     ef_score_min: float = 0.0
