@@ -70,6 +70,7 @@ personal_freedom_score_help = "Personal Freedom measures the degree to which mem
 economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms. The Economic Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
 english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population. See the data source https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population."
 
+
 def get_options_from_query_params(app_options=None):
     if app_options is None:
         app_options = AppOptions()
