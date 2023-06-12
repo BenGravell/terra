@@ -64,15 +64,11 @@ def culture_fit_reference_callback():
         state[dimension] = getattr(country_info, dimension)
 
 
-def options_callback():
-    # TODO either remove this function or have it do something
-    return
-
-
 # TODO move this to a data file
+culture_fit_help = "Preferences regarding your desired national culture. See https://geerthofstede.com/culture-geert-hofstede-gert-jan-hofstede/6d-model-of-national-culture/ for more information."
 personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms. The Personal Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
 economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms. The Economic Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
-
+english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population. See the data source https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population."
 
 def get_options_from_query_params(app_options=None):
     if app_options is None:
@@ -104,7 +100,7 @@ def get_options_from_ui(app_options=None):
     with st.expander("Culture Fit preferences"):
         st.caption(
             "",
-            help="Preferences regarding your desired national culture. See https://geerthofstede.com/culture-geert-hofstede-gert-jan-hofstede/6d-model-of-national-culture/ for more information.",
+            help=culture_fit_help,
         )
 
         for dimension in dimensions_info.DIMENSIONS:
@@ -150,6 +146,7 @@ def get_options_from_ui(app_options=None):
             min_value=0.0,
             max_value=1.0,
             value=app_options.english_ratio_min,
+            help=english_speaking_ratio_help,
         )
 
     with st.expander("Weights"):
@@ -234,7 +231,7 @@ def get_options():
 
         with st.form(key="options_form"):
             app_options = get_options_from_ui(app_options)
-            st.form_submit_button(label="Update Options", on_click=options_callback)
+            st.form_submit_button(label="Update Options")
 
     # Set the query params with all the app_options
     st.experimental_set_query_params(**dataclasses.asdict(app_options))
@@ -281,9 +278,6 @@ def process_data(app_options):
     df = df.merge(culture_fit_score, on="country")
 
     # Language
-    # From https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population
-    # Percentage of people who speak English as a mother tongue or foreign language
-
     if app_options.do_filter_english:
         df = df.merge(df_english[["country", "english_ratio"]], on="country")
 
