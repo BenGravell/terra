@@ -1,7 +1,7 @@
 [
   {
     "id": 545,
-    "title": "Albania*",
+    "title": "Albania",
     "slug": "albania",
     "pdi": "90",
     "idv": "20",
@@ -14,7 +14,7 @@
   },
   {
     "id": 7062,
-    "title": "Algeria*",
+    "title": "Algeria",
     "slug": "algeria",
     "pdi": "80",
     "idv": "35",
@@ -27,7 +27,7 @@
   },
   {
     "id": 546,
-    "title": "Angola*",
+    "title": "Angola",
     "slug": "angola",
     "pdi": "83",
     "idv": "18",
@@ -53,7 +53,7 @@
   },
   {
     "id": 7067,
-    "title": "Armenia*",
+    "title": "Armenia",
     "slug": "armenia",
     "pdi": "85",
     "idv": "22",
@@ -92,7 +92,7 @@
   },
   {
     "id": 7074,
-    "title": "Azerbaijan*",
+    "title": "Azerbaijan",
     "slug": "azerbaijan",
     "pdi": "85",
     "idv": "22",
@@ -118,7 +118,7 @@
   },
   {
     "id": 7077,
-    "title": "Belarus*",
+    "title": "Belarus",
     "slug": "belarus",
     "pdi": "95",
     "idv": "25",
@@ -144,7 +144,7 @@
   },
   {
     "id": 463,
-    "title": "Bhutan*",
+    "title": "Bhutan",
     "slug": "bhutan",
     "pdi": "94",
     "idv": "52",
@@ -157,7 +157,7 @@
   },
   {
     "id": 7027,
-    "title": "Bolivia*",
+    "title": "Bolivia",
     "slug": "bolivia",
     "pdi": "78",
     "idv": "10",
@@ -170,7 +170,7 @@
   },
   {
     "id": 7086,
-    "title": "Bosnia and Herzegovina*",
+    "title": "Bosnia and Herzegovina",
     "slug": "bosnia-and-herzegovina",
     "pdi": "90",
     "idv": "22",
@@ -209,7 +209,7 @@
   },
   {
     "id": 548,
-    "title": "Burkina Faso*",
+    "title": "Burkina Faso",
     "slug": "burkina-faso",
     "pdi": "70",
     "idv": "15",
@@ -235,7 +235,7 @@
   },
   {
     "id": 547,
-    "title": "Cape Verde*",
+    "title": "Cape Verde",
     "slug": "cape-verde",
     "pdi": "75",
     "idv": "20",
@@ -339,7 +339,7 @@
   },
   {
     "id": 549,
-    "title": "Dominican Republic*",
+    "title": "Dominican Republic",
     "slug": "the-dominican-republic",
     "pdi": "65",
     "idv": "30",
@@ -365,7 +365,7 @@
   },
   {
     "id": 456,
-    "title": "Egypt*",
+    "title": "Egypt",
     "slug": "egypt",
     "pdi": "80",
     "idv": "37",
@@ -404,7 +404,7 @@
   },
   {
     "id": 457,
-    "title": "Ethiopia*",
+    "title": "Ethiopia",
     "slug": "ethiopia",
     "pdi": "70",
     "idv": "20",
@@ -417,7 +417,7 @@
   },
   {
     "id": 550,
-    "title": "Fiji*",
+    "title": "Fiji",
     "slug": "fiji",
     "pdi": "78",
     "idv": "14",
@@ -456,7 +456,7 @@
   },
   {
     "id": 7089,
-    "title": "Georgia*",
+    "title": "Georgia",
     "slug": "georgia",
     "pdi": "65",
     "idv": "41",
@@ -482,7 +482,7 @@
   },
   {
     "id": 482,
-    "title": "Ghana*",
+    "title": "Ghana",
     "slug": "ghana",
     "pdi": "80",
     "idv": "15",
@@ -521,7 +521,7 @@
   },
   {
     "id": 551,
-    "title": "Honduras*",
+    "title": "Honduras",
     "slug": "honduras",
     "pdi": "80",
     "idv": "20",
@@ -547,7 +547,7 @@
   },
   {
     "id": 520,
-    "title": "Hungary*",
+    "title": "Hungary",
     "slug": "hungary",
     "pdi": "46",
     "idv": "80",
@@ -560,7 +560,7 @@
   },
   {
     "id": 552,
-    "title": "Iceland*",
+    "title": "Iceland",
     "slug": "iceland",
     "pdi": "30",
     "idv": "60",
@@ -612,7 +612,7 @@
   },
   {
     "id": 521,
-    "title": "Iraq*",
+    "title": "Iraq",
     "slug": "iraq",
     "pdi": "97",
     "idv": "31",
@@ -690,7 +690,7 @@
   },
   {
     "id": 553,
-    "title": "Jordan*",
+    "title": "Jordan",
     "slug": "jordan",
     "pdi": "70",
     "idv": "30",
@@ -703,7 +703,7 @@
   },
   {
     "id": 7100,
-    "title": "Kazakhstan*",
+    "title": "Kazakhstan",
     "slug": "kazakhstan",
     "pdi": "88",
     "idv": "20",
@@ -716,7 +716,7 @@
   },
   {
     "id": 554,
-    "title": "Kenya*",
+    "title": "Kenya",
     "slug": "kenya",
     "pdi": "70",
     "idv": "25",
@@ -729,7 +729,7 @@
   },
   {
     "id": 523,
-    "title": "Kuwait*",
+    "title": "Kuwait",
     "slug": "kuwait",
     "pdi": "90",
     "idv": "25",
@@ -755,7 +755,7 @@
   },
   {
     "id": 524,
-    "title": "Lebanon*",
+    "title": "Lebanon",
     "slug": "lebanon",
     "pdi": "62",
     "idv": "43",
@@ -807,7 +807,7 @@
   },
   {
     "id": 555,
-    "title": "Malawi*",
+    "title": "Malawi",
     "slug": "malawi",
     "pdi": "70",
     "idv": "30",
@@ -859,7 +859,7 @@
   },
   {
     "id": 7102,
-    "title": "Moldova*",
+    "title": "Moldova",
     "slug": "moldova",
     "pdi": "90",
     "idv": "27",
@@ -872,7 +872,7 @@
   },
   {
     "id": 7132,
-    "title": "Montenegro*",
+    "title": "Montenegro",
     "slug": "montenegro",
     "pdi": "88",
     "idv": "24",
@@ -898,7 +898,7 @@
   },
   {
     "id": 556,
-    "title": "Mozambique*",
+    "title": "Mozambique",
     "slug": "mozambique",
     "pdi": "85",
     "idv": "15",
@@ -911,7 +911,7 @@
   },
   {
     "id": 464,
-    "title": "Namibia*",
+    "title": "Namibia",
     "slug": "namibia",
     "pdi": "65",
     "idv": "30",
@@ -924,7 +924,7 @@
   },
   {
     "id": 557,
-    "title": "Nepal*",
+    "title": "Nepal",
     "slug": "nepal",
     "pdi": "65",
     "idv": "30",
@@ -963,7 +963,7 @@
   },
   {
     "id": 526,
-    "title": "Nigeria*",
+    "title": "Nigeria",
     "slug": "nigeria",
     "pdi": "80",
     "idv": "30",
@@ -976,7 +976,7 @@
   },
   {
     "id": 7113,
-    "title": "North Macedonia*",
+    "title": "North Macedonia",
     "slug": "north-macedonia",
     "pdi": "90",
     "idv": "22",
@@ -1028,7 +1028,7 @@
   },
   {
     "id": 7034,
-    "title": "Paraguay*",
+    "title": "Paraguay",
     "slug": "paraguay",
     "pdi": "70",
     "idv": "12",
@@ -1093,7 +1093,7 @@
   },
   {
     "id": 561,
-    "title": "Puerto Rico*",
+    "title": "Puerto Rico",
     "slug": "puerto-rico",
     "pdi": "68",
     "idv": "27",
@@ -1106,7 +1106,7 @@
   },
   {
     "id": 3873,
-    "title": "Qatar*",
+    "title": "Qatar",
     "slug": "qatar",
     "pdi": "93",
     "idv": "25",
@@ -1145,7 +1145,7 @@
   },
   {
     "id": 7147,
-    "title": "São Tomé and Príncipe*",
+    "title": "Sao Tome and Príncipe",
     "slug": "sao-tome-and-principe",
     "pdi": "75",
     "idv": "37",
@@ -1158,7 +1158,7 @@
   },
   {
     "id": 531,
-    "title": "Saudi Arabia*",
+    "title": "Saudi Arabia",
     "slug": "saudi-arabia",
     "pdi": "72",
     "idv": "48",
@@ -1171,7 +1171,7 @@
   },
   {
     "id": 558,
-    "title": "Senegal*",
+    "title": "Senegal",
     "slug": "senegal",
     "pdi": "70",
     "idv": "25",
@@ -1197,7 +1197,7 @@
   },
   {
     "id": 527,
-    "title": "Sierra Leone*",
+    "title": "Sierra Leone",
     "slug": "sierra-leone",
     "pdi": "70",
     "idv": "20",
@@ -1288,7 +1288,7 @@
   },
   {
     "id": 559,
-    "title": "Sri Lanka*",
+    "title": "Sri Lanka",
     "slug": "sri-lanka",
     "pdi": "80",
     "idv": "35",
@@ -1340,7 +1340,7 @@
   },
   {
     "id": 560,
-    "title": "Syria*",
+    "title": "Syria",
     "slug": "syria",
     "pdi": "80",
     "idv": "35",
@@ -1366,7 +1366,7 @@
   },
   {
     "id": 529,
-    "title": "Tanzania*",
+    "title": "Tanzania",
     "slug": "tanzania",
     "pdi": "70",
     "idv": "25",
@@ -1405,7 +1405,7 @@
   },
   {
     "id": 7149,
-    "title": "Tunisia*",
+    "title": "Tunisia",
     "slug": "tunisia",
     "pdi": "70",
     "idv": "40",
@@ -1431,7 +1431,7 @@
   },
   {
     "id": 533,
-    "title": "Ukraine*",
+    "title": "Ukraine",
     "slug": "ukraine",
     "pdi": "92",
     "idv": "25",
@@ -1444,7 +1444,7 @@
   },
   {
     "id": 518,
-    "title": "United Arab Emirates*",
+    "title": "United Arab Emirates",
     "slug": "the-united-arab-emirates",
     "pdi": "74",
     "idv": "36",
@@ -1522,7 +1522,7 @@
   },
   {
     "id": 530,
-    "title": "Zambia*",
+    "title": "Zambia",
     "slug": "zambia",
     "pdi": "60",
     "idv": "35",
