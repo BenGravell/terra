@@ -65,9 +65,11 @@ def culture_fit_reference_callback():
 
 
 def options_callback():
+    # TODO either remove this function or have it do something
     return
 
 
+# TODO move this to a data file
 personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms. The Personal Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
 economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms. The Economic Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
 
@@ -210,33 +212,36 @@ def get_options_from_ui(app_options=None):
 
 def get_options():
     # Only pull the query_params on the first run e.g. to support deeplinking.
-    # Otherwise, only use the options that have been set in the current session.
+    # Otherwise, only use the options that have been set in the session.
     # This helps avoid a race condition between getting options via query_params and getting options via the UI.
-    if not "query_params_pulled_down" in state:
-        state.query_params_pulled_down = True
+    if "app_options" not in state:
         app_options = get_options_from_query_params()
     else:
-        app_options = AppOptions()
+        app_options = state.app_options
 
     with st.sidebar:
         with st.form(key="reference_country_form"):
             culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(countries_dict))
-            culture_fit_reference_country = st.selectbox(
+            st.selectbox(
                 "Reference Country",
                 options=culture_fit_reference_country_options,
                 key="culture_fit_reference_country",
             )
-            culture_fit_reference_country_submit_button = st.form_submit_button(
+            st.form_submit_button(
                 label="Set Culture Fit preferences to selected reference country",
                 on_click=culture_fit_reference_callback,
             )
 
         with st.form(key="options_form"):
             app_options = get_options_from_ui(app_options)
-            submit_button = st.form_submit_button(label="Update Options", on_click=options_callback)
+            st.form_submit_button(label="Update Options", on_click=options_callback)
 
     # Set the query params with all the app_options
     st.experimental_set_query_params(**dataclasses.asdict(app_options))
+
+    # Update the state
+    # This assumes that the app_options will not be modified after a single call to get_options()
+    state.app_options = app_options
 
     return app_options
 
@@ -308,10 +313,10 @@ def process_data(app_options):
 
     df = df[df["acceptable"]]
 
-    return df
+    return df, user_ideal
 
 
-def render_ui_section_title(df, app_options):
+def render_ui_section_title():
     st.title("🌎 :blue[Terra]", anchor=False)
     terra_question = 'This app is designed to answer the question "which country should I live in?"'
     terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
@@ -320,7 +325,7 @@ def render_ui_section_title(df, app_options):
     st.caption("Find the right country for you!", help=terra_help)
 
 
-def render_ui_section_best_match(df, app_options):
+def render_ui_section_best_match(df):
     best_match_country = str(df.iloc[0].country)
     best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
 
@@ -336,7 +341,7 @@ def render_ui_section_best_match(df, app_options):
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
 
-def render_ui_section_top_n_matches(df, app_options):
+def render_ui_section_top_n_matches(df, user_ideal, app_options):
     st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
     column_remap = {
         "overall_score": "Overall Score",
@@ -421,16 +426,16 @@ def render_ui_section_all_matches(df, app_options):
 
 def main():
     app_options = get_options()
-    df = process_data(app_options)
+    df, user_ideal = process_data(app_options)
 
-    render_ui_section_title(df, app_options)
+    render_ui_section_title()
 
     no_matches = df.shape[0] == 0
     if no_matches:
         st.warning("No matches found! Try adjusting the filters to be less strict.")
     else:
-        render_ui_section_best_match(df, app_options)
-        render_ui_section_top_n_matches(df, app_options)
+        render_ui_section_best_match(df)
+        render_ui_section_top_n_matches(df, user_ideal, app_options)
         render_ui_section_all_matches(df, app_options)
 
 
