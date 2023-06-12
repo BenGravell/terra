@@ -212,7 +212,7 @@ def get_options_from_ui(app_options=None):
 # Only pull the query_params on the first run e.g. to support deeplinking.
 # Otherwise, only use the options that have been set in the current session.
 # This helps avoid a race condition between getting options via query_params and getting options via the UI.
-if not 'query_params_pulled_down' in state:
+if not "query_params_pulled_down" in state:
     state.query_params_pulled_down = True
     app_options = get_options_from_query_params()
 else:
