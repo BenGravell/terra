@@ -90,6 +90,8 @@ def get_options_from_query_params(app_options=None):
 
             # This takes care of converting from string to the proper data type for the field
             query_param_val = field.type(query_param_val)
+
+            # Finally overwrite the field in app_options with the query_param_val
             setattr(app_options, field.name, query_param_val)
 
     return app_options
@@ -110,10 +112,9 @@ def get_options_from_ui(app_options=None):
 
             slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
             help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): {dimension_info["question"]} \n\n {dimension_info["description"]}'
-            default_value = getattr(app_options, f"culture_fit_preference_{dimension}")
 
             preference_val = st.slider(
-                slider_str, min_value=0, max_value=100, value=default_value, help=help_str, key=dimension
+                slider_str, min_value=0, max_value=100, help=help_str, key=dimension
             )
 
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
@@ -131,7 +132,6 @@ def get_options_from_ui(app_options=None):
             min_value=0.0,
             max_value=1.0,
             value=app_options.cf_score_min,
-            key="cf_score_min",
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
@@ -139,7 +139,6 @@ def get_options_from_ui(app_options=None):
             max_value=1.0,
             value=app_options.pf_score_min,
             help=personal_freedom_score_help,
-            key="pf_score_min",
         )
         app_options.ef_score_min = st.slider(
             "Economic Freedom Score Min",
@@ -147,14 +146,12 @@ def get_options_from_ui(app_options=None):
             max_value=1.0,
             value=app_options.ef_score_min,
             help=economic_freedom_score_help,
-            key="ef_score_min",
         )
         app_options.english_ratio_min = st.slider(
             "English Speaking Ratio Min",
             min_value=0.0,
             max_value=1.0,
             value=app_options.english_ratio_min,
-            key="english_ratio_min",
         )
 
     with st.expander("Weights"):
@@ -216,8 +213,14 @@ def get_options():
     # This helps avoid a race condition between getting options via query_params and getting options via the UI.
     if "app_options" not in state:
         app_options = get_options_from_query_params()
+
+        # Effectively set the first-time default for certain widgets by initializing a value assigned to its key in session state before the widgets are instantiated for the first time.
+        # See https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/27
+        for dimension in dimensions_info.DIMENSIONS:
+            state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
     else:
         app_options = state.app_options
+
 
     with st.sidebar:
         with st.form(key="reference_country_form"):
@@ -426,6 +429,7 @@ def render_ui_section_all_matches(df, app_options):
 
 def main():
     app_options = get_options()
+
     df, user_ideal = process_data(app_options)
 
     render_ui_section_title()
