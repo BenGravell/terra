@@ -23,7 +23,8 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 
 @st.cache_data
 def load_data():
-    # Load all data sources
+    """Load all data sources."""
+
     # Human Freedom
     human_freedom_df = pd.read_csv("data/human-freedom-index-2022.csv")
     # Culture Fit
@@ -207,56 +208,40 @@ def get_options_from_ui(app_options=None):
     return app_options
 
 
-# Options
+def get_options():
+    # Only pull the query_params on the first run e.g. to support deeplinking.
+    # Otherwise, only use the options that have been set in the current session.
+    # This helps avoid a race condition between getting options via query_params and getting options via the UI.
+    if not "query_params_pulled_down" in state:
+        state.query_params_pulled_down = True
+        app_options = get_options_from_query_params()
+    else:
+        app_options = AppOptions()
 
-# Only pull the query_params on the first run e.g. to support deeplinking.
-# Otherwise, only use the options that have been set in the current session.
-# This helps avoid a race condition between getting options via query_params and getting options via the UI.
-if not "query_params_pulled_down" in state:
-    state.query_params_pulled_down = True
-    app_options = get_options_from_query_params()
-else:
-    app_options = AppOptions()
+    with st.sidebar:
+        with st.form(key="reference_country_form"):
+            culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(countries_dict))
+            culture_fit_reference_country = st.selectbox(
+                "Reference Country",
+                options=culture_fit_reference_country_options,
+                key="culture_fit_reference_country",
+            )
+            culture_fit_reference_country_submit_button = st.form_submit_button(
+                label="Set Culture Fit preferences to selected reference country",
+                on_click=culture_fit_reference_callback,
+            )
 
-with st.sidebar:
-    with st.form(key="reference_country_form"):
-        culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(countries_dict))
-        culture_fit_reference_country = st.selectbox(
-            "Reference Country",
-            options=culture_fit_reference_country_options,
-            key="culture_fit_reference_country",
-        )
-        culture_fit_reference_country_submit_button = st.form_submit_button(
-            label="Set Culture Fit preferences to selected reference country", on_click=culture_fit_reference_callback
-        )
+        with st.form(key="options_form"):
+            app_options = get_options_from_ui(app_options)
+            submit_button = st.form_submit_button(label="Update Options", on_click=options_callback)
 
-    with st.form(key="options_form"):
-        app_options = get_options_from_ui(app_options)
-        submit_button = st.form_submit_button(label="Update Options", on_click=options_callback)
+    # Set the query params with all the app_options
+    st.experimental_set_query_params(**dataclasses.asdict(app_options))
 
-# Set the query params with all the app_options
-st.experimental_set_query_params(**dataclasses.asdict(app_options))
-
-
-def render_ui_section_title():
-    st.title("🌎 :blue[Terra]", anchor=False)
-    terra_question = 'This app is designed to answer the question "which country should I live in?"'
-    terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
-    terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
-    terra_help = f"{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}"
-    st.caption("Find the right country for you!", help=terra_help)
+    return app_options
 
 
-def main():
-    render_ui_section_title()
-
-    # Options validation
-    if not app_options.year_min <= app_options.year_max:
-        st.error(
-            f"Invalid time range selected ({app_options.year_min} > {app_options.year_max}), please correct and resubmit options."
-        )
-        return
-
+def process_data(app_options):
     # Human Freedom
     human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
 
@@ -323,105 +308,130 @@ def main():
 
     df = df[df["acceptable"]]
 
-    if df.shape[0] == 0:
+    return df
+
+
+def render_ui_section_title(df, app_options):
+    st.title("🌎 :blue[Terra]", anchor=False)
+    terra_question = 'This app is designed to answer the question "which country should I live in?"'
+    terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
+    terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
+    terra_help = f"{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}"
+    st.caption("Find the right country for you!", help=terra_help)
+
+
+def render_ui_section_best_match(df, app_options):
+    best_match_country = str(df.iloc[0].country)
+    best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
+
+    st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
+    with st.expander("Flag", expanded=True):
+        st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
+
+    cia_world_factbook_url_base = "https://www.cia.gov/the-world-factbook/countries/"
+    best_match_country_slug = best_match_country.lower().replace(" ", "-")
+    cia_world_factbook_url = f"{cia_world_factbook_url_base}{best_match_country_slug}/"
+    with st.expander(f"CIA World Factbook", expanded=True):
+        st.markdown(f"([open in new tab]({cia_world_factbook_url}))")
+        st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+
+
+def render_ui_section_top_n_matches(df, app_options):
+    st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
+    column_remap = {
+        "overall_score": "Overall Score",
+        "pf_score": "Personal Freedom Score",
+        "ef_score": "Economic Freedom Score",
+        "cf_score": "Cultural Fit Score",
+        "pf_score_weighted": "Personal Freedom Score (weighted)",
+        "ef_score_weighted": "Economic Freedom Score (weighted)",
+        "cf_score_weighted": "Cultural Fit Score (weighted)",
+    }
+    df_top_N = df.head(app_options.N).rename(columns=column_remap)
+
+    def pct_fmt(x):
+        return f"{round(100*x, 2):.0f}%"
+
+    with st.expander("Score Contributions", expanded=True):
+        fig = px.bar(
+            df_top_N,
+            x="country",
+            y=[
+                "Personal Freedom Score (weighted)",
+                "Economic Freedom Score (weighted)",
+                "Cultural Fit Score (weighted)",
+            ],
+        )
+        for idx, row in df_top_N.iterrows():
+            fig.add_annotation(
+                x=row.country,
+                y=row["Overall Score"],
+                yanchor="bottom",
+                showarrow=False,
+                align="left",
+                text=f"{pct_fmt(row['Overall Score'])}",
+                font={"size": 12},
+            )
+        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
+        st.plotly_chart(fig, use_container_width=True)
+
+    # TODO replace pyplot radar plots with plotly radar plots
+    # See https://plotly.com/python/radar-chart/
+    def get_radar(country_names, user_ideal):
+        dimensions = distance_calculations.compute_dimensions(
+            [countries_dict[country_name] for country_name in country_names]
+        )
+        reference = distance_calculations.compute_dimensions([user_ideal])
+        radar = visualisation.generate_radar_plot(dimensions, reference)
+        return radar
+
+    if app_options.show_radar:
+        with st.expander("Culture Fit"):
+            radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
+            st.caption("", help="The dashed :red[red shape] depicts your preferences.")
+            st.pyplot(radar)
+
+
+def render_ui_section_all_matches(df, app_options):
+    st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
+
+    def generate_choropleth(df, name):
+        df = df.reset_index()
+        fig = px.choropleth(
+            df,
+            locationmode="country names",
+            locations="country",
+            color=name,
+            hover_name="country",
+            color_continuous_scale=px.colors.sequential.deep_r,
+        )
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
+        return fig
+
+    with st.expander("World Map", expanded=True):
+        fig = generate_choropleth(df, app_options.field_for_world_map)
+        fig.update_geos(projection_type=app_options.world_map_projection_type)
+        fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
+        fig.update_layout(geo_bgcolor="#0E1117")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("Raw Results Data"):
+        st.dataframe(df.set_index("country"), use_container_width=True)
+
+
+def main():
+    app_options = get_options()
+    df = process_data(app_options)
+
+    render_ui_section_title(df, app_options)
+
+    no_matches = df.shape[0] == 0
+    if no_matches:
         st.warning("No matches found! Try adjusting the filters to be less strict.")
     else:
-        # Results
-
-        # Best match
-        best_match_country = str(df.iloc[0].country)
-        best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
-
-        st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
-        with st.expander("Flag", expanded=True):
-            st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
-
-        best_match_country_slug = best_match_country.lower().replace(" ", "-")
-        cia_world_factbook_url = f"https://www.cia.gov/the-world-factbook/countries/{best_match_country_slug}/"
-        with st.expander(f"CIA World Factbook", expanded=True):
-            st.markdown(f"([open in new tab]({cia_world_factbook_url}))")
-            st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
-
-        # Top N best matches
-        st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
-        column_remap = {
-            "overall_score": "Overall Score",
-            "pf_score": "Personal Freedom Score",
-            "ef_score": "Economic Freedom Score",
-            "cf_score": "Cultural Fit Score",
-            "pf_score_weighted": "Personal Freedom Score (weighted)",
-            "ef_score_weighted": "Economic Freedom Score (weighted)",
-            "cf_score_weighted": "Cultural Fit Score (weighted)",
-        }
-        df_top_N = df.head(app_options.N).rename(columns=column_remap)
-
-        def pct_fmt(x):
-            return f"{round(100*x, 2):.0f}%"
-
-        with st.expander("Score Contributions", expanded=True):
-            fig = px.bar(
-                df_top_N,
-                x="country",
-                y=[
-                    "Personal Freedom Score (weighted)",
-                    "Economic Freedom Score (weighted)",
-                    "Cultural Fit Score (weighted)",
-                ],
-            )
-            for idx, row in df_top_N.iterrows():
-                fig.add_annotation(
-                    x=row.country,
-                    y=row["Overall Score"],
-                    yanchor="bottom",
-                    showarrow=False,
-                    align="left",
-                    text=f"{pct_fmt(row['Overall Score'])}",
-                    font={"size": 12},
-                )
-            fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
-            st.plotly_chart(fig, use_container_width=True)
-
-        # TODO replace pyplot radar plots with plotly radar plots
-        # See https://plotly.com/python/radar-chart/
-        def get_radar(country_names, user_ideal):
-            dimensions = distance_calculations.compute_dimensions(
-                [countries_dict[country_name] for country_name in country_names]
-            )
-            reference = distance_calculations.compute_dimensions([user_ideal])
-            radar = visualisation.generate_radar_plot(dimensions, reference)
-            return radar
-
-        if app_options.show_radar:
-            with st.expander("Culture Fit"):
-                radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
-                st.caption("", help="The dashed :red[red shape] depicts your preferences.")
-                st.pyplot(radar)
-
-        # All matches
-        st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
-
-        def generate_choropleth(df, name):
-            df = df.reset_index()
-            fig = px.choropleth(
-                df,
-                locationmode="country names",
-                locations="country",
-                color=name,
-                hover_name="country",
-                color_continuous_scale=px.colors.sequential.deep_r,
-            )
-            fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-            return fig
-
-        with st.expander("World Map", expanded=True):
-            fig = generate_choropleth(df, app_options.field_for_world_map)
-            fig.update_geos(projection_type=app_options.world_map_projection_type)
-            fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
-            fig.update_layout(geo_bgcolor="#0E1117")
-            st.plotly_chart(fig, use_container_width=True)
-
-        with st.expander("Raw Results Data"):
-            st.dataframe(df.set_index("country"), use_container_width=True)
+        render_ui_section_best_match(df, app_options)
+        render_ui_section_top_n_matches(df, app_options)
+        render_ui_section_all_matches(df, app_options)
 
 
 main()
