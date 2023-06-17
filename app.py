@@ -319,7 +319,7 @@ def process_data(app_options):
 
 def run_ui_section_title():
     st.title("🌎 :blue[Terra]", anchor=False)
-    terra_question = 'This app is designed to answer the question "which country should I live in?"'
+    terra_question = 'This app is designed to answer the question "Which country should I live in?"'
     terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
     terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
     terra_help = f"{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}"
@@ -449,6 +449,14 @@ def teardown(app_options):
     return
 
 
+def check_if_app_options_are_default(app_options):
+    app_options_default = AppOptions()
+    for key in dataclasses.asdict(app_options_default):
+        if getattr(app_options, key) != getattr(app_options_default, key):
+            return False
+    return True
+
+
 # Main
 
 if not "initialized" in state:
@@ -457,6 +465,12 @@ if not "initialized" in state:
 run_ui_section_title()
 
 app_options = get_options()
+
+if check_if_app_options_are_default(app_options):
+    st.info(
+        "It looks like you are using the default app options. Try opening the sidebar and changing some things! :blush:"
+    )
+
 
 df, user_ideal = process_data(app_options)
 
