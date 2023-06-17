@@ -1,0 +1,5 @@
+The *Human Freedom Index* presents the state of human freedom in the world based on a broad measure that encompasses personal, civil, and economic freedom. Human freedom is a social concept that recognizes the dignity of individuals and is defined here as negative liberty or the absence of coercive constraint. Because freedom is inherently valuable and plays a role in human progress, it is worth measuring carefully. The *Human Freedom Index* is a resource that can help to more objectively observe relationships between freedom and other social and economic phenomena, as well as the ways in which the various dimensions of freedom interact with one another.
+
+The report is copublished by the Cato Institute and the Fraser Institute.
+
+See https://www.cato.org/human-freedom-index/2022 for the full report.

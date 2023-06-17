@@ -324,7 +324,7 @@ def run_ui_section_top_n_matches(df, user_ideal):
     show_radar = st.checkbox(
         label="Show radar plots",
         value=False,
-        help="Not showing radar plots can significantly improve rendering time.",
+        help="Skipping radar plots can significantly improve rendering time.",
     )
 
     column_remap = {
@@ -374,11 +374,13 @@ def run_ui_section_top_n_matches(df, user_ideal):
         radar = visualisation.generate_radar_plot(dimensions, reference)
         return radar
 
+    st.subheader("Culture Fit", anchor=False)
     if show_radar:
-        st.subheader("Culture Fit", anchor=False)
         radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
         st.caption("", help="The dashed :red[red shape] depicts your preferences.")
         st.pyplot(radar)
+    else:
+        st.info('Enable "Show radar plots" to populate this section.')
 
 
 def run_ui_section_all_matches(df):
@@ -438,6 +440,19 @@ def run_ui_section_all_matches(df):
         st.bokeh_chart(scatterplot, use_container_width=True)
 
 
+def run_ui_section_help():
+    st.header("Help", anchor=False)
+
+    st.subheader("Culture Fit: Hoftstede's 6-D model of national culture 🗺️")
+    st.markdown(open('culture_fit_help.md').read())
+
+    st.subheader("Human Freedom")
+    st.markdown(open('human_freedom_help.md').read())
+
+    st.subheader("Language Prevalence")
+    st.markdown(open('language_prevalence_help.md').read())
+
+
 def set_query_params(app_options):
     # Set the query params with all the app_options
     st.experimental_set_query_params(**dataclasses.asdict(app_options))
@@ -482,12 +497,14 @@ no_matches = df.shape[0] == 0
 if no_matches:
     st.warning("No matches found! Try adjusting the filters to be less strict.")
 else:
-    tabs = st.tabs(["Best Match", "Top Matches", "All Matches"])
+    tabs = st.tabs(["Best Match", "Top Matches", "All Matches", "Help"])
     with tabs[0]:
         run_ui_section_best_match(df)
     with tabs[1]:
         run_ui_section_top_n_matches(df, user_ideal)
     with tabs[2]:
         run_ui_section_all_matches(df)
+    with tabs[3]:
+        run_ui_section_help()
 
 teardown(app_options)
