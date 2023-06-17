@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LabelSet, ImageURL
@@ -51,22 +52,36 @@ def generate_heatmap(
 
 
 def generate_scatterplot(
-        coords: distance_calculations.PandasDataFrame
+        coords: distance_calculations.PandasDataFrame, x_column: Optional[str] = None, y_column: Optional[str] = None
 ) -> plt.Figure:
     data = {str(key): val for key, val in coords.to_dict(orient="list").items()}
     data["names"] = coords.index
-    max_x, max_y = max(data['0']), max(data['1'])
-    min_x, min_y = min(data['0']), min(data['1'])
-    x_margin, y_margin = (max_x - min_x) * 0.2, (max_y - min_y) * 0.2
-    fig = figure(width=800, height=800, x_range=(min_x - x_margin, max_x + x_margin),
-                 y_range=(min_y - y_margin, max_y + y_margin), title="Culture distance in 2D")
+
+    if x_column is None:
+        x_column = coords.columns[0]
+    if y_column is None:
+        y_column = coords.columns[1]
+
+    max_x, max_y = max(data[x_column]), max(data[y_column])
+    min_x, min_y = min(data[x_column]), min(data[y_column])
+    dx = max_x - min_x
+    dy = max_y - min_y
+    ds = min(dx, dy)
+    x_margin, y_margin = 0.2 * dx,  0.2 * dy
+    fig = figure(width=800, 
+                 height=800, 
+                 x_range=(min_x - x_margin, max_x + x_margin),
+                 y_range=(min_y - y_margin, max_y + y_margin),
+                 x_axis_label=x_column,
+                 y_axis_label=y_column,
+                 )
     source = ColumnDataSource(data=data)
-    labels = LabelSet(x='0', y='1', text='names',
+    labels = LabelSet(x=x_column, y=y_column, text='names',
                       x_offset=10, y_offset=10, source=source, render_mode='canvas')
     fig.add_layout(labels)
     for country_name, country_coords in coords.iterrows():
-        img = ImageURL(url=dict(value=COUNTRY_URLS[country_name]), x=country_coords[0],
-                       y=country_coords[1], w=5, h=2, anchor="center")
+        img = ImageURL(url=dict(value=COUNTRY_URLS[country_name]), x=country_coords[x_column],
+                       y=country_coords[y_column], w=0.05*ds, h=0.02*ds, anchor="center")
         fig.add_glyph(source, img)
     return fig
 

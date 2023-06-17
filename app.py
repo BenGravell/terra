@@ -1,4 +1,5 @@
 import dataclasses
+from copy import deepcopy
 
 import pandas as pd
 import streamlit as st
@@ -15,10 +16,12 @@ from options import AppOptions, NONE_COUNTRY, PLOTLY_MAP_PROJECTION_TYPES
 
 # Streamlit setup
 st.set_page_config(page_title="Terra", page_icon="🌎", layout="wide")
-state = st.session_state
 
 # Pyplot setup
 plt.style.use(["dark_background", "./terra.mplstyle"])
+
+# Short convenience alias
+state = st.session_state
 
 
 @st.cache_data
@@ -71,12 +74,9 @@ economic_freedom_score_help = "Economic Freedom measures the degree to which mem
 english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population. See the data source https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population."
 
 
-def get_options_from_query_params(app_options=None):
-    if app_options is None:
-        app_options = AppOptions()
-
+def get_options_from_query_params():
     query_params = st.experimental_get_query_params()
-
+    app_options = AppOptions()
     for field in dataclasses.fields(app_options):
         if field.name in query_params:
             query_param_val = query_params[field.name]
@@ -94,9 +94,8 @@ def get_options_from_query_params(app_options=None):
     return app_options
 
 
-def get_options_from_ui(app_options=None):
-    if app_options is None:
-        app_options = AppOptions()
+def get_options_from_ui():
+    app_options = AppOptions()
 
     with st.expander("Culture Fit preferences"):
         st.caption(
@@ -198,52 +197,53 @@ def get_options_from_ui(app_options=None):
             label="World Map projection type",
             options=PLOTLY_MAP_PROJECTION_TYPES,
             index=PLOTLY_MAP_PROJECTION_TYPES.index(app_options.world_map_projection_type),
+            format_func=lambda s: s.title(),
         )
 
     return app_options
 
 
-def get_options():
+def initialize_widget_state_from_app_options(app_options):
+    # Effectively set the first-time default for certain widgets by initializing
+    # a value assigned to its key in session state before the widgets are
+    # instantiated for the first time.
+    # See https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/27
+    for dimension in dimensions_info.DIMENSIONS:
+        state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
+
+
+def first_run_per_session():
     # Only pull the query_params on the first run e.g. to support deeplinking.
     # Otherwise, only use the options that have been set in the session.
     # This helps avoid a race condition between getting options via query_params and getting options via the UI.
-    if "app_options" not in state:
-        app_options = get_options_from_query_params()
+    state.app_options = get_options_from_query_params()
 
-        # Effectively set the first-time default for certain widgets by initializing a value assigned to its key in session state before the widgets are instantiated for the first time.
-        # See https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/27
-        for dimension in dimensions_info.DIMENSIONS:
-            state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
-    else:
-        app_options = state.app_options
+    initialize_widget_state_from_app_options(state.app_options)
 
+    state.initialized = True
+
+
+def get_options():
     with st.sidebar:
-        with st.form(key="reference_country_form"):
-            culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(countries_dict))
-            st.selectbox(
-                "Reference Country",
-                options=culture_fit_reference_country_options,
-                key="culture_fit_reference_country",
-            )
-            st.form_submit_button(
-                label="Set Culture Fit preferences to selected reference country",
-                on_click=culture_fit_reference_callback,
-            )
+        culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(countries_dict))
+        st.selectbox(
+            "Reference Country",
+            options=culture_fit_reference_country_options,
+            key="culture_fit_reference_country",
+        )
+        st.button(
+            label="Set Culture Fit preferences to selected reference country",
+            on_click=culture_fit_reference_callback,
+        )
 
         with st.form(key="options_form"):
-            app_options = get_options_from_ui(app_options)
+            app_options = get_options_from_ui()
             st.form_submit_button(label="Update Options")
-
-    # Set the query params with all the app_options
-    st.experimental_set_query_params(**dataclasses.asdict(app_options))
-
-    # Update the state
-    # This assumes that the app_options will not be modified after a single call to get_options()
-    state.app_options = app_options
 
     return app_options
 
 
+@st.cache_data
 def process_data(app_options):
     # Human Freedom
     human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
@@ -283,14 +283,20 @@ def process_data(app_options):
         df = df.merge(df_english[["country", "english_ratio"]], on="country")
 
     # Overall Score
-    weight_sum = app_options.pf_score_weight + app_options.ef_score_weight + app_options.cf_score_weight
-    app_options.pf_score_weight /= weight_sum
-    app_options.ef_score_weight /= weight_sum
-    app_options.cf_score_weight /= weight_sum
 
-    df["pf_score_weighted"] = df["pf_score"] * app_options.pf_score_weight
-    df["ef_score_weighted"] = df["ef_score"] * app_options.ef_score_weight
-    df["cf_score_weighted"] = df["cf_score"] * app_options.cf_score_weight
+    # Make copies to protect app_options from modification
+    pf_score_weight = deepcopy(app_options.pf_score_weight)
+    ef_score_weight = deepcopy(app_options.ef_score_weight)
+    cf_score_weight = deepcopy(app_options.cf_score_weight)
+
+    weight_sum = pf_score_weight + ef_score_weight + cf_score_weight
+    pf_score_weight /= weight_sum
+    ef_score_weight /= weight_sum
+    cf_score_weight /= weight_sum
+
+    df["pf_score_weighted"] = df["pf_score"] * pf_score_weight
+    df["ef_score_weighted"] = df["ef_score"] * ef_score_weight
+    df["cf_score_weighted"] = df["cf_score"] * cf_score_weight
 
     df["overall_score"] = df["pf_score_weighted"] + df["ef_score_weighted"] + df["cf_score_weighted"]
     df = df.sort_values("overall_score", ascending=False)
@@ -311,7 +317,7 @@ def process_data(app_options):
     return df, user_ideal
 
 
-def render_ui_section_title():
+def run_ui_section_title():
     st.title("🌎 :blue[Terra]", anchor=False)
     terra_question = 'This app is designed to answer the question "which country should I live in?"'
     terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
@@ -320,23 +326,21 @@ def render_ui_section_title():
     st.caption("Find the right country for you!", help=terra_help)
 
 
-def render_ui_section_best_match(df):
+def run_ui_section_best_match(df):
     best_match_country = str(df.iloc[0].country)
     best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
 
     st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
-    with st.expander("Flag", expanded=True):
-        st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
+    st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
 
     cia_world_factbook_url_base = "https://www.cia.gov/the-world-factbook/countries/"
     best_match_country_slug = best_match_country.lower().replace(" ", "-")
     cia_world_factbook_url = f"{cia_world_factbook_url_base}{best_match_country_slug}/"
-    with st.expander(f"CIA World Factbook", expanded=True):
-        st.markdown(f"([open in new tab]({cia_world_factbook_url}))")
-        st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+    st.markdown(f"CIA World Factbook ([open in new tab]({cia_world_factbook_url}))")
+    st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
 
-def render_ui_section_top_n_matches(df, user_ideal, app_options):
+def run_ui_section_top_n_matches(df, user_ideal, app_options):
     st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
     column_remap = {
         "overall_score": "Overall Score",
@@ -352,28 +356,28 @@ def render_ui_section_top_n_matches(df, user_ideal, app_options):
     def pct_fmt(x):
         return f"{round(100*x, 2):.0f}%"
 
-    with st.expander("Score Contributions", expanded=True):
-        fig = px.bar(
-            df_top_N,
-            x="country",
-            y=[
-                "Personal Freedom Score (weighted)",
-                "Economic Freedom Score (weighted)",
-                "Cultural Fit Score (weighted)",
-            ],
+    st.subheader("Score Contributions", anchor=False)
+    fig = px.bar(
+        df_top_N,
+        x="country",
+        y=[
+            "Personal Freedom Score (weighted)",
+            "Economic Freedom Score (weighted)",
+            "Cultural Fit Score (weighted)",
+        ],
+    )
+    for idx, row in df_top_N.iterrows():
+        fig.add_annotation(
+            x=row.country,
+            y=row["Overall Score"],
+            yanchor="bottom",
+            showarrow=False,
+            align="left",
+            text=f"{pct_fmt(row['Overall Score'])}",
+            font={"size": 12},
         )
-        for idx, row in df_top_N.iterrows():
-            fig.add_annotation(
-                x=row.country,
-                y=row["Overall Score"],
-                yanchor="bottom",
-                showarrow=False,
-                align="left",
-                text=f"{pct_fmt(row['Overall Score'])}",
-                font={"size": 12},
-            )
-        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
-        st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
+    st.plotly_chart(fig, use_container_width=True)
 
     # TODO replace pyplot radar plots with plotly radar plots
     # See https://plotly.com/python/radar-chart/
@@ -386,13 +390,13 @@ def render_ui_section_top_n_matches(df, user_ideal, app_options):
         return radar
 
     if app_options.show_radar:
-        with st.expander("Culture Fit"):
-            radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
-            st.caption("", help="The dashed :red[red shape] depicts your preferences.")
-            st.pyplot(radar)
+        st.subheader("Culture Fit", anchor=False)
+        radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
+        st.caption("", help="The dashed :red[red shape] depicts your preferences.")
+        st.pyplot(radar)
 
 
-def render_ui_section_all_matches(df, app_options):
+def run_ui_section_all_matches(df, app_options):
     st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
 
     def generate_choropleth(df, name):
@@ -415,24 +419,57 @@ def render_ui_section_all_matches(df, app_options):
         fig.update_layout(geo_bgcolor="#0E1117")
         st.plotly_chart(fig, use_container_width=True)
 
+    dfc = df.set_index("country")
+
     with st.expander("Raw Results Data"):
-        st.dataframe(df.set_index("country"), use_container_width=True)
+        st.dataframe(dfc, use_container_width=True)
+
+    with st.expander("Raw Results Plot"):
+        cols = st.columns(2)
+        with cols[0]:
+            x_column = st.selectbox("x-axis", options=dfc.columns, index=0)
+        with cols[1]:
+            y_column = st.selectbox("y-axis", options=dfc.columns, index=1)
+        scatterplot = visualisation.generate_scatterplot(dfc, x_column, y_column)
+        st.bokeh_chart(scatterplot)
 
 
-def main():
-    app_options = get_options()
-
-    df, user_ideal = process_data(app_options)
-
-    render_ui_section_title()
-
-    no_matches = df.shape[0] == 0
-    if no_matches:
-        st.warning("No matches found! Try adjusting the filters to be less strict.")
-    else:
-        render_ui_section_best_match(df)
-        render_ui_section_top_n_matches(df, user_ideal, app_options)
-        render_ui_section_all_matches(df, app_options)
+def set_query_params(app_options):
+    # Set the query params with all the app_options
+    st.experimental_set_query_params(**dataclasses.asdict(app_options))
 
 
-main()
+def teardown(app_options):
+    # Update the state
+    # app_options should not be modified after this point
+    state.app_options = app_options
+
+    # Update the query_params
+    set_query_params(app_options)
+    return
+
+
+# Main
+
+if not "initialized" in state:
+    first_run_per_session()
+
+run_ui_section_title()
+
+app_options = get_options()
+
+df, user_ideal = process_data(app_options)
+
+no_matches = df.shape[0] == 0
+if no_matches:
+    st.warning("No matches found! Try adjusting the filters to be less strict.")
+else:
+    tabs = st.tabs(["Best Match", "Top Matches", "All Matches"])
+    with tabs[0]:
+        run_ui_section_best_match(df)
+    with tabs[1]:
+        run_ui_section_top_n_matches(df, user_ideal, app_options)
+    with tabs[2]:
+        run_ui_section_all_matches(df, app_options)
+
+teardown(app_options)
