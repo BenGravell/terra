@@ -4,10 +4,10 @@ from dataclasses import dataclass
 NONE_COUNTRY = "(none)"
 
 PLOTLY_MAP_PROJECTION_TYPES = [
-    "kavrayskiy7",
-    "orthographic",
-    "winkel tripel",
     "robinson",
+    "orthographic",
+    "kavrayskiy7",
+    "winkel tripel",
     "equirectangular",
     "mercator",
     "natural earth",
