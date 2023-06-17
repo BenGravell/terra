@@ -171,35 +171,6 @@ def get_options_from_ui():
             help=economic_freedom_score_help,
         )
 
-    with st.expander("Results options"):
-        app_options.N = st.number_input(
-            "Number of Top Matching countries to show",
-            min_value=1,
-            max_value=20,
-            value=app_options.N,
-        )
-
-        app_options.show_radar = st.checkbox(
-            label="Show radar plots",
-            value=app_options.show_radar,
-            help="Not showing radar plots can significantly improve rendering time.",
-        )
-
-        field_for_world_map_options = ["overall_score", "cf_score", "pf_score", "ef_score", "english_ratio"]
-        field_for_world_map_default_index = field_for_world_map_options.index(app_options.field_for_world_map)
-        app_options.field_for_world_map = st.selectbox(
-            label="Field to plot in the World Map",
-            options=field_for_world_map_options,
-            index=field_for_world_map_default_index,
-        )
-
-        app_options.world_map_projection_type = st.selectbox(
-            label="World Map projection type",
-            options=PLOTLY_MAP_PROJECTION_TYPES,
-            index=PLOTLY_MAP_PROJECTION_TYPES.index(app_options.world_map_projection_type),
-            format_func=lambda s: s.title(),
-        )
-
     return app_options
 
 
@@ -340,8 +311,22 @@ def run_ui_section_best_match(df):
     st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
 
-def run_ui_section_top_n_matches(df, user_ideal, app_options):
-    st.header(f"Top Matching Countries ({app_options.N})", anchor=False)
+def run_ui_section_top_n_matches(df, user_ideal):
+    st.header(f"Top Matching Countries", anchor=False)
+
+    N = st.number_input(
+        "Number of Top Matching countries to show",
+        min_value=1,
+        max_value=20,
+        value=5,
+    )
+
+    show_radar = st.checkbox(
+        label="Show radar plots",
+        value=False,
+        help="Not showing radar plots can significantly improve rendering time.",
+    )
+
     column_remap = {
         "overall_score": "Overall Score",
         "pf_score": "Personal Freedom Score",
@@ -351,7 +336,7 @@ def run_ui_section_top_n_matches(df, user_ideal, app_options):
         "ef_score_weighted": "Economic Freedom Score (weighted)",
         "cf_score_weighted": "Cultural Fit Score (weighted)",
     }
-    df_top_N = df.head(app_options.N).rename(columns=column_remap)
+    df_top_N = df.head(N).rename(columns=column_remap)
 
     def pct_fmt(x):
         return f"{round(100*x, 2):.0f}%"
@@ -389,14 +374,14 @@ def run_ui_section_top_n_matches(df, user_ideal, app_options):
         radar = visualisation.generate_radar_plot(dimensions, reference)
         return radar
 
-    if app_options.show_radar:
+    if show_radar:
         st.subheader("Culture Fit", anchor=False)
         radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
         st.caption("", help="The dashed :red[red shape] depicts your preferences.")
         st.pyplot(radar)
 
 
-def run_ui_section_all_matches(df, app_options):
+def run_ui_section_all_matches(df):
     st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
 
     def generate_choropleth(df, name):
@@ -413,8 +398,27 @@ def run_ui_section_all_matches(df, app_options):
         return fig
 
     with st.expander("World Map", expanded=True):
-        fig = generate_choropleth(df, app_options.field_for_world_map)
-        fig.update_geos(projection_type=app_options.world_map_projection_type)
+        cols = st.columns(2)
+        with cols[0]:
+            # field_for_world_map_options = ["overall_score", "cf_score", "pf_score", "ef_score", "english_ratio"]
+            field_for_world_map_options = df.columns.to_list()
+            field_for_world_map_default_index = field_for_world_map_options.index("overall_score")
+            field_for_world_map = st.selectbox(
+                label="Field to Plot",
+                options=field_for_world_map_options,
+                index=field_for_world_map_default_index,
+            )
+
+        with cols[1]:
+            world_map_projection_type = st.selectbox(
+                label="Projection Type",
+                options=PLOTLY_MAP_PROJECTION_TYPES,
+                index=PLOTLY_MAP_PROJECTION_TYPES.index("robinson"),
+                format_func=lambda s: s.title(),
+            )
+
+        fig = generate_choropleth(df, field_for_world_map)
+        fig.update_geos(projection_type=world_map_projection_type)
         fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
         fig.update_layout(geo_bgcolor="#0E1117")
         st.plotly_chart(fig, use_container_width=True)
@@ -431,7 +435,7 @@ def run_ui_section_all_matches(df, app_options):
         with cols[1]:
             y_column = st.selectbox("y-axis", options=dfc.columns, index=1)
         scatterplot = visualisation.generate_scatterplot(dfc, x_column, y_column)
-        st.bokeh_chart(scatterplot)
+        st.bokeh_chart(scatterplot, use_container_width=True)
 
 
 def set_query_params(app_options):
@@ -482,8 +486,8 @@ else:
     with tabs[0]:
         run_ui_section_best_match(df)
     with tabs[1]:
-        run_ui_section_top_n_matches(df, user_ideal, app_options)
+        run_ui_section_top_n_matches(df, user_ideal)
     with tabs[2]:
-        run_ui_section_all_matches(df, app_options)
+        run_ui_section_all_matches(df)
 
 teardown(app_options)

@@ -55,12 +55,6 @@ class AppOptions:
     pf_score_weight: float = 0.0
     ef_score_weight: float = 0.0
 
-    # Results options
-    N: int = 5
-    show_radar: bool = False
-    field_for_world_map: str = "overall_score"
-    world_map_projection_type: str = "kavrayskiy7"
-
     @property
     def do_filter_culture_fit(self):
         return not self.cf_score_min < EPS
