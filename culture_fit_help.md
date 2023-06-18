@@ -28,6 +28,6 @@ In this app, we take your preferences across the 6 proposed dimensions into acco
 
 It's important to keep in mind that there are many counties without validated scores and in that case only educated guesses are provided.
 Also, Geert likes to say that: 
-> Dimensions do not exist. They are a product of our imagination, used for understanding.
+> *Dimensions do not exist. They are a product of our imagination, used for understanding.*
 
-Finally, this application is written only for fun and learning how to use Streamlit and no strong conclusions about cultures should be made based on it.
+Finally, as stated in the `LICENSE`, this application is provided without warranty of any kind; no strong conclusions about cultures should be made based on it without further research.
