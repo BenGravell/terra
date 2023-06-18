@@ -34,8 +34,11 @@ def load_data():
     countries_dict = country_data.get_country_dict()
     # English speaking
     df_english = pd.read_csv("data/english_speaking.csv")
+    # Coordinates
+    df_coords = pd.read_csv("data/country_coords.csv")
+    df_coords = df_coords.set_index('country')
 
-    return human_freedom_df, countries_dict, df_english
+    return human_freedom_df, countries_dict, df_english, df_coords
 
 
 @st.cache_data
@@ -50,7 +53,7 @@ def load_country_to_emoji():
 
 
 # Load data
-human_freedom_df, countries_dict, df_english = load_data()
+human_freedom_df, countries_dict, df_english, df_coords = load_data()
 COUNTRY_TO_EMOJI = load_country_to_emoji()
 
 # Basic derived data
@@ -288,6 +291,22 @@ def process_data(app_options):
     return df, user_ideal
 
 
+
+
+def get_world_factbook_url(country: str) -> str:
+    url_base = "https://www.cia.gov/the-world-factbook/countries/"
+    country_slug = country.lower().replace(" ", "-")
+    url = f"{url_base}{country_slug}/"
+    return url
+
+
+def get_google_maps_url(lat: float, lon: float) -> str:
+    url_base = 'https://www.google.com/maps/'
+    zoom_level = 5.0
+    url = f'{url_base}@{lat},{lon},{zoom_level}z'
+    return url
+
+
 def run_ui_section_title():
     st.title("🌎 :blue[Terra]", anchor=False)
     terra_question = 'This app is designed to answer the question "Which country should I live in?"'
@@ -298,17 +317,27 @@ def run_ui_section_title():
 
 
 def run_ui_section_best_match(df):
-    best_match_country = str(df.iloc[0].country)
+    best_match_row = df.iloc[0]
+    best_match_country = str(best_match_row.country)
     best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
 
     st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
     st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
 
-    cia_world_factbook_url_base = "https://www.cia.gov/the-world-factbook/countries/"
-    best_match_country_slug = best_match_country.lower().replace(" ", "-")
-    cia_world_factbook_url = f"{cia_world_factbook_url_base}{best_match_country_slug}/"
+    # CIA World Factbook viewer
+    cia_world_factbook_url = get_world_factbook_url(best_match_country)
     st.markdown(f"CIA World Factbook ([open in new tab]({cia_world_factbook_url}))")
     st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+
+    # Google Earth viewer
+    # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
+    latlon_row = df_coords.loc[best_match_country]
+    lat = latlon_row.latitude
+    lon = latlon_row.longitude
+
+    google_maps_url = get_google_maps_url(lat, lon)
+    st.markdown(f"Google Earth ([open in new tab]({google_maps_url}))")
+    st.caption("Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab.")
 
 
 def run_ui_section_top_n_matches(df, user_ideal):
@@ -443,14 +472,20 @@ def run_ui_section_all_matches(df):
 def run_ui_section_help():
     st.header("Help", anchor=False)
 
-    st.subheader("Culture Fit: Hoftstede's 6-D model of national culture 🗺️")
-    st.markdown(open('culture_fit_help.md').read())
+    with st.expander("About This App"):
+        st.markdown(open('general_help.md').read())
 
-    st.subheader("Human Freedom")
-    st.markdown(open('human_freedom_help.md').read())
+    with st.expander("Culture Fit: Hoftstede's 6-D model of national culture 🗺️"):
+        st.markdown(open('culture_fit_help.md').read())
 
-    st.subheader("Language Prevalence")
-    st.markdown(open('language_prevalence_help.md').read())
+    with st.expander("Human Freedom"):
+        st.markdown(open('human_freedom_help.md').read())
+
+    with st.expander("Language Prevalence"):
+        st.markdown(open('language_prevalence_help.md').read())
+
+    with st.expander("Data Sources"):
+        st.markdown(open('data_sources_help.md').read())
 
 
 def set_query_params(app_options):
@@ -482,6 +517,7 @@ if not "initialized" in state:
     first_run_per_session()
 
 run_ui_section_title()
+
 
 app_options = get_options()
 

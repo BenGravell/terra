@@ -9,3 +9,9 @@ Use data to decide which country is right for you. Terra will take your personal
 
 ## Provenance
 This app is largely based off of Michał Nowotka's tutorial ([Blog](https://blog.streamlit.io/how-to-make-a-culture-map/)) ([GitHub](https://github.com/streamlit/demo-culture-map)), which is partially used (with modifications) as a subpackage.
+
+## Data Sources
+The data included in the `data` directory was collected from the following sources:
+- `human-freedom-index-2022.csv`: https://www.cato.org/human-freedom-index/2022
+- `english_speaking.csv`: https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population
+- `country_coords.csv`: https://developers.google.com/public-data/docs/canonical/countries_csv
