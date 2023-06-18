@@ -406,7 +406,8 @@ human_freedom_codes = ['pf', 'ef']
 
 def filter_by_codes(df, codes):
     for code in codes:
-        df["acceptable"] = df["acceptable"] & df[f"{code}_score"] > getattr(app_options, f'{code}_score_min')
+        threshold = getattr(app_options, f'{code}_score_min')
+        df["acceptable"] = df["acceptable"] & (df[f"{code}_score"] > threshold)
     return df
 
 
@@ -425,8 +426,9 @@ def process_data_filters(df, app_options):
     if app_options.do_filter_english:
         df["acceptable"] = df["acceptable"] & (df["english_ratio"] > app_options.english_ratio_min)
 
+    # Drop unacceptable rows
     df = df[df["acceptable"]]
-
+    
     return df
 
 

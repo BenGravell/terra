@@ -1,10 +1,10 @@
 ## What is the *Social Progress Index*?
 
-The *Social Progress Index* rigorously measures country performance on many aspects of social and environmental performance which are relevant for countries at all levels of economic development. The index gives governments and businesses the tools to track social and environmental performance rigorously, and make better public policy and investment choices. The *Social Progress Index* also allows us to assess a country’s success in turning economic progress into improved social outcomes.
+The *Social Progress Index* rigorously measures country performance on many aspects of social and environmental performance which are relevant for countries at all levels of economic development. The index gives governments and businesses the tools to track social and environmental performance rigorously, and make better public policy and investment choices. The *Social Progress Index* also allows us to assess a country's success in turning economic progress into improved social outcomes.
 
-## What are the *Basic Human Needs Index*, the *Foundations of Wellbeing Index*, and the *Opportunity Index*?
+## What are the components of the *Social Progress Index*?
 
-The *Social Progress Index* is broken into three high-level sub-indexes:
+The *Social Progress Index* is made up of three high-level sub-indexes:
 - *Basic Human Needs*
     - Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens.
     - This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety.
