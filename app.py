@@ -472,19 +472,19 @@ def run_ui_section_all_matches(df):
 def run_ui_section_help():
     st.header("Help", anchor=False)
 
-    with st.expander("About This App"):
+    with st.expander("About This App 🛈"):
         st.markdown(open('general_help.md').read())
 
-    with st.expander("Culture Fit: Hoftstede's 6-D model of national culture 🗺️"):
+    with st.expander("Culture Fit: Hofstede's 6-D Model of National Culture 🗺️"):
         st.markdown(open('culture_fit_help.md').read())
 
-    with st.expander("Human Freedom"):
+    with st.expander("Human Freedom 🎊"):
         st.markdown(open('human_freedom_help.md').read())
 
-    with st.expander("Language Prevalence"):
+    with st.expander("Language Prevalence 💬"):
         st.markdown(open('language_prevalence_help.md').read())
 
-    with st.expander("Data Sources"):
+    with st.expander("Data Sources 📊"):
         st.markdown(open('data_sources_help.md').read())
 
 
