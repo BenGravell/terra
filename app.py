@@ -36,7 +36,7 @@ def load_data():
     df_english = pd.read_csv("data/english_speaking.csv")
     # Coordinates
     df_coords = pd.read_csv("data/country_coords.csv")
-    df_coords = df_coords.set_index('country')
+    df_coords = df_coords.set_index("country")
 
     return human_freedom_df, countries_dict, df_english, df_coords
 
@@ -291,19 +291,17 @@ def process_data(app_options):
     return df, user_ideal
 
 
-
-
 def get_world_factbook_url(country: str) -> str:
-    url_base = "https://www.cia.gov/the-world-factbook/countries/"
+    url_base = "https://www.cia.gov/the-world-factbook/countries"
     country_slug = country.lower().replace(" ", "-")
-    url = f"{url_base}{country_slug}/"
+    url = f"{url_base}/{country_slug}/"
     return url
 
 
 def get_google_maps_url(lat: float, lon: float) -> str:
-    url_base = 'https://www.google.com/maps/'
+    url_base = "https://www.google.com/maps"
     zoom_level = 5.0
-    url = f'{url_base}@{lat},{lon},{zoom_level}z'
+    url = f"{url_base}/@{lat},{lon},{zoom_level}z"
     return url
 
 
@@ -337,7 +335,9 @@ def run_ui_section_best_match(df):
 
     google_maps_url = get_google_maps_url(lat, lon)
     st.markdown(f"Google Earth ([open in new tab]({google_maps_url}))")
-    st.caption("Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab.")
+    st.caption(
+        "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
+    )
 
 
 def run_ui_section_top_n_matches(df, user_ideal):
@@ -473,19 +473,19 @@ def run_ui_section_help():
     st.header("Help", anchor=False)
 
     with st.expander("About This App 🛈"):
-        st.markdown(open('general_help.md').read())
+        st.markdown(open("general_help.md").read())
 
     with st.expander("Culture Fit: Hofstede's 6-D Model of National Culture 🗺️"):
-        st.markdown(open('culture_fit_help.md').read())
+        st.markdown(open("culture_fit_help.md").read())
 
     with st.expander("Human Freedom 🎊"):
-        st.markdown(open('human_freedom_help.md').read())
+        st.markdown(open("human_freedom_help.md").read())
 
     with st.expander("Language Prevalence 💬"):
-        st.markdown(open('language_prevalence_help.md').read())
+        st.markdown(open("language_prevalence_help.md").read())
 
     with st.expander("Data Sources 📊"):
-        st.markdown(open('data_sources_help.md').read())
+        st.markdown(open("data_sources_help.md").read())
 
 
 def set_query_params(app_options):
