@@ -87,15 +87,18 @@ culture_fit_data_dict, culture_fit_df, social_progress_df, country_to_emoji = pr
 df_format_dict = {
     "country": "Country",
     "overall_score": "Overall Score",
+    "cf_score": "Cultural Fit Score",
     "bn_score": "Basic Human Needs Score",
-    "fw_score": "Foundations of Wellbeing",
+    "fw_score": "Foundations of Wellbeing Score",
     "op_score": "Opportunity Score",
     "pf_score": "Personal Freedom Score",
     "ef_score": "Economic Freedom Score",
-    "cf_score": "Cultural Fit Score",
+    "cf_score_weighted": "Cultural Fit Score (weighted)",
+    "bn_score_weighted": "Basic Human Needs Score (weighted)",
+    "fw_score_weighted": "Foundations of Wellbeing Score (weighted)",
+    "op_score_weighted": "Opportunity Score (weighted)",
     "pf_score_weighted": "Personal Freedom Score (weighted)",
     "ef_score_weighted": "Economic Freedom Score (weighted)",
-    "cf_score_weighted": "Cultural Fit Score (weighted)",
     "english_ratio": "English Speaking Ratio",
     "acceptable": "Acceptable",
 }
@@ -516,9 +519,12 @@ def run_ui_section_top_n_matches(df, app_options):
         df_top_N,
         x="Country",
         y=[
+            "Cultural Fit Score (weighted)",
+            "Basic Human Needs Score (weighted)",
+            "Foundations of Wellbeing Score (weighted)",
+            "Opportunity Score (weighted)",
             "Personal Freedom Score (weighted)",
             "Economic Freedom Score (weighted)",
-            "Cultural Fit Score (weighted)",
         ],
     )
     for idx, row in df_top_N.iterrows():
@@ -558,7 +564,7 @@ def run_ui_section_all_matches(df):
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
-    plottable_fields = ["overall_score", "pf_score", "ef_score", "cf_score"]
+    plottable_fields = ["overall_score", "cf_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"]
     plottable_fields += dimensions_info.DIMENSIONS
     if "english_ratio" in df.columns:
         plottable_fields += ["english_ratio"]
