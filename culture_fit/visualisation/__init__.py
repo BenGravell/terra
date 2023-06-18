@@ -26,7 +26,8 @@ SCATTERPLOT_COLOR_MAP = 'Spectral'
 SCATTERPLOT_FONT_SIZE = 9
 SCATTERPLOT_LINE_STYLE = '--'
 SCATTERPLOT_TITLE = "Cultural distance in 2D"
-RADAR_PLOTS_COLOR_MAP = "Set2"
+RADAR_PLOTS_COLOR_MAP = "Set3"
+RADAR_PLOTS_COLOR_MAP_N = 12  # number of unique colors in RADAR_PLOTS_COLOR_MAP
 RADAR_PLOTS_PADDING = 1.2
 RADAR_PLOT_SIZE = 1000
 DISPLAY_DPI = 100
@@ -93,11 +94,11 @@ def generate_radar_plot(
     fig = plt.figure(figsize=(RADAR_PLOT_SIZE/DISPLAY_DPI, RADAR_PLOT_SIZE/DISPLAY_DPI), dpi=DISPLAY_DPI)
 
     # Create a color palette:
-    my_palette = plt.cm.get_cmap(RADAR_PLOTS_COLOR_MAP, len(dimensions.columns))
+    my_palette = plt.cm.get_cmap(RADAR_PLOTS_COLOR_MAP, RADAR_PLOTS_COLOR_MAP_N)
 
     # Loop to plot
     for idx, country in enumerate(dimensions.columns):
-        make_spider(idx, country, my_palette(idx), dimensions, reference)
+        make_spider(idx, country, my_palette(idx % RADAR_PLOTS_COLOR_MAP_N), dimensions, reference)
 
     fig.tight_layout(pad=RADAR_PLOTS_PADDING)
     return fig
