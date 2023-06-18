@@ -14,6 +14,6 @@ The *Human Freedom Index* is broken into two high-level sub-indexes:
 
 ## Who created these indexes?
 
-The report is copublished by the Cato Institute and the Fraser Institute.
+The report is copublished by the Cato Institute and the Fraser Institute. These organizations have significant, self-declared libertarian-conservative leanings, origins, and purposes, and are hence somewhat biased.
 
 See https://www.cato.org/human-freedom-index/2022 for the full report.
