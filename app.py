@@ -378,7 +378,7 @@ def run_ui_section_best_match(df):
     best_match_country = str(best_match_row.country)
     best_match_country_emoji = country_to_emoji[best_match_country]
 
-    st.header("Your Best Match Country:", anchor=False)
+    st.header("Your Best Match Country", anchor=False)
     cols = st.columns([4, 2])
     with cols[0]:
         st.header(f":blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
