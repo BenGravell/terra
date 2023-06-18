@@ -86,13 +86,13 @@ culture_fit_data_dict, culture_fit_df, social_progress_df, human_freedom_df, df_
 df_format_dict = {
     "country": "Country",
     "overall_score": "Overall Score",
-    "cf_score": "Cultural Fit Score",
+    "cf_score": "Culture Fit Score",
     "bn_score": "Basic Human Needs Score",
     "fw_score": "Foundations of Wellbeing Score",
     "op_score": "Opportunity Score",
     "pf_score": "Personal Freedom Score",
     "ef_score": "Economic Freedom Score",
-    "cf_score_weighted": "Cultural Fit Score (weighted)",
+    "cf_score_weighted": "Culture Fit Score (weighted)",
     "bn_score_weighted": "Basic Human Needs Score (weighted)",
     "fw_score_weighted": "Foundations of Wellbeing Score (weighted)",
     "op_score_weighted": "Opportunity Score (weighted)",
@@ -121,8 +121,17 @@ def culture_fit_reference_callback():
 
 # TODO move this to a data file
 culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html) of the culture dimension vectors of the nation and your ideal."
+
+basic_needs_score_help = "Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens. This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety."
+
+foundations_wellbeing_score_help = "Foundations of Wellbeing measures the capacity of a society to establish the building blocks that allow citizens and communities to enhance and sustain the quality of their lives. This includes access to basic knowledge via primary and secondary education, access to information and communication, health and wellness, and environmental quality."
+
+opportunity_score_help = "Opportunity measures the capacity of a society to create the conditions for all individuals to reach their full potential. This includes personal rights, personal freedoms, inclusiveness (especially as it relates to marginalized groups), and access to advanced education."
+
 personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms."
+
 economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
+
 english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population."
 
 
@@ -173,18 +182,21 @@ def get_options_from_ui():
             min_value=0.0,
             max_value=1.0,
             value=app_options.bn_score_weight,
+            help=basic_needs_score_help,
         )
         app_options.fw_score_weight = st.slider(
             "Foundations of Wellbeing Score Weight",
             min_value=0.0,
             max_value=1.0,
             value=app_options.fw_score_weight,
+            help=foundations_wellbeing_score_help,
         )
         app_options.op_score_weight = st.slider(
             "Opportunity Score Weight",
             min_value=0.0,
             max_value=1.0,
             value=app_options.op_score_weight,
+            help=opportunity_score_help,
         )
         app_options.pf_score_weight = st.slider(
             "Personal Freedom Score Weight",
@@ -202,13 +214,6 @@ def get_options_from_ui():
         )
 
     with st.expander("Filters"):
-        app_options.year_min, app_options.year_max = st.slider(
-            "Year Range",
-            min_value=2000,
-            max_value=2020,
-            value=(app_options.year_min, app_options.year_max),
-            help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
-        )
         app_options.cf_score_min = st.slider(
             "Culture Fit Score Min",
             min_value=0.0,
@@ -221,18 +226,21 @@ def get_options_from_ui():
             min_value=0.0,
             max_value=1.0,
             value=app_options.bn_score_min,
+            help=basic_needs_score_help,
         )
         app_options.fw_score_min = st.slider(
             "Foundations of Wellbeing Score Min",
             min_value=0.0,
             max_value=1.0,
             value=app_options.fw_score_min,
+            help=foundations_wellbeing_score_help,
         )
         app_options.op_score_min = st.slider(
             "Opportunity Score Min",
             min_value=0.0,
             max_value=1.0,
             value=app_options.op_score_min,
+            help=opportunity_score_help,
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
@@ -255,7 +263,13 @@ def get_options_from_ui():
             value=app_options.english_ratio_min,
             help=english_speaking_ratio_help,
         )
-
+        app_options.year_min, app_options.year_max = st.slider(
+            "Year Range",
+            min_value=2000,
+            max_value=2020,
+            value=(app_options.year_min, app_options.year_max),
+            help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
+        )
     return app_options
 
 
@@ -497,8 +511,8 @@ def run_ui_section_top_n_matches(df, app_options):
     N = st.number_input(
         "Number of Top Matching countries to show",
         min_value=1,
-        max_value=30,
-        value=5,
+        max_value=40,
+        value=10,
     )
 
     df_top_N = df.head(N).rename(columns=df_format_dict)
@@ -511,7 +525,7 @@ def run_ui_section_top_n_matches(df, app_options):
             df_top_N,
             x="Country",
             y=[
-                "Cultural Fit Score (weighted)",
+                "Culture Fit Score (weighted)",
                 "Basic Human Needs Score (weighted)",
                 "Foundations of Wellbeing Score (weighted)",
                 "Opportunity Score (weighted)",
@@ -529,7 +543,7 @@ def run_ui_section_top_n_matches(df, app_options):
                 text=f"{pct_fmt(row['Overall Score'])}",
                 font={"size": 12},
             )
-        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
+        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
         
 
@@ -620,15 +634,19 @@ def run_ui_section_all_matches(df):
             with st.form("pairplot_options"):
                 cols = st.columns(2)
                 with cols[0]:
-                    x_fields_for_pairplot = st.multiselect("X Fields for Pair Plot", options=plottable_fields, default=plottable_fields)
+                    x_fields_for_pairplot = st.multiselect("X Fields for Pair Plot", options=plottable_fields, default=["cf_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"], format_func=df_format_func)
+                    x_len = len(x_fields_for_pairplot)
                 with cols[1]:
-                    y_fields_for_pairplot = st.multiselect("Y Fields for Pair Plot", options=plottable_fields, default=['overall_score'])
-                corner = st.checkbox("Corner plots only", value=True)
+                    y_fields_for_pairplot = st.multiselect("Y Fields for Pair Plot", options=plottable_fields, default=['overall_score'], format_func=df_format_func)
+                    y_len = len(y_fields_for_pairplot)
+                                
                 st.form_submit_button("Update Pair Plot Options")
-                fig = sns.pairplot(data=df, x_vars=x_fields_for_pairplot, y_vars=y_fields_for_pairplot, corner=corner)
+                fig = sns.pairplot(data=df.rename(columns=df_format_dict), 
+                                   x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
+                                   y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
+                                   )
             
-            x_len = len(x_fields_for_pairplot)
-            y_len = len(y_fields_for_pairplot)
+
             
             
             if x_len * y_len > 10:
