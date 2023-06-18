@@ -28,10 +28,12 @@ state = st.session_state
 def load_data():
     """Load all data sources."""
 
-    # Human Freedom
-    human_freedom_df = pd.read_csv("data/human-freedom-index-2022.csv")
     # Culture Fit
     culture_fit_data_dict = country_data.get_country_dict()
+    # Social Progress
+    social_progress_df = pd.read_csv("data/social_progress_index_2022.csv")
+    # Human Freedom
+    human_freedom_df = pd.read_csv("data/human-freedom-index-2022.csv")
     # English speaking
     df_english = pd.read_csv("data/english_speaking.csv")
     # Coordinates
@@ -42,11 +44,11 @@ def load_data():
     # Flag emoji
     df_flag_emoji = pd.read_csv("data/country_flag_emoji.csv")
 
-    return human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji
+    return culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji
 
 
 @st.cache_data
-def preprocess_loaded_data(human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji):
+def preprocess_loaded_data(culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji):
     # Culture Fit
     # Remove countries that do not have all dimensions populated
     country_names_to_remove = set()
@@ -63,19 +65,31 @@ def preprocess_loaded_data(human_freedom_df, culture_fit_data_dict, df_english, 
     culture_fit_df *= 0.01  # undo 100X scaling
     culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
 
+    # Social Progress
+    # Pick out just the columns we need and rename country column
+    social_progress_cols_keep = ["Country", "Basic Human Needs", "Foundations of Wellbeing", "Opportunity"]
+    social_progress_df = social_progress_df[social_progress_cols_keep]
+    social_progress_df = social_progress_df.set_index("Country")
+    social_progress_df /= 100.0  # Undo 100X scaling
+    social_progress_df = social_progress_df.reset_index()
+    social_progress_df = social_progress_df.rename(columns={"Country": "country", "Basic Human Needs": "bn_score", "Foundations of Wellbeing": "fw_score", "Opportunity": "op_score",})
+    
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
     country_to_emoji = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
-    return culture_fit_data_dict, culture_fit_df, country_to_emoji
+    return culture_fit_data_dict, culture_fit_df, social_progress_df, country_to_emoji
 
 
 # Load data
-human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji = load_data()
-culture_fit_data_dict, culture_fit_df, country_to_emoji = preprocess_loaded_data(human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji)
+culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji = load_data()
+culture_fit_data_dict, culture_fit_df, social_progress_df, country_to_emoji = preprocess_loaded_data(culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji)
 
 df_format_dict = {
     "country": "Country",
     "overall_score": "Overall Score",
+    "bn_score": "Basic Human Needs Score",
+    "fw_score": "Foundations of Wellbeing",
+    "op_score": "Opportunity Score",
     "pf_score": "Personal Freedom Score",
     "ef_score": "Economic Freedom Score",
     "cf_score": "Cultural Fit Score",
@@ -133,7 +147,7 @@ def get_options_from_query_params():
 def get_options_from_ui():
     app_options = AppOptions()
 
-    with st.expander("Culture Fit preferences"):
+    with st.expander("Culture Fit Preferences"):
         for dimension in dimensions_info.DIMENSIONS:
             dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
 
@@ -143,6 +157,47 @@ def get_options_from_ui():
             preference_val = st.slider(slider_str, min_value=0, max_value=100, help=help_str, key=dimension)
 
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
+
+    with st.expander("Overall Preferences"):
+        app_options.cf_score_weight = st.slider(
+            "Culture Fit Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.cf_score_weight,
+            help=culture_fit_score_help,
+        )
+        app_options.bn_score_weight = st.slider(
+            "Basic Human Needs Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.bn_score_weight,
+        )
+        app_options.fw_score_weight = st.slider(
+            "Foundations of Wellbeing Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.fw_score_weight,
+        )
+        app_options.op_score_weight = st.slider(
+            "Opportunity Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.op_score_weight,
+        )
+        app_options.pf_score_weight = st.slider(
+            "Personal Freedom Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.pf_score_weight,
+            help=personal_freedom_score_help,
+        )
+        app_options.ef_score_weight = st.slider(
+            "Economic Freedom Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.ef_score_weight,
+            help=economic_freedom_score_help,
+        )
 
     with st.expander("Filters"):
         app_options.year_min, app_options.year_max = st.slider(
@@ -158,6 +213,24 @@ def get_options_from_ui():
             max_value=1.0,
             value=app_options.cf_score_min,
             help=culture_fit_score_help,
+        )
+        app_options.bn_score_min = st.slider(
+            "Basic Human Needs Score Min",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.bn_score_min,
+        )
+        app_options.fw_score_min = st.slider(
+            "Foundations of Wellbeing Score Min",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.fw_score_min,
+        )
+        app_options.op_score_min = st.slider(
+            "Opportunity Score Min",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.op_score_min,
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
@@ -179,29 +252,6 @@ def get_options_from_ui():
             max_value=1.0,
             value=app_options.english_ratio_min,
             help=english_speaking_ratio_help,
-        )
-
-    with st.expander("Weights"):
-        app_options.cf_score_weight = st.slider(
-            "Culture Fit Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            value=app_options.cf_score_weight,
-            help=culture_fit_score_help,
-        )
-        app_options.pf_score_weight = st.slider(
-            "Personal Freedom Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            value=app_options.pf_score_weight,
-            help=personal_freedom_score_help,
-        )
-        app_options.ef_score_weight = st.slider(
-            "Economic Freedom Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            value=app_options.ef_score_weight,
-            help=economic_freedom_score_help,
         )
 
     return app_options
@@ -229,10 +279,8 @@ def first_run_per_session():
 
 def get_options():
     with st.sidebar:
-        with st.form(key="options_form"):
-            app_options = get_options_from_ui()
-            st.form_submit_button(label="Update Options")
 
+        # Reference Country
         culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
         st.selectbox(
             "Reference Country",
@@ -240,11 +288,21 @@ def get_options():
             key="culture_fit_reference_country",
         )
         st.button(
-            label="Set Culture Fit preferences to selected Reference Country",
+            label="Set Culture Fit Preferences to Reference Country",
             on_click=culture_fit_reference_callback,
         )
 
+        # Options
+        with st.form(key="options_form"):
+            app_options = get_options_from_ui()
+            st.form_submit_button(label="Update Options")
+
     return app_options
+
+
+def process_data_social_progress(df, app_options):
+    df = df.merge(social_progress_df, on='country')
+    return df
 
 
 @st.cache_data
@@ -306,22 +364,33 @@ def process_data_language_prevalence(df, app_options):
 @st.cache_data
 def process_data_overall_score(df, app_options):
     # Make copies to protect app_options from modification
-    pf_score_weight = deepcopy(app_options.pf_score_weight)
-    ef_score_weight = deepcopy(app_options.ef_score_weight)
-    cf_score_weight = deepcopy(app_options.cf_score_weight)
+    twoletter_codes_to_weight = ["bn", "fw", "op", "pf", "ef", "cf"]
+    weights = {f"{twoletter_code}_score": deepcopy(getattr(app_options, f"{twoletter_code}_score_weight")) for twoletter_code in twoletter_codes_to_weight}
 
-    weight_sum = pf_score_weight + ef_score_weight + cf_score_weight
-    pf_score_weight /= weight_sum
-    ef_score_weight /= weight_sum
-    cf_score_weight /= weight_sum
+    weight_sum = sum([weights[key] for key in weights])
+    for key in weights:
+        weights[key] /= weight_sum
 
-    df["pf_score_weighted"] = df["pf_score"] * pf_score_weight
-    df["ef_score_weighted"] = df["ef_score"] * ef_score_weight
-    df["cf_score_weighted"] = df["cf_score"] * cf_score_weight
+    score_names_to_weight = [f"{twoletter_code}_score" for twoletter_code in twoletter_codes_to_weight]
+    for score_name in score_names_to_weight:
+        df[f'{score_name}_weighted'] = df[score_name] * weights[score_name]
 
-    df["overall_score"] = df["pf_score_weighted"] + df["ef_score_weighted"] + df["cf_score_weighted"]
+    df["overall_score"] = 0.0
+    for key in weights:
+        df["overall_score"]  = df["overall_score"] + df[f'{key}_weighted']
+
     df = df.sort_values("overall_score", ascending=False)
 
+    return df
+
+# TODO move to config files
+culture_fit_codes = ['cf']
+social_progress_codes = ['bn', 'fw', 'op']
+human_freedom_codes = ['pf', 'ef']
+
+def filter_by_codes(df, codes):
+    for code in codes:
+        df["acceptable"] = df["acceptable"] & df[f"{code}_score"] > getattr(app_options, f'{code}_score_min')
     return df
 
 
@@ -329,11 +398,14 @@ def process_data_overall_score(df, app_options):
 def process_data_filters(df, app_options):
     df["acceptable"] = True
     if app_options.do_filter_culture_fit:
-        df["acceptable"] = df["acceptable"] & (df["cf_score"] > app_options.cf_score_min)
+        df = filter_by_codes(df, culture_fit_codes)
+    
+    if app_options.do_filter_social_progress:
+        df = filter_by_codes(df, social_progress_codes)
+
     if app_options.do_filter_freedom:
-        df["acceptable"] = (
-            df["acceptable"] & (df["pf_score"] > app_options.pf_score_min) & (df["ef_score"] > app_options.ef_score_min)
-        )
+        df = filter_by_codes(df, human_freedom_codes)
+
     if app_options.do_filter_english:
         df["acceptable"] = df["acceptable"] & (df["english_ratio"] > app_options.english_ratio_min)
 
@@ -346,6 +418,7 @@ def process_data_filters(df, app_options):
 def process_data(app_options):
     df = None
     df = process_data_human_freedom(df, app_options)
+    df = process_data_social_progress(df, app_options)
     df = process_data_culture_fit(df, app_options)
     df = process_data_language_prevalence(df, app_options)
     df = process_data_overall_score(df, app_options)
@@ -559,12 +632,15 @@ def run_ui_subsection_culture_fit_help():
 def run_ui_section_help():
     st.header("Help", anchor=False)
 
-    with st.expander("About This App 🛈"):
+    with st.expander("About This App ℹ️"):
         run_ui_section_title()
         st.markdown(open("./help/general_help.md").read())
 
     with st.expander("Culture Fit 🗺️"):
         run_ui_subsection_culture_fit_help()
+
+    with st.expander("Social Progress 📈"):
+        st.markdown(open("./help/social_progress_help.md").read())
 
     with st.expander("Human Freedom 🎊"):
         st.markdown(open("./help/human_freedom_help.md").read())
@@ -605,6 +681,7 @@ def check_if_app_options_are_default(app_options):
 
 if not "initialized" in state:
     first_run_per_session()
+
 
 app_options = get_options()
 

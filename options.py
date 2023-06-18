@@ -46,12 +46,18 @@ class AppOptions:
     year_min: int = 2015
     year_max: int = 2020
     cf_score_min: float = 0.0
+    bn_score_min: float = 0.0
+    fw_score_min: float = 0.0
+    op_score_min: float = 0.0
     pf_score_min: float = 0.0
     ef_score_min: float = 0.0
     english_ratio_min: float = 0.0
 
     # Weights
     cf_score_weight: float = 1.0
+    bn_score_weight: float = 0.0
+    fw_score_weight: float = 0.0
+    op_score_weight: float = 0.0
     pf_score_weight: float = 0.0
     ef_score_weight: float = 0.0
 
@@ -59,6 +65,10 @@ class AppOptions:
     def do_filter_culture_fit(self):
         return self.cf_score_min > EPS
     
+    @property
+    def do_filter_social_progress(self):
+        return any([val > EPS for val in [self.bn_score_min, self.fw_score_min, self.op_score_min]])
+
     @property
     def do_filter_freedom(self):
         return self.pf_score_min > EPS or self.ef_score_min > EPS
