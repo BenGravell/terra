@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from culture_fit import country_data
 from culture_fit import distance_calculations
@@ -44,11 +45,9 @@ def load_data():
     # Flag emoji
     df_flag_emoji = pd.read_csv("data/country_flag_emoji.csv")
 
-    return culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji
 
+    # PREPROCESSING
 
-@st.cache_data
-def preprocess_loaded_data(culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji):
     # Culture Fit
     # Remove countries that do not have all dimensions populated
     country_names_to_remove = set()
@@ -77,12 +76,12 @@ def preprocess_loaded_data(culture_fit_data_dict, social_progress_df, human_free
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
     country_to_emoji = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
-    return culture_fit_data_dict, culture_fit_df, social_progress_df, country_to_emoji
+    return culture_fit_data_dict, culture_fit_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji
 
 
 # Load data
-culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji = load_data()
-culture_fit_data_dict, culture_fit_df, social_progress_df, country_to_emoji = preprocess_loaded_data(culture_fit_data_dict, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji)
+culture_fit_data_dict, culture_fit_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji = load_data()
+
 
 df_format_dict = {
     "country": "Country",
@@ -502,50 +501,49 @@ def run_ui_section_top_n_matches(df, app_options):
         value=5,
     )
 
-    show_radar = st.checkbox(
-        label="Show radar plots",
-        value=False,
-        help="Skipping radar plots can significantly improve rendering time.",
-    )
-
-
     df_top_N = df.head(N).rename(columns=df_format_dict)
 
     def pct_fmt(x):
         return f"{round(100*x, 2):.0f}%"
 
-    st.subheader("Score Contributions", anchor=False)
-    fig = px.bar(
-        df_top_N,
-        x="Country",
-        y=[
-            "Cultural Fit Score (weighted)",
-            "Basic Human Needs Score (weighted)",
-            "Foundations of Wellbeing Score (weighted)",
-            "Opportunity Score (weighted)",
-            "Personal Freedom Score (weighted)",
-            "Economic Freedom Score (weighted)",
-        ],
-    )
-    for idx, row in df_top_N.iterrows():
-        fig.add_annotation(
-            x=row['Country'],
-            y=row["Overall Score"],
-            yanchor="bottom",
-            showarrow=False,
-            align="left",
-            text=f"{pct_fmt(row['Overall Score'])}",
-            font={"size": 12},
+    with st.expander("Score Contributions", expanded=True):
+        fig = px.bar(
+            df_top_N,
+            x="Country",
+            y=[
+                "Cultural Fit Score (weighted)",
+                "Basic Human Needs Score (weighted)",
+                "Foundations of Wellbeing Score (weighted)",
+                "Opportunity Score (weighted)",
+                "Personal Freedom Score (weighted)",
+                "Economic Freedom Score (weighted)",
+            ],
         )
-    fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
-    st.plotly_chart(fig, use_container_width=True)
+        for idx, row in df_top_N.iterrows():
+            fig.add_annotation(
+                x=row['Country'],
+                y=row["Overall Score"],
+                yanchor="bottom",
+                showarrow=False,
+                align="left",
+                text=f"{pct_fmt(row['Overall Score'])}",
+                font={"size": 12},
+            )
+        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
+        st.plotly_chart(fig, use_container_width=True)
+        
 
-    st.subheader("Culture Fit Radar Plots", anchor=False, help="The dashed :red[red shape] depicts your preferences.")
-    if show_radar:
-        radar = get_radar(country_names=df_top_N['Country'], user_ideal=get_user_ideal(app_options))
-        st.pyplot(radar)
-    else:
-        st.info('Enable "Show radar plots" to populate this section.')
+    with st.expander("Culture Fit Radar Plots"):
+        show_radar = st.checkbox(
+            label="Show radar plots",
+            value=False,
+        )
+        if show_radar:
+            st.caption('', help="The dashed :red[red shape] depicts your preferences.")
+            radar = get_radar(country_names=df_top_N['Country'], user_ideal=get_user_ideal(app_options))
+            st.pyplot(radar)
+        else:
+            st.info('Enable "Show radar plots" to populate this section. Note that enabling radar plots can slow rendering time significantly.')
 
 
 def run_ui_section_all_matches(df):
@@ -602,7 +600,7 @@ def run_ui_section_all_matches(df):
     with st.expander("Results Data"):
         st.dataframe(dfc.rename(columns=df_format_dict), use_container_width=True)
 
-    with st.expander("Results Plot"):
+    with st.expander("Flag Plot"):
         with st.form("plot_options"):
             cols = st.columns(2)
             with cols[0]:
@@ -612,6 +610,32 @@ def run_ui_section_all_matches(df):
             st.form_submit_button("Update Plot Options")
         scatterplot = visualisation.generate_scatterplot(dfc, x_column, y_column)
         st.bokeh_chart(scatterplot, use_container_width=False)
+    
+    with st.expander("Pair Plot"):
+        show_pair_plot = st.checkbox(
+            label="Show pair plot",
+            value=False,
+        )
+        if show_pair_plot:
+            with st.form("pairplot_options"):
+                cols = st.columns(2)
+                with cols[0]:
+                    x_fields_for_pairplot = st.multiselect("X Fields for Pair Plot", options=plottable_fields, default=plottable_fields)
+                with cols[1]:
+                    y_fields_for_pairplot = st.multiselect("Y Fields for Pair Plot", options=plottable_fields, default=['overall_score'])
+                corner = st.checkbox("Corner plots only", value=True)
+                st.form_submit_button("Update Pair Plot Options")
+                fig = sns.pairplot(data=df, x_vars=x_fields_for_pairplot, y_vars=y_fields_for_pairplot, corner=corner)
+            
+            x_len = len(x_fields_for_pairplot)
+            y_len = len(y_fields_for_pairplot)
+            
+            
+            if x_len * y_len > 10:
+                st.warning('Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection).')
+            st.pyplot(fig, use_container_width=True)
+        else:
+            st.info('Enable "Show pair plot" to populate this section. Note that enabling pair plots can slow rendering time significantly.')
 
 
 def run_ui_subsection_culture_fit_help():
