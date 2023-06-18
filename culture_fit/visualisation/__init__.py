@@ -66,14 +66,14 @@ def generate_scatterplot(
     min_x, min_y = min(data[x_column]), min(data[y_column])
     dx = max_x - min_x
     dy = max_y - min_y
-    ds = min(dx, dy)
     x_margin, y_margin = 0.2 * dx,  0.2 * dy
-    fig = figure(width=800, 
-                 height=800, 
+    fig = figure(width=600, 
+                 height=600, 
                  x_range=(min_x - x_margin, max_x + x_margin),
                  y_range=(min_y - y_margin, max_y + y_margin),
                  x_axis_label=x_column,
                  y_axis_label=y_column,
+                 match_aspect=True,
                  )
     source = ColumnDataSource(data=data)
     labels = LabelSet(x=x_column, y=y_column, text='names',
@@ -81,7 +81,7 @@ def generate_scatterplot(
     fig.add_layout(labels)
     for country_name, country_coords in coords.iterrows():
         img = ImageURL(url=dict(value=COUNTRY_URLS[country_name]), x=country_coords[x_column],
-                       y=country_coords[y_column], w=0.05*ds, h=0.02*ds, anchor="center")
+                       y=country_coords[y_column], w=0.05*dx, h=0.02*dy, anchor="center")
         fig.add_glyph(source, img)
     return fig
 

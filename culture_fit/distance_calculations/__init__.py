@@ -7,7 +7,7 @@ from sklearn import decomposition
 
 from culture_fit.country_data import types
 
-HOFSTEDE_DIMENSIONS = ['pdi', 'idv', 'mas', 'uai', 'lto', 'ind', 'ivr']
+HOFSTEDE_DIMENSIONS = ['pdi', 'idv', 'mas', 'uai', 'lto', 'ind']
 AVAILABLE_DISTANCES = {
     "Euclidean": distance.euclidean,
     "Cosine": distance.cosine,

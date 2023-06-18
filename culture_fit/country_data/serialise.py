@@ -21,6 +21,5 @@ def serialise_country(
         int(raw_data['uai']) if raw_data['uai'] else None,
         int(raw_data['lto']) if raw_data['lto'] else None,
         int(raw_data['ind']) if raw_data['ind'] else None,
-        int(raw_data['ivr']) if raw_data['ivr'] else None,
         raw_data['adjective']
     )

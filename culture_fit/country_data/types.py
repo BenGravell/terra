@@ -15,7 +15,6 @@ class CountryInfo:
     uai: int | None
     lto: int | None
     ind: int | None
-    ivr: int | None
     adjective: str | None
 
 

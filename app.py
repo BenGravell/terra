@@ -37,25 +37,61 @@ def load_data():
     # Coordinates
     df_coords = pd.read_csv("data/country_coords.csv")
     df_coords = df_coords.set_index("country")
-
-    return human_freedom_df, culture_fit_data_dict, df_english, df_coords
-
-
-@st.cache_data
-def load_country_to_emoji():
     # Country codes alpha3
     df_codes_alpha_3 = pd.read_csv("data/country_codes_alpha_3.csv")
     # Flag emoji
     df_flag_emoji = pd.read_csv("data/country_flag_emoji.csv")
 
+    return human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji
+
+
+@st.cache_data
+def preprocess_loaded_data(human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji):
+    # Culture Fit
+    # Remove countries that do not have all dimensions populated
+    country_names_to_remove = set()
+    for country_name, country_info in culture_fit_data_dict.items():
+        for dimension in dimensions_info.DIMENSIONS:
+            val = getattr(country_info, dimension)
+            if val is None or val < 0:
+                country_names_to_remove.add(country_name)
+    
+    for country_name in country_names_to_remove:
+        culture_fit_data_dict.pop(country_name)
+
+    culture_fit_df = pd.DataFrame.from_dict(culture_fit_data_dict, orient='index')[dimensions_info.DIMENSIONS]
+    culture_fit_df *= 0.01  # undo 100X scaling
+    culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
+
+    # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
-    return df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
+    country_to_emoji = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
+    return culture_fit_data_dict, culture_fit_df, country_to_emoji
 
 
 # Load data
-human_freedom_df, culture_fit_data_dict, df_english, df_coords = load_data()
-COUNTRY_TO_EMOJI = load_country_to_emoji()
+human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji = load_data()
+culture_fit_data_dict, culture_fit_df, country_to_emoji = preprocess_loaded_data(human_freedom_df, culture_fit_data_dict, df_english, df_coords, df_codes_alpha_3, df_flag_emoji)
 
+df_format_dict = {
+    "country": "Country",
+    "overall_score": "Overall Score",
+    "pf_score": "Personal Freedom Score",
+    "ef_score": "Economic Freedom Score",
+    "cf_score": "Cultural Fit Score",
+    "pf_score_weighted": "Personal Freedom Score (weighted)",
+    "ef_score_weighted": "Economic Freedom Score (weighted)",
+    "cf_score_weighted": "Cultural Fit Score (weighted)",
+    "english_ratio": "English Speaking Ratio",
+    "acceptable": "Acceptable",
+}
+for dimension in dimensions_info.DIMENSIONS:
+    df_format_dict[dimension] = dimensions_info.DIMENSIONS_INFO[dimension]['name']
+
+
+def df_format_func(key):
+    return df_format_dict[key]
+    
 
 def culture_fit_reference_callback():
     if state.culture_fit_reference_country == NONE_COUNTRY:
@@ -68,7 +104,7 @@ def culture_fit_reference_callback():
 
 
 # TODO move this to a data file
-culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity) of the culture dimension vectors of the nation and your ideal."
+culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html) of the culture dimension vectors of the nation and your ideal."
 personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms."
 economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
 english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population."
@@ -193,6 +229,10 @@ def first_run_per_session():
 
 def get_options():
     with st.sidebar:
+        with st.form(key="options_form"):
+            app_options = get_options_from_ui()
+            st.form_submit_button(label="Update Options")
+
         culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
         st.selectbox(
             "Reference Country",
@@ -200,13 +240,9 @@ def get_options():
             key="culture_fit_reference_country",
         )
         st.button(
-            label="Set Culture Fit preferences to selected reference country",
+            label="Set Culture Fit preferences to selected Reference Country",
             on_click=culture_fit_reference_callback,
         )
-
-        with st.form(key="options_form"):
-            app_options = get_options_from_ui()
-            st.form_submit_button(label="Update Options")
 
     return app_options
 
@@ -233,7 +269,6 @@ def get_user_ideal(app_options):
         uai=app_options.culture_fit_preference_uai,
         lto=app_options.culture_fit_preference_lto,
         ind=app_options.culture_fit_preference_ind,
-        ivr=app_options.culture_fit_preference_ind,  # not a typo
         adjective="user",
     )
     return user_ideal
@@ -246,13 +281,17 @@ def process_data_culture_fit(df, app_options):
     all_countries = list(culture_fit_data_dict.values())
 
     distances, max_distance = distance_calculations.compute_distances(
-        countries_from=[user_ideal], countries_to=all_countries, distance_metric="Cosine"
+        countries_from=[user_ideal], countries_to=all_countries, distance_metric="Manhattan"
     )
     distances = distances.sort_values("user")
-    culture_fit_score = (1 - distances).reset_index()
+    distances = distances / 100  # Divide by the maximum possible deviation in each dimension, which is 100, to make this a unit distance.
+    distances = distances / len(dimensions_info.DIMENSIONS)  # Divide by the number of dimensions to make this an average over dimensions.
+    culture_fit_score = 1 - distances  # Define similarity as 1 - distance
+    culture_fit_score = culture_fit_score.reset_index()
     culture_fit_score = culture_fit_score.rename(columns={"index": "country", "user": "cf_score"})
 
     df = df.merge(culture_fit_score, on="country")
+    df = df.merge(culture_fit_df, on="country")
 
     return df
 
@@ -314,14 +353,14 @@ def process_data(app_options):
 
     return df
 
-
+@st.cache_data
 def get_world_factbook_url(country: str) -> str:
     url_base = "https://www.cia.gov/the-world-factbook/countries"
     country_slug = country.lower().replace(" ", "-")
     url = f"{url_base}/{country_slug}/"
     return url
 
-
+@st.cache_data
 def get_google_maps_url(lat: float, lon: float) -> str:
     url_base = "https://www.google.com/maps"
     zoom_level = 5.0
@@ -337,7 +376,7 @@ def run_ui_section_title():
 def run_ui_section_best_match(df):
     best_match_row = df.iloc[0]
     best_match_country = str(best_match_row.country)
-    best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
+    best_match_country_emoji = country_to_emoji[best_match_country]
 
     st.header("Your Best Match Country:", anchor=False)
     cols = st.columns([4, 2])
@@ -383,7 +422,7 @@ def run_ui_section_top_n_matches(df, app_options):
     N = st.number_input(
         "Number of Top Matching countries to show",
         min_value=1,
-        max_value=20,
+        max_value=30,
         value=5,
     )
 
@@ -393,16 +432,8 @@ def run_ui_section_top_n_matches(df, app_options):
         help="Skipping radar plots can significantly improve rendering time.",
     )
 
-    column_remap = {
-        "overall_score": "Overall Score",
-        "pf_score": "Personal Freedom Score",
-        "ef_score": "Economic Freedom Score",
-        "cf_score": "Cultural Fit Score",
-        "pf_score_weighted": "Personal Freedom Score (weighted)",
-        "ef_score_weighted": "Economic Freedom Score (weighted)",
-        "cf_score_weighted": "Cultural Fit Score (weighted)",
-    }
-    df_top_N = df.head(N).rename(columns=column_remap)
+
+    df_top_N = df.head(N).rename(columns=df_format_dict)
 
     def pct_fmt(x):
         return f"{round(100*x, 2):.0f}%"
@@ -410,7 +441,7 @@ def run_ui_section_top_n_matches(df, app_options):
     st.subheader("Score Contributions", anchor=False)
     fig = px.bar(
         df_top_N,
-        x="country",
+        x="Country",
         y=[
             "Personal Freedom Score (weighted)",
             "Economic Freedom Score (weighted)",
@@ -419,7 +450,7 @@ def run_ui_section_top_n_matches(df, app_options):
     )
     for idx, row in df_top_N.iterrows():
         fig.add_annotation(
-            x=row.country,
+            x=row['Country'],
             y=row["Overall Score"],
             yanchor="bottom",
             showarrow=False,
@@ -432,7 +463,7 @@ def run_ui_section_top_n_matches(df, app_options):
 
     st.subheader("Culture Fit Radar Plots", anchor=False, help="The dashed :red[red shape] depicts your preferences.")
     if show_radar:
-        radar = get_radar(country_names=df_top_N.country, user_ideal=get_user_ideal(app_options))
+        radar = get_radar(country_names=df_top_N['Country'], user_ideal=get_user_ideal(app_options))
         st.pyplot(radar)
     else:
         st.info('Enable "Show radar plots" to populate this section.')
@@ -454,45 +485,54 @@ def run_ui_section_all_matches(df):
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
+    plottable_fields = ["overall_score", "pf_score", "ef_score", "cf_score"]
+    plottable_fields += dimensions_info.DIMENSIONS
+    if "english_ratio" in df.columns:
+        plottable_fields += ["english_ratio"]
+    
+    plottable_field_default_index = plottable_fields.index("overall_score")
+
     with st.expander("World Map", expanded=True):
-        cols = st.columns(2)
+        cols = st.columns(3)
         with cols[0]:
-            # field_for_world_map_options = ["overall_score", "cf_score", "pf_score", "ef_score", "english_ratio"]
-            field_for_world_map_options = df.columns.to_list()
-            field_for_world_map_default_index = field_for_world_map_options.index("overall_score")
             field_for_world_map = st.selectbox(
                 label="Field to Plot",
-                options=field_for_world_map_options,
-                index=field_for_world_map_default_index,
+                options=plottable_fields,
+                index=plottable_field_default_index,
+                format_func=df_format_func,
             )
-
         with cols[1]:
+            world_map_resolution = st.selectbox("Resolution", options=[50, 110], index=1, help="Lower numbers will render finer details, but will run slower. Resolution <= 50 needed for small countries e.g. Singapore.")
+        with cols[2]:
             world_map_projection_type = st.selectbox(
                 label="Projection Type",
                 options=PLOTLY_MAP_PROJECTION_TYPES,
                 index=PLOTLY_MAP_PROJECTION_TYPES.index("robinson"),
                 format_func=lambda s: s.title(),
+                help='See the "Map Projections" section of https://plotly.com/python/map-configuration/ for more details.'
             )
-
         fig = generate_choropleth(df, field_for_world_map)
+        fig.update_geos(resolution=world_map_resolution)
         fig.update_geos(projection_type=world_map_projection_type)
         fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
-        fig.update_layout(geo_bgcolor="#0E1117")
+        fig.update_layout(geo_bgcolor="#0E1117")  # manually match the theme backgroundColor
         st.plotly_chart(fig, use_container_width=True)
 
     dfc = df.set_index("country")
 
-    with st.expander("Raw Results Data"):
-        st.dataframe(dfc, use_container_width=True)
+    with st.expander("Results Data"):
+        st.dataframe(dfc.rename(columns=df_format_dict), use_container_width=True)
 
-    with st.expander("Raw Results Plot"):
-        cols = st.columns(2)
-        with cols[0]:
-            x_column = st.selectbox("x-axis", options=dfc.columns, index=0)
-        with cols[1]:
-            y_column = st.selectbox("y-axis", options=dfc.columns, index=1)
+    with st.expander("Results Plot"):
+        with st.form("plot_options"):
+            cols = st.columns(2)
+            with cols[0]:
+                x_column = st.selectbox("x-axis", options=plottable_fields, index=plottable_fields.index('pf_score'), format_func=df_format_func)
+            with cols[1]:
+                y_column = st.selectbox("y-axis", options=plottable_fields, index=plottable_fields.index('ef_score'), format_func=df_format_func)
+            st.form_submit_button("Update Plot Options")
         scatterplot = visualisation.generate_scatterplot(dfc, x_column, y_column)
-        st.bokeh_chart(scatterplot, use_container_width=True)
+        st.bokeh_chart(scatterplot, use_container_width=False)
 
 
 def run_ui_subsection_culture_fit_help():
@@ -520,6 +560,7 @@ def run_ui_section_help():
     st.header("Help", anchor=False)
 
     with st.expander("About This App 🛈"):
+        run_ui_section_title()
         st.markdown(open("./help/general_help.md").read())
 
     with st.expander("Culture Fit 🗺️"):
@@ -565,16 +606,12 @@ def check_if_app_options_are_default(app_options):
 if not "initialized" in state:
     first_run_per_session()
 
-run_ui_section_title()
-
-
 app_options = get_options()
 
 if check_if_app_options_are_default(app_options):
     st.info(
         "It looks like you are using the default app options. Try opening the sidebar and changing some things! :blush:"
     )
-
 
 df = process_data(app_options)
 

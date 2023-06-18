@@ -57,12 +57,12 @@ class AppOptions:
 
     @property
     def do_filter_culture_fit(self):
-        return not self.cf_score_min < EPS
+        return self.cf_score_min > EPS
     
     @property
     def do_filter_freedom(self):
-        return not (self.pf_score_min < EPS and self.ef_score_min < EPS)
+        return self.pf_score_min > EPS or self.ef_score_min > EPS
 
     @property
     def do_filter_english(self):
-        return not self.english_ratio_min < EPS
+        return self.english_ratio_min > EPS
