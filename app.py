@@ -6,10 +6,10 @@ import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
 
-from culture_map import country_data
-from culture_map import distance_calculations
-from culture_map import visualisation
-from culture_map import dimensions_info
+from culture_fit import country_data
+from culture_fit import distance_calculations
+from culture_fit import visualisation
+from culture_fit import dimensions_info
 
 from options import AppOptions, NONE_COUNTRY, PLOTLY_MAP_PROJECTION_TYPES
 
@@ -31,14 +31,14 @@ def load_data():
     # Human Freedom
     human_freedom_df = pd.read_csv("data/human-freedom-index-2022.csv")
     # Culture Fit
-    countries_dict = country_data.get_country_dict()
+    culture_fit_data_dict = country_data.get_country_dict()
     # English speaking
     df_english = pd.read_csv("data/english_speaking.csv")
     # Coordinates
     df_coords = pd.read_csv("data/country_coords.csv")
     df_coords = df_coords.set_index("country")
 
-    return human_freedom_df, countries_dict, df_english, df_coords
+    return human_freedom_df, culture_fit_data_dict, df_english, df_coords
 
 
 @st.cache_data
@@ -53,28 +53,25 @@ def load_country_to_emoji():
 
 
 # Load data
-human_freedom_df, countries_dict, df_english, df_coords = load_data()
+human_freedom_df, culture_fit_data_dict, df_english, df_coords = load_data()
 COUNTRY_TO_EMOJI = load_country_to_emoji()
-
-# Basic derived data
-all_countries = list(countries_dict.values())
 
 
 def culture_fit_reference_callback():
     if state.culture_fit_reference_country == NONE_COUNTRY:
         return
 
-    country_info = countries_dict[state.culture_fit_reference_country]
+    country_info = culture_fit_data_dict[state.culture_fit_reference_country]
 
     for dimension in dimensions_info.DIMENSIONS:
         state[dimension] = getattr(country_info, dimension)
 
 
 # TODO move this to a data file
-culture_fit_help = "Preferences regarding your desired national culture. See https://geerthofstede.com/culture-geert-hofstede-gert-jan-hofstede/6d-model-of-national-culture/ for more information."
-personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms. The Personal Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
-economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms. The Economic Freedom Index (score) is provided by the Cato Institue and Fraser Institute. See https://www.cato.org/human-freedom-index/2022 for more details."
-english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population. See the data source https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population."
+culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity) of the culture dimension vectors of the nation and your ideal."
+personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms."
+economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
+english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population."
 
 
 def get_options_from_query_params():
@@ -101,16 +98,11 @@ def get_options_from_ui():
     app_options = AppOptions()
 
     with st.expander("Culture Fit preferences"):
-        st.caption(
-            "",
-            help=culture_fit_help,
-        )
-
         for dimension in dimensions_info.DIMENSIONS:
             dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
 
             slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
-            help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): {dimension_info["question"]} \n\n {dimension_info["description"]}'
+            help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): *{dimension_info["question"]}* \n\n {dimension_info["description"]}'
 
             preference_val = st.slider(slider_str, min_value=0, max_value=100, help=help_str, key=dimension)
 
@@ -129,6 +121,7 @@ def get_options_from_ui():
             min_value=0.0,
             max_value=1.0,
             value=app_options.cf_score_min,
+            help=culture_fit_score_help,
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
@@ -158,6 +151,7 @@ def get_options_from_ui():
             min_value=0.0,
             max_value=1.0,
             value=app_options.cf_score_weight,
+            help=culture_fit_score_help,
         )
         app_options.pf_score_weight = st.slider(
             "Personal Freedom Score Weight",
@@ -199,7 +193,7 @@ def first_run_per_session():
 
 def get_options():
     with st.sidebar:
-        culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(countries_dict))
+        culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
         st.selectbox(
             "Reference Country",
             options=culture_fit_reference_country_options,
@@ -218,17 +212,17 @@ def get_options():
 
 
 @st.cache_data
-def process_data(app_options):
-    # Human Freedom
+def process_data_human_freedom(df, app_options):
     human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
-
-    df = human_freedom_df_year_filtered.groupby(["country"])[["pf_score", "ef_score"]].mean()
-    df[["pf_score", "ef_score"]] = df[["pf_score", "ef_score"]] * 0.1  # undo 10X scaling
-
+    freedom_score_cols = ["pf_score", "ef_score"]
+    df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
+    df[freedom_score_cols] *= 0.1  # undo 10X scaling
     df = df.reset_index()
+    return df
 
-    # Cultural Fit
-    # Derived from https://culture-map.streamlit.app/Country_Match?ref=blog.streamlit.io
+
+@st.cache_data
+def get_user_ideal(app_options):
     user_ideal = country_data.types.CountryInfo(
         id=999,
         title="user",
@@ -242,6 +236,14 @@ def process_data(app_options):
         ivr=app_options.culture_fit_preference_ind,  # not a typo
         adjective="user",
     )
+    return user_ideal
+
+
+@st.cache_data
+def process_data_culture_fit(df, app_options):
+    user_ideal = get_user_ideal(app_options)
+
+    all_countries = list(culture_fit_data_dict.values())
 
     distances, max_distance = distance_calculations.compute_distances(
         countries_from=[user_ideal], countries_to=all_countries, distance_metric="Cosine"
@@ -252,12 +254,18 @@ def process_data(app_options):
 
     df = df.merge(culture_fit_score, on="country")
 
-    # Language
+    return df
+
+
+@st.cache_data
+def process_data_language_prevalence(df, app_options):
     if app_options.do_filter_english:
         df = df.merge(df_english[["country", "english_ratio"]], on="country")
+    return df
 
-    # Overall Score
 
+@st.cache_data
+def process_data_overall_score(df, app_options):
     # Make copies to protect app_options from modification
     pf_score_weight = deepcopy(app_options.pf_score_weight)
     ef_score_weight = deepcopy(app_options.ef_score_weight)
@@ -275,7 +283,11 @@ def process_data(app_options):
     df["overall_score"] = df["pf_score_weighted"] + df["ef_score_weighted"] + df["cf_score_weighted"]
     df = df.sort_values("overall_score", ascending=False)
 
-    # Filters
+    return df
+
+
+@st.cache_data
+def process_data_filters(df, app_options):
     df["acceptable"] = True
     if app_options.do_filter_culture_fit:
         df["acceptable"] = df["acceptable"] & (df["cf_score"] > app_options.cf_score_min)
@@ -288,7 +300,19 @@ def process_data(app_options):
 
     df = df[df["acceptable"]]
 
-    return df, user_ideal
+    return df
+
+
+@st.cache_data
+def process_data(app_options):
+    df = None
+    df = process_data_human_freedom(df, app_options)
+    df = process_data_culture_fit(df, app_options)
+    df = process_data_language_prevalence(df, app_options)
+    df = process_data_overall_score(df, app_options)
+    df = process_data_filters(df, app_options)
+
+    return df
 
 
 def get_world_factbook_url(country: str) -> str:
@@ -307,11 +331,7 @@ def get_google_maps_url(lat: float, lon: float) -> str:
 
 def run_ui_section_title():
     st.title("🌎 :blue[Terra]", anchor=False)
-    terra_question = 'This app is designed to answer the question "Which country should I live in?"'
-    terra_explanation = "Use data to decide which country is right for you. Terra will take your personal preferences regarding Culture Fit, Human Freedom, and Language into account and recommend one or more countries that match."
-    terra_caveats = "Caveats and limitations: This app integrates several data sources, which do not have complete information for every country. Therefore, some countries will be excluded from the analysis. Please contact the app author if you have more complete data to share."
-    terra_help = f"{terra_question}\n\n{terra_explanation}\n\n{terra_caveats}"
-    st.caption("Find the right country for you!", help=terra_help)
+    st.caption("Find the right country for you!")
 
 
 def run_ui_section_best_match(df):
@@ -319,13 +339,18 @@ def run_ui_section_best_match(df):
     best_match_country = str(best_match_row.country)
     best_match_country_emoji = COUNTRY_TO_EMOJI[best_match_country]
 
-    st.header(f"Your Best Match Country: :blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
-    st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
+    st.header("Your Best Match Country:", anchor=False)
+    cols = st.columns([4, 2])
+    with cols[0]:
+        st.header(f":blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
+    with cols[1]:
+        st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
 
     # CIA World Factbook viewer
     cia_world_factbook_url = get_world_factbook_url(best_match_country)
-    st.markdown(f"CIA World Factbook ([open in new tab]({cia_world_factbook_url}))")
-    st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+    with st.expander("CIA World Factbook"):
+        st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
+        st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
     # Google Earth viewer
     # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
@@ -334,13 +359,25 @@ def run_ui_section_best_match(df):
     lon = latlon_row.longitude
 
     google_maps_url = get_google_maps_url(lat, lon)
-    st.markdown(f"Google Earth ([open in new tab]({google_maps_url}))")
-    st.caption(
-        "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
+    with st.expander("Google Earth"):
+        st.markdown(f"[Open in new tab]({google_maps_url})")
+        st.caption(
+            "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
+        )
+
+
+# TODO replace pyplot radar plots with plotly radar plots
+# See https://plotly.com/python/radar-chart/
+def get_radar(country_names, user_ideal):
+    dimensions = distance_calculations.compute_dimensions(
+        [culture_fit_data_dict[country_name] for country_name in country_names]
     )
+    reference = distance_calculations.compute_dimensions([user_ideal])
+    radar = visualisation.generate_radar_plot(dimensions, reference)
+    return radar
 
 
-def run_ui_section_top_n_matches(df, user_ideal):
+def run_ui_section_top_n_matches(df, app_options):
     st.header(f"Top Matching Countries", anchor=False)
 
     N = st.number_input(
@@ -393,20 +430,9 @@ def run_ui_section_top_n_matches(df, user_ideal):
     fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.2, xanchor="left", x=0))
     st.plotly_chart(fig, use_container_width=True)
 
-    # TODO replace pyplot radar plots with plotly radar plots
-    # See https://plotly.com/python/radar-chart/
-    def get_radar(country_names, user_ideal):
-        dimensions = distance_calculations.compute_dimensions(
-            [countries_dict[country_name] for country_name in country_names]
-        )
-        reference = distance_calculations.compute_dimensions([user_ideal])
-        radar = visualisation.generate_radar_plot(dimensions, reference)
-        return radar
-
-    st.subheader("Culture Fit", anchor=False)
+    st.subheader("Culture Fit Radar Plots", anchor=False, help="The dashed :red[red shape] depicts your preferences.")
     if show_radar:
-        radar = get_radar(country_names=df_top_N.country, user_ideal=user_ideal)
-        st.caption("", help="The dashed :red[red shape] depicts your preferences.")
+        radar = get_radar(country_names=df_top_N.country, user_ideal=get_user_ideal(app_options))
         st.pyplot(radar)
     else:
         st.info('Enable "Show radar plots" to populate this section.')
@@ -469,23 +495,44 @@ def run_ui_section_all_matches(df):
         st.bokeh_chart(scatterplot, use_container_width=True)
 
 
+def run_ui_subsection_culture_fit_help():
+    st.markdown(open("./culture_fit/culture_fit_help_intro.md").read())
+
+    # Programmatically generate the help for national culture dimensions
+    st.markdown("## What are the 6 dimensions of national culture?")
+    dim_tabs = st.tabs([dimensions_info.DIMENSIONS_INFO[dimension]['name'] for dimension in dimensions_info.DIMENSIONS])
+    for dim_idx, dimension in enumerate(dimensions_info.DIMENSIONS):
+        with dim_tabs[dim_idx]:
+            dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
+            
+            st.markdown(f'### {dimension_info["name"]} ({dimension_info["abbreviation"]})')
+            cols = st.columns([4, 2])
+            with cols[0]:
+                st.markdown(f'*{dimension_info["question"]}*')
+                st.markdown(dimension_info["description"])
+            with cols[1]:
+                st.video(dimension_info["hofstede_youtube_video_url"])
+
+    st.markdown(open("./culture_fit/culture_fit_help_outro.md").read())
+
+
 def run_ui_section_help():
     st.header("Help", anchor=False)
 
     with st.expander("About This App 🛈"):
-        st.markdown(open("general_help.md").read())
+        st.markdown(open("./help/general_help.md").read())
 
-    with st.expander("Culture Fit: Hofstede's 6-D Model of National Culture 🗺️"):
-        st.markdown(open("culture_fit_help.md").read())
+    with st.expander("Culture Fit 🗺️"):
+        run_ui_subsection_culture_fit_help()
 
     with st.expander("Human Freedom 🎊"):
-        st.markdown(open("human_freedom_help.md").read())
+        st.markdown(open("./help/human_freedom_help.md").read())
 
     with st.expander("Language Prevalence 💬"):
-        st.markdown(open("language_prevalence_help.md").read())
+        st.markdown(open("./help/language_prevalence_help.md").read())
 
     with st.expander("Data Sources 📊"):
-        st.markdown(open("data_sources_help.md").read())
+        st.markdown(open("./help/data_sources_help.md").read())
 
 
 def set_query_params(app_options):
@@ -511,7 +558,9 @@ def check_if_app_options_are_default(app_options):
     return True
 
 
-# Main
+################################################################################
+## Main
+################################################################################
 
 if not "initialized" in state:
     first_run_per_session()
@@ -527,7 +576,7 @@ if check_if_app_options_are_default(app_options):
     )
 
 
-df, user_ideal = process_data(app_options)
+df = process_data(app_options)
 
 no_matches = df.shape[0] == 0
 if no_matches:
@@ -537,7 +586,7 @@ else:
     with tabs[0]:
         run_ui_section_best_match(df)
     with tabs[1]:
-        run_ui_section_top_n_matches(df, user_ideal)
+        run_ui_section_top_n_matches(df, app_options)
     with tabs[2]:
         run_ui_section_all_matches(df)
     with tabs[3]:

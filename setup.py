@@ -12,8 +12,8 @@ setup(
     author_email='',
     description='Country recommendation streamlit app',
     license='MIT',
-    packages=['culture_map',
-              'culture_map.country_data'
+    packages=['culture_fit',
+              'culture_fit.country_data'
               ],
     long_description=open('README.md').read(),
     include_package_data=False,

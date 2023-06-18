@@ -4,12 +4,12 @@ from typing import Optional
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, LabelSet, ImageURL
 import matplotlib.pyplot as plt
-from culture_map.visualisation.country_urls import COUNTRY_URLS
+from culture_fit.visualisation.country_urls import COUNTRY_URLS
 import seaborn as sns
 import plotly.express as px
 import streamlit as st
 
-from culture_map import distance_calculations
+from culture_fit import distance_calculations
 
 DEFAULT_COLORMAP = "coolwarm_r"
 DEFAULT_FORMAT = '.0f'

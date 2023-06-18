@@ -1,5 +1,5 @@
 import json
-from culture_map.country_data import types
+from culture_fit.country_data import types
 
 
 def load_country_data(

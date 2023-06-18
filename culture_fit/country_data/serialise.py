@@ -1,4 +1,4 @@
-from culture_map.country_data import types
+from culture_fit.country_data import types
 
 
 def json_to_countries(

@@ -5,7 +5,7 @@ from scipy.spatial import distance
 import streamlit as st
 from sklearn import decomposition
 
-from culture_map.country_data import types
+from culture_fit.country_data import types
 
 HOFSTEDE_DIMENSIONS = ['pdi', 'idv', 'mas', 'uai', 'lto', 'ind', 'ivr']
 AVAILABLE_DISTANCES = {

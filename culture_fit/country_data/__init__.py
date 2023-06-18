@@ -1,8 +1,8 @@
 import streamlit as st
 
-from culture_map.country_data import download
-from culture_map.country_data import serialise
-from culture_map.country_data import types
+from culture_fit.country_data import download
+from culture_fit.country_data import serialise
+from culture_fit.country_data import types
 
 COUNTRY_DATA: types.Countries = serialise.json_to_countries(download.load_country_data())
 
