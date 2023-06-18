@@ -1,6 +1,6 @@
 ## What is the *Human Freedom Index*?
 
-The *Human Freedom Index* presents the state of human freedom in the world based on a broad measure that encompasses personal, civil, and economic freedom. Human freedom is a social concept that recognizes the dignity of individuals and is defined here as negative liberty or the absence of coercive constraint. Because freedom is inherently valuable and plays a role in human progress, it is worth measuring carefully. The *Human Freedom Index* is a resource that can help to more objectively observe relationships between freedom and other social and economic phenomena, as well as the ways in which the various dimensions of freedom interact with one another.
+The *Human Freedom Index* presents the state of human freedom in the world based on a broad measure that encompasses personal, civil, and economic freedom. Human freedom is a social concept that recognizes the dignity of individuals and is defined here as negative liberty or the absence of coercive constraint. The *Human Freedom Index* is a resource that can help to more objectively observe relationships between freedom and other social and economic phenomena, as well as the ways in which the various dimensions of freedom interact with one another.
 
 
 ## What are the *Personal Freedom Index* and *Economic Freedom Index*?
@@ -14,6 +14,15 @@ The *Human Freedom Index* is broken into two high-level sub-indexes:
 
 ## Who created these indexes?
 
-The report is copublished by the Cato Institute and the Fraser Institute. These organizations have significant, self-declared libertarian-conservative leanings, origins, and purposes, and are hence somewhat biased.
+The report is copublished by the Cato Institute and the Fraser Institute.
 
 See https://www.cato.org/human-freedom-index/2022 for the full report.
+
+
+## Criticism
+
+The Cato Institute and the Fraser Institute have significant, self-declared libertarian-conservative leanings, origins, and purposes, and are hence rather biased.
+
+The *Economic Freedom Index* in particular has been criticized as being misleading, both by [individual observers](https://erlendkulanderkvitrud.medium.com/the-economic-freedom-index-is-a-steaming-pile-of-neoliberal-bullshit-a35205855e29) and the liberal democratic think-tank [Niskanen Center](https://www.niskanencenter.org/elusive-regulatory-state/), due to the inclusion of economic outcomes in the index, which has the effect of incresasing correlation between economic liberty and prosperity by construction. 
+
+The *Economic Freedom Index* has also been criticized by the [International Labour Organization](https://www.ilo.org/) in the 2014 report "Comparing indicators of labour market regulations across databases: A post scriptum to the employing workers debate"(https://www.ilo.org/wcmsp5/groups/public/---ed_protect/---protrav/---travail/documents/publication/wcms_245349.pdf) for "containing a strong conceptual bias. They view labour institutions and regulations as a cost to business that reduces efficiency and competitiveness, and do not attempt to recognize the social objectives of labour regulations or some potential benefits to the employer."
