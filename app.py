@@ -391,14 +391,14 @@ def run_ui_section_best_match(df):
         st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
-    # Google Earth viewer
+    # Google Maps viewer
     # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
     latlon_row = df_coords.loc[best_match_country]
     lat = latlon_row.latitude
     lon = latlon_row.longitude
 
     google_maps_url = get_google_maps_url(lat, lon)
-    with st.expander("Google Earth"):
+    with st.expander("Google Maps"):
         st.markdown(f"[Open in new tab]({google_maps_url})")
         st.caption(
             "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
