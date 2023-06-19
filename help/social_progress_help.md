@@ -23,6 +23,8 @@ See the [Social Index 2022 Overview and Executive Summary](https://www.socialpro
 
 The report is published by the [Social Progress Imperative](https://www.socialprogress.org/), based on the writings of Amartya Sen, Douglass North, and Joseph Stiglitz.
 
+This organization is somewhat centrist politically.
+
 
 ## Criticism
 
