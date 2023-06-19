@@ -786,3 +786,8 @@ else:
         run_ui_section_help()
 
 teardown(app_options)
+
+
+# TODO - re-index all data by country codes
+# - https://www.cia.gov/the-world-factbook/references/country-data-codes/
+# - https://www.iban.com/country-codes
