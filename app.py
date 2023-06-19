@@ -655,7 +655,7 @@ def run_ui_section_all_matches(df):
                 y_column = st.selectbox("y-axis", options=plottable_fields, index=plottable_fields.index('ef_score'), format_func=df_format_func)
             st.form_submit_button("Update Plot Options")
         scatterplot = visualisation.generate_scatterplot(dfc, x_column, y_column)
-        st.bokeh_chart(scatterplot, use_container_width=False)
+        st.bokeh_chart(scatterplot, use_container_width=True)
     
     with st.expander("Pair Plot"):
         show_pair_plot = st.checkbox(

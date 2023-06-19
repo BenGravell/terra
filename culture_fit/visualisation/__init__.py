@@ -65,9 +65,7 @@ def generate_scatterplot(
     dy = max_y - min_y
     x_margin, y_margin = 0.2 * dx,  0.2 * dy
     fig = figure(width=600, 
-                 height=600, 
-                 x_range=(min_x - x_margin, max_x + x_margin),
-                 y_range=(min_y - y_margin, max_y + y_margin),
+                 height=600,
                  x_axis_label=x_column,
                  y_axis_label=y_column,
                  match_aspect=True,
