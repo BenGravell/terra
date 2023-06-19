@@ -4,6 +4,7 @@ from functools import partial
 from urllib.parse import urlencode
 
 from scipy.spatial import distance
+from scipy.cluster import hierarchy
 import pandas as pd
 import streamlit as st
 import plotly.express as px
@@ -24,10 +25,12 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 # Short convenience alias
 state = st.session_state
 
+
 # TODO move to another module
 # UTILS
 def pct_fmt(x):
     return f"{round(100*x, 2):.0f}%"
+
 
 @st.cache_data
 def load_data():
@@ -668,6 +671,42 @@ def run_ui_section_all_matches(df):
 
     plottable_field_default_index = plottable_fields.index("overall_score")
 
+    # TODO move to config
+    pdist_metric_options = [
+        "cityblock",
+        "euclidean",
+        "cosine",
+        "braycurtis",
+        "canberra",
+        "chebyshev",
+        "correlation",
+        "dice",
+        "hamming",
+        "jaccard",
+        "jensenshannon",
+        "kulczynski1",
+        "mahalanobis",
+        "matching",
+        "minkowski",
+        "rogerstanimoto",
+        "russellrao",
+        "seuclidean",
+        "sokalmichener",
+        "sokalsneath",
+        "sqeuclidean",
+        "yule",
+    ]
+
+    linkage_method_options = [
+        "complete",
+        "average",
+        "single",
+        "weighted",
+        "centroid",
+        "median",
+        "ward",
+    ]
+
     with st.expander("World Map", expanded=True):
         cols = st.columns(3)
         with cols[0]:
@@ -703,6 +742,77 @@ def run_ui_section_all_matches(df):
         df_for_table = df.rename(columns=df_format_dict).set_index("Country").drop("Acceptable", axis="columns")
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
+
+    with st.expander("Hierarchical Clustering"):
+        # Use containers to have the dendrogram above the options, since the options will take up a lot of space
+        clustering_plot_container = st.container()
+        clustering_options_container = st.container()
+        dfh = df.set_index("country")
+        with clustering_options_container:
+            with st.form("clustering_options"):
+                clusterion_options_submit_container = st.container()
+                cols = st.columns(4)
+                with cols[0]:
+                    color_threshold = st.slider(
+                        "Cluster Color Threshold",
+                        min_value=0.0,
+                        max_value=5.0,
+                        value=2.0,
+                        help="Lower values will result in more clusters.",
+                    )
+                with cols[1]:
+                    distance_metric = st.selectbox(
+                        "Distance Metric",
+                        options=pdist_metric_options,
+                        help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html",
+                    )
+                with cols[2]:
+                    linkage_method = st.selectbox(
+                        "Linkage Method",
+                        options=linkage_method_options,
+                        help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html",
+                    )
+                with cols[3]:
+                    orientation = st.selectbox("Orientation", options=["bottom", "top", "right", "left"])
+                fields_for_clustering = st.multiselect(
+                    "Fields for Clustering",
+                    options=plottable_fields,
+                    default=plottable_fields,
+                    format_func=df_format_func,
+                )
+                countries_for_clustering = st.multiselect(
+                    "Countries to Cluster",
+                    options=dfh.index.to_list(),
+                    default=dfh.index.to_list(),
+                )
+                clusterion_options_submit_container.form_submit_button("Update Clustering Options")
+            distfun = partial(distance.pdist, metric=distance_metric)
+            linkagefun = partial(hierarchy.linkage, method=linkage_method)
+            dfh = dfh.loc[countries_for_clustering]
+            X = dfh[fields_for_clustering]
+            fig = ff.create_dendrogram(
+                X,
+                orientation=orientation,
+                labels=countries_for_clustering,
+                distfun=distfun,
+                linkagefun=linkagefun,
+                color_threshold=color_threshold,
+            )
+            fig.add_hline(y=color_threshold, line_dash="dash", line_color="white", opacity=0.5)
+            # NOTE: I was trying to convert ClusterNode tree to dict for JSON download here, but it was too much work...
+            # Get dendrogram data using identical process as that implemented internally in ff.create_dendrogram
+            # d = distfun(X)
+            # Z = linkagefun(d)
+            # P = hierarchy.dendrogram(
+            #     Z,
+            #     orientation=orientation,
+            #     labels=countries_for_clustering,
+            #     no_plot=True,
+            #     color_threshold=color_threshold,
+            # )
+            
+        with clustering_plot_container:
+            st.plotly_chart(fig, use_container_width=True)
 
     with st.expander("Flag Plot"):
         with st.form("plot_options"):
@@ -765,64 +875,6 @@ def run_ui_section_all_matches(df):
             st.info(
                 'Enable "Show pair plot" to populate this section. Note that enabling pair plots can slow rendering time significantly.'
             )
-
-    # TODO move to config
-    pdist_metric_options = [
-        "cityblock",
-        "euclidean",
-        "cosine",
-        "braycurtis",
-        "canberra",
-        "chebyshev",
-        "correlation",
-        "dice",
-        "hamming",
-        "jaccard",
-        "jensenshannon",
-        "kulczynski1",
-        "mahalanobis",
-        "matching",
-        "minkowski",
-        "rogerstanimoto",
-        "russellrao",
-        "seuclidean",
-        "sokalmichener",
-        "sokalsneath",
-        "sqeuclidean",
-        "yule",
-    ]
-
-    with st.expander("Hierarchical Clustering"):
-        # Use containers to have the dendrogram above the options, since the options will take up a lot of space
-        clustering_plot_container = st.container()
-        clustering_options_container = st.container()
-        dfh = df.set_index("country")
-        with clustering_options_container:
-            with st.form("clustering_options"):
-                countries_for_clustering = st.multiselect(
-                    "Countries to Cluster",
-                    options=dfh.index.to_list(),
-                    default=dfh.index.to_list(),
-                )
-                fields_for_clustering = st.multiselect(
-                    "Fields for Clustering",
-                    options=plottable_fields,
-                    default=plottable_fields,
-                    format_func=df_format_func,
-                )
-                color_threshold = st.slider("Cluster Color Threshold", min_value=0.0, max_value=5.0, value=2.0)
-                metric = st.selectbox("Distance Metric", options=pdist_metric_options)
-                st.form_submit_button("Update Clustering Options")
-            distfun = partial(distance.pdist, metric=metric)
-            dfh = dfh.loc[countries_for_clustering]
-            fig = ff.create_dendrogram(
-                dfh[fields_for_clustering],
-                labels=countries_for_clustering,
-                distfun=distfun,
-                color_threshold=color_threshold,
-            )
-        with clustering_plot_container:
-            st.plotly_chart(fig, use_container_width=True)
 
 
 def run_ui_subsection_culture_fit_help():
