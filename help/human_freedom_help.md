@@ -21,7 +21,7 @@ See https://www.cato.org/human-freedom-index/2022 for the full report.
 
 ## Criticism
 
-The Cato Institute and the Fraser Institute have significant, self-declared libertarian-conservative leanings, origins, and purposes, and are hence rather biased.
+The Cato Institute and the Fraser Institute have significant, self-declared libertarian-conservative leanings, origins, and purposes.
 
 The *Economic Freedom Index* in particular has been criticized as being misleading, both by [individual observers](https://erlendkulanderkvitrud.medium.com/the-economic-freedom-index-is-a-steaming-pile-of-neoliberal-bullshit-a35205855e29) and the liberal democratic think-tank [Niskanen Center](https://www.niskanencenter.org/elusive-regulatory-state/), due to the inclusion of economic outcomes in the index, which has the effect of incresasing correlation between economic liberty and prosperity by construction. 
 
