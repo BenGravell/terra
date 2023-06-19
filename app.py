@@ -7,11 +7,7 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from culture_fit import country_data
-from culture_fit import distance_calculations
-from culture_fit import visualisation
-from culture_fit import dimensions_info
-
+from culture_fit import country_data, distance_calculations, visualisation, dimensions_info
 from options import AppOptions, NONE_COUNTRY, PLOTLY_MAP_PROJECTION_TYPES
 
 
@@ -32,20 +28,20 @@ def load_data():
     # Culture Fit
     culture_fit_data_dict = country_data.get_country_dict()
     # Happy Planet
-    happy_planet_df = pd.read_csv("data/happy_planet_index_2019.csv")
+    happy_planet_df = pd.read_csv("./data/happy_planet_index_2019.csv")
     # Social Progress
-    social_progress_df = pd.read_csv("data/social_progress_index_2022.csv")
+    social_progress_df = pd.read_csv("./data/social_progress_index_2022.csv")
     # Human Freedom
-    human_freedom_df = pd.read_csv("data/human-freedom-index-2022.csv")
+    human_freedom_df = pd.read_csv("./data/human-freedom-index-2022.csv")
     # English speaking
-    df_english = pd.read_csv("data/english_speaking.csv")
+    df_english = pd.read_csv("./data/english_speaking.csv")
     # Coordinates
-    df_coords = pd.read_csv("data/country_coords.csv")
+    df_coords = pd.read_csv("./data/country_coords.csv")
     df_coords = df_coords.set_index("country")
     # Country codes alpha3
-    df_codes_alpha_3 = pd.read_csv("data/country_codes_alpha_3.csv")
+    df_codes_alpha_3 = pd.read_csv("./data/country_codes_alpha_3.csv")
     # Flag emoji
-    df_flag_emoji = pd.read_csv("data/country_flag_emoji.csv")
+    df_flag_emoji = pd.read_csv("./data/country_flag_emoji.csv")
 
 
     # PREPROCESSING
