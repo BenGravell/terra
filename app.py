@@ -31,6 +31,8 @@ def load_data():
 
     # Culture Fit
     culture_fit_data_dict = country_data.get_country_dict()
+    # Happy Planet
+    happy_planet_df = pd.read_csv("data/happy_planet_index_2019.csv")
     # Social Progress
     social_progress_df = pd.read_csv("data/social_progress_index_2022.csv")
     # Human Freedom
@@ -64,6 +66,11 @@ def load_data():
     culture_fit_df *= 0.01  # undo 100X scaling
     culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
 
+    # Happy Planet
+    happy_planet_df = happy_planet_df[['Country', 'HPI']]
+    happy_planet_df = happy_planet_df.rename(columns={'Country': 'country', 'HPI': 'hp_score'})
+    happy_planet_df['hp_score'] /= 100
+
     # Social Progress
     # Pick out just the columns we need and rename country column
     social_progress_cols_keep = ["Country", "Basic Human Needs", "Foundations of Wellbeing", "Opportunity"]
@@ -76,23 +83,25 @@ def load_data():
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
     country_to_emoji = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
-    return culture_fit_data_dict, culture_fit_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji
+    return culture_fit_data_dict, culture_fit_df, happy_planet_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji
 
 
 # Load data
-culture_fit_data_dict, culture_fit_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji = load_data()
+culture_fit_data_dict, culture_fit_df, happy_planet_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji = load_data()
 
 
 df_format_dict = {
     "country": "Country",
     "overall_score": "Overall Score",
     "cf_score": "Culture Fit Score",
+    "hp_score": "Happy Planet Score",
     "bn_score": "Basic Human Needs Score",
     "fw_score": "Foundations of Wellbeing Score",
     "op_score": "Opportunity Score",
     "pf_score": "Personal Freedom Score",
     "ef_score": "Economic Freedom Score",
     "cf_score_weighted": "Culture Fit Score (weighted)",
+    "hp_score_weighted": "Happy Planet Score (weighted)",
     "bn_score_weighted": "Basic Human Needs Score (weighted)",
     "fw_score_weighted": "Foundations of Wellbeing Score (weighted)",
     "op_score_weighted": "Opportunity Score (weighted)",
@@ -121,6 +130,8 @@ def culture_fit_reference_callback():
 
 # TODO move this to a data file
 culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html) of the culture dimension vectors of the nation and your ideal."
+
+happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) is a measure of sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
 
 basic_needs_score_help = "Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens. This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety."
 
@@ -177,6 +188,13 @@ def get_options_from_ui():
             value=app_options.cf_score_weight,
             help=culture_fit_score_help,
         )
+        app_options.hp_score_weight = st.slider(
+            "Happy Planet Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.hp_score_weight,
+            help=happy_planet_score_help,
+        )
         app_options.bn_score_weight = st.slider(
             "Basic Human Needs Score Weight",
             min_value=0.0,
@@ -220,6 +238,13 @@ def get_options_from_ui():
             max_value=1.0,
             value=app_options.cf_score_min,
             help=culture_fit_score_help,
+        )
+        app_options.hp_score_min = st.slider(
+            "Happy Planet Score Min",
+            min_value=0.0,
+            max_value=1.0,
+            value=app_options.hp_score_min,
+            help=happy_planet_score_help,
         )
         app_options.bn_score_min = st.slider(
             "Basic Human Needs Score Min",
@@ -316,6 +341,11 @@ def get_options():
     return app_options
 
 
+def process_data_happy_planet(df, app_options):
+    df = df.merge(happy_planet_df, on='country')
+    return df
+
+
 def process_data_social_progress(df, app_options):
     df = df.merge(social_progress_df, on='country')
     return df
@@ -331,7 +361,6 @@ def process_data_human_freedom(df, app_options):
     return df
 
 
-@st.cache_data
 def get_user_ideal(app_options):
     user_ideal = country_data.types.CountryInfo(
         id=999,
@@ -348,7 +377,6 @@ def get_user_ideal(app_options):
     return user_ideal
 
 
-@st.cache_data
 def process_data_culture_fit(df, app_options):
     user_ideal = get_user_ideal(app_options)
 
@@ -370,17 +398,15 @@ def process_data_culture_fit(df, app_options):
     return df
 
 
-@st.cache_data
 def process_data_language_prevalence(df, app_options):
     if app_options.do_filter_english:
         df = df.merge(df_english[["country", "english_ratio"]], on="country")
     return df
 
 
-@st.cache_data
 def process_data_overall_score(df, app_options):
     # Make copies to protect app_options from modification
-    twoletter_codes_to_weight = ["bn", "fw", "op", "pf", "ef", "cf"]
+    twoletter_codes_to_weight = ["cf", "hp", "bn", "fw", "op", "pf", "ef"]
     weights = {f"{twoletter_code}_score": deepcopy(getattr(app_options, f"{twoletter_code}_score_weight")) for twoletter_code in twoletter_codes_to_weight}
 
     weight_sum = sum([weights[key] for key in weights])
@@ -401,6 +427,7 @@ def process_data_overall_score(df, app_options):
 
 # TODO move to config files
 culture_fit_codes = ['cf']
+happy_planet_codes = ['hp']
 social_progress_codes = ['bn', 'fw', 'op']
 human_freedom_codes = ['pf', 'ef']
 
@@ -416,7 +443,10 @@ def process_data_filters(df, app_options):
     df["acceptable"] = True
     if app_options.do_filter_culture_fit:
         df = filter_by_codes(df, culture_fit_codes)
-    
+
+    if app_options.do_filter_happy_planet:
+        df = filter_by_codes(df, happy_planet_codes)
+
     if app_options.do_filter_social_progress:
         df = filter_by_codes(df, social_progress_codes)
 
@@ -436,6 +466,7 @@ def process_data_filters(df, app_options):
 def process_data(app_options):
     df = None
     df = process_data_human_freedom(df, app_options)
+    df = process_data_happy_planet(df, app_options)
     df = process_data_social_progress(df, app_options)
     df = process_data_culture_fit(df, app_options)
     df = process_data_language_prevalence(df, app_options)
@@ -444,12 +475,14 @@ def process_data(app_options):
 
     return df
 
+
 @st.cache_data
 def get_world_factbook_url(country: str) -> str:
     url_base = "https://www.cia.gov/the-world-factbook/countries"
     country_slug = country.lower().replace(" ", "-")
     url = f"{url_base}/{country_slug}/"
     return url
+
 
 @st.cache_data
 def get_google_maps_url(lat: float, lon: float) -> str:
@@ -528,6 +561,7 @@ def run_ui_section_top_n_matches(df, app_options):
             x="Country",
             y=[
                 "Culture Fit Score (weighted)",
+                "Happy Planet Score (weighted)",
                 "Basic Human Needs Score (weighted)",
                 "Foundations of Wellbeing Score (weighted)",
                 "Opportunity Score (weighted)",
@@ -578,7 +612,7 @@ def run_ui_section_all_matches(df):
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
-    plottable_fields = ["overall_score", "cf_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"]
+    plottable_fields = ["overall_score", "cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"]
     plottable_fields += dimensions_info.DIMENSIONS
     if "english_ratio" in df.columns:
         plottable_fields += ["english_ratio"]
@@ -636,7 +670,7 @@ def run_ui_section_all_matches(df):
             with st.form("pairplot_options"):
                 cols = st.columns(2)
                 with cols[0]:
-                    x_fields_for_pairplot = st.multiselect("X Fields for Pair Plot", options=plottable_fields, default=["cf_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"], format_func=df_format_func)
+                    x_fields_for_pairplot = st.multiselect("X Fields for Pair Plot", options=plottable_fields, default=["cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"], format_func=df_format_func)
                     x_len = len(x_fields_for_pairplot)
                 with cols[1]:
                     y_fields_for_pairplot = st.multiselect("Y Fields for Pair Plot", options=plottable_fields, default=['overall_score'], format_func=df_format_func)
@@ -647,10 +681,6 @@ def run_ui_section_all_matches(df):
                                    x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
                                    y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
                                    )
-            
-
-            
-            
             if x_len * y_len > 10:
                 st.warning('Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection).')
             st.pyplot(fig, use_container_width=True)
@@ -659,7 +689,7 @@ def run_ui_section_all_matches(df):
 
 
 def run_ui_subsection_culture_fit_help():
-    st.markdown(open("./culture_fit/culture_fit_help_intro.md").read())
+    st.markdown(open("./culture_fit/culture_fit_help_intro.md", encoding="utf8").read())
 
     # Programmatically generate the help for national culture dimensions
     st.markdown("## What are the 6 dimensions of national culture?")
@@ -676,7 +706,7 @@ def run_ui_subsection_culture_fit_help():
             with cols[1]:
                 st.video(dimension_info["hofstede_youtube_video_url"])
 
-    st.markdown(open("./culture_fit/culture_fit_help_outro.md").read())
+    st.markdown(open("./culture_fit/culture_fit_help_outro.md", encoding="utf8").read())
 
 
 def run_ui_section_help():
@@ -684,22 +714,25 @@ def run_ui_section_help():
 
     with st.expander("About This App ℹ️"):
         run_ui_section_title()
-        st.markdown(open("./help/general_help.md").read())
+        st.markdown(open("./help/general_help.md", encoding="utf8").read())
 
     with st.expander("Culture Fit 🗺️"):
         run_ui_subsection_culture_fit_help()
 
+    with st.expander("Happy Planet 😊"):
+        st.markdown(open("./help/happy_planet_help.md", encoding="utf8").read())
+
     with st.expander("Social Progress 📈"):
-        st.markdown(open("./help/social_progress_help.md").read())
+        st.markdown(open("./help/social_progress_help.md", encoding="utf8").read())
 
     with st.expander("Human Freedom 🎊"):
-        st.markdown(open("./help/human_freedom_help.md").read())
+        st.markdown(open("./help/human_freedom_help.md", encoding="utf8").read())
 
     with st.expander("Language Prevalence 💬"):
-        st.markdown(open("./help/language_prevalence_help.md").read())
+        st.markdown(open("./help/language_prevalence_help.md", encoding="utf8").read())
 
     with st.expander("Data Sources 📊"):
-        st.markdown(open("./help/data_sources_help.md").read())
+        st.markdown(open("./help/data_sources_help.md", encoding="utf8").read())
 
 
 def set_query_params(app_options):
