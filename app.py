@@ -743,7 +743,7 @@ def run_ui_section_share(app_options):
     query_params = dataclasses.asdict(app_options)
     query_string = urlencode(query_params, doseq=True)
     url = f'{terra_url_base}/?{query_string}'
-    st.write(f"Copy the link below or [open in new tab]({url}).")
+    st.write(f"Copy the link below or copy this [link address]({url}).")
     st.code(url, language='http')
 
 
