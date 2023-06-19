@@ -2,6 +2,7 @@
 
 The *Social Progress Index* rigorously measures country performance on many aspects of social and environmental performance which are relevant for countries at all levels of economic development. The index gives governments and businesses the tools to track social and environmental performance rigorously, and make better public policy and investment choices. The *Social Progress Index* also allows us to assess a country's success in turning economic progress into improved social outcomes.
 
+
 ## What are the components of the *Social Progress Index*?
 
 The *Social Progress Index* is made up of three high-level sub-indexes:

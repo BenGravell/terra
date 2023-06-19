@@ -717,6 +717,7 @@ def run_ui_section_help():
 
     with st.expander("About Terra ℹ️"):
         run_ui_section_title()
+        st.markdown(open("./README.md", encoding="utf8").read())
         st.markdown(open("./help/general_help.md", encoding="utf8").read())
 
     with st.expander("Culture Fit 🗺️"):
@@ -739,11 +740,12 @@ def run_ui_section_help():
 
 
 def run_ui_section_share(app_options):
+    st.header("Share Link")
     terra_url_base = 'https://terra-country-recommender.streamlit.app'
     query_params = dataclasses.asdict(app_options)
     query_string = urlencode(query_params, doseq=True)
     url = f'{terra_url_base}/?{query_string}'
-    st.write(f"Copy the link below or copy this [link address]({url}).")
+    st.write(f"Copy the link by using the copy-to-clipboard button below, or secondary-click and copy this [link address]({url}).")
     st.code(url, language='http')
 
 
