@@ -1,10 +1,13 @@
 import dataclasses
 from copy import deepcopy
+from functools import partial
 from urllib.parse import urlencode
 
+from scipy.spatial import distance
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -21,6 +24,10 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 # Short convenience alias
 state = st.session_state
 
+# TODO move to another module
+# UTILS
+def pct_fmt(x):
+    return f"{round(100*x, 2):.0f}%"
 
 @st.cache_data
 def load_data():
@@ -44,7 +51,6 @@ def load_data():
     # Flag emoji
     df_flag_emoji = pd.read_csv("./data/country_flag_emoji.csv")
 
-
     # PREPROCESSING
 
     # Culture Fit
@@ -55,18 +61,18 @@ def load_data():
             val = getattr(country_info, dimension)
             if val is None or val < 0:
                 country_names_to_remove.add(country_name)
-    
+
     for country_name in country_names_to_remove:
         culture_fit_data_dict.pop(country_name)
 
-    culture_fit_df = pd.DataFrame.from_dict(culture_fit_data_dict, orient='index')[dimensions_info.DIMENSIONS]
+    culture_fit_df = pd.DataFrame.from_dict(culture_fit_data_dict, orient="index")[dimensions_info.DIMENSIONS]
     culture_fit_df *= 0.01  # undo 100X scaling
     culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
 
     # Happy Planet
-    happy_planet_df = happy_planet_df[['Country', 'HPI']]
-    happy_planet_df = happy_planet_df.rename(columns={'Country': 'country', 'HPI': 'hp_score'})
-    happy_planet_df['hp_score'] /= 100
+    happy_planet_df = happy_planet_df[["Country", "HPI"]]
+    happy_planet_df = happy_planet_df.rename(columns={"Country": "country", "HPI": "hp_score"})
+    happy_planet_df["hp_score"] /= 100
 
     # Social Progress
     # Pick out just the columns we need and rename country column
@@ -75,16 +81,45 @@ def load_data():
     social_progress_df = social_progress_df.set_index("Country")
     social_progress_df /= 100.0  # Undo 100X scaling
     social_progress_df = social_progress_df.reset_index()
-    social_progress_df = social_progress_df.rename(columns={"Country": "country", "Basic Human Needs": "bn_score", "Foundations of Wellbeing": "fw_score", "Opportunity": "op_score",})
-    
+    social_progress_df = social_progress_df.rename(
+        columns={
+            "Country": "country",
+            "Basic Human Needs": "bn_score",
+            "Foundations of Wellbeing": "fw_score",
+            "Opportunity": "op_score",
+        }
+    )
+
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
     country_to_emoji = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
-    return culture_fit_data_dict, culture_fit_df, happy_planet_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji
+    return (
+        culture_fit_data_dict,
+        culture_fit_df,
+        happy_planet_df,
+        social_progress_df,
+        human_freedom_df,
+        df_english,
+        df_coords,
+        df_codes_alpha_3,
+        df_flag_emoji,
+        country_to_emoji,
+    )
 
 
 # Load data
-culture_fit_data_dict, culture_fit_df, happy_planet_df, social_progress_df, human_freedom_df, df_english, df_coords, df_codes_alpha_3, df_flag_emoji, country_to_emoji = load_data()
+(
+    culture_fit_data_dict,
+    culture_fit_df,
+    happy_planet_df,
+    social_progress_df,
+    human_freedom_df,
+    df_english,
+    df_coords,
+    df_codes_alpha_3,
+    df_flag_emoji,
+    country_to_emoji,
+) = load_data()
 
 
 df_format_dict = {
@@ -108,12 +143,12 @@ df_format_dict = {
     "acceptable": "Acceptable",
 }
 for dimension in dimensions_info.DIMENSIONS:
-    df_format_dict[dimension] = dimensions_info.DIMENSIONS_INFO[dimension]['name']
+    df_format_dict[dimension] = dimensions_info.DIMENSIONS_INFO[dimension]["name"]
 
 
 def df_format_func(key):
     return df_format_dict[key]
-    
+
 
 def culture_fit_reference_callback():
     if state.culture_fit_reference_country == NONE_COUNTRY:
@@ -140,7 +175,9 @@ personal_freedom_score_help = "Personal Freedom measures the degree to which mem
 
 economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
 
-english_speaking_ratio_help = "Ratio of people who speak English as a mother tongue or foreign language to the total population."
+english_speaking_ratio_help = (
+    "Ratio of people who speak English as a mother tongue or foreign language to the total population."
+)
 
 
 def get_options_from_query_params():
@@ -317,7 +354,6 @@ def first_run_per_session():
 
 def get_options():
     with st.sidebar:
-
         # Reference Country
         culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
         st.selectbox(
@@ -339,12 +375,12 @@ def get_options():
 
 
 def process_data_happy_planet(df, app_options):
-    df = df.merge(happy_planet_df, on='country')
+    df = df.merge(happy_planet_df, on="country")
     return df
 
 
 def process_data_social_progress(df, app_options):
-    df = df.merge(social_progress_df, on='country')
+    df = df.merge(social_progress_df, on="country")
     return df
 
 
@@ -383,8 +419,12 @@ def process_data_culture_fit(df, app_options):
         countries_from=[user_ideal], countries_to=all_countries, distance_metric="Manhattan"
     )
     distances = distances.sort_values("user")
-    distances = distances / 100  # Divide by the maximum possible deviation in each dimension, which is 100, to make this a unit distance.
-    distances = distances / len(dimensions_info.DIMENSIONS)  # Divide by the number of dimensions to make this an average over dimensions.
+    distances = (
+        distances / 100
+    )  # Divide by the maximum possible deviation in each dimension, which is 100, to make this a unit distance.
+    distances = distances / len(
+        dimensions_info.DIMENSIONS
+    )  # Divide by the number of dimensions to make this an average over dimensions.
     culture_fit_score = 1 - distances  # Define similarity as 1 - distance
     culture_fit_score = culture_fit_score.reset_index()
     culture_fit_score = culture_fit_score.rename(columns={"index": "country", "user": "cf_score"})
@@ -404,7 +444,10 @@ def process_data_language_prevalence(df, app_options):
 def process_data_overall_score(df, app_options):
     # Make copies to protect app_options from modification
     twoletter_codes_to_weight = ["cf", "hp", "bn", "fw", "op", "pf", "ef"]
-    weights = {f"{twoletter_code}_score": deepcopy(getattr(app_options, f"{twoletter_code}_score_weight")) for twoletter_code in twoletter_codes_to_weight}
+    weights = {
+        f"{twoletter_code}_score": deepcopy(getattr(app_options, f"{twoletter_code}_score_weight"))
+        for twoletter_code in twoletter_codes_to_weight
+    }
 
     weight_sum = sum([weights[key] for key in weights])
     for key in weights:
@@ -412,25 +455,27 @@ def process_data_overall_score(df, app_options):
 
     score_names_to_weight = [f"{twoletter_code}_score" for twoletter_code in twoletter_codes_to_weight]
     for score_name in score_names_to_weight:
-        df[f'{score_name}_weighted'] = df[score_name] * weights[score_name]
+        df[f"{score_name}_weighted"] = df[score_name] * weights[score_name]
 
     df["overall_score"] = 0.0
     for key in weights:
-        df["overall_score"]  = df["overall_score"] + df[f'{key}_weighted']
+        df["overall_score"] = df["overall_score"] + df[f"{key}_weighted"]
 
     df = df.sort_values("overall_score", ascending=False)
 
     return df
 
+
 # TODO move to config files
-culture_fit_codes = ['cf']
-happy_planet_codes = ['hp']
-social_progress_codes = ['bn', 'fw', 'op']
-human_freedom_codes = ['pf', 'ef']
+culture_fit_codes = ["cf"]
+happy_planet_codes = ["hp"]
+social_progress_codes = ["bn", "fw", "op"]
+human_freedom_codes = ["pf", "ef"]
+
 
 def filter_by_codes(df, codes):
     for code in codes:
-        threshold = getattr(app_options, f'{code}_score_min')
+        threshold = getattr(app_options, f"{code}_score_min")
         df["acceptable"] = df["acceptable"] & (df[f"{code}_score"] > threshold)
     return df
 
@@ -455,7 +500,7 @@ def process_data_filters(df, app_options):
 
     # Drop unacceptable rows
     df = df[df["acceptable"]]
-    
+
     return df
 
 
@@ -549,9 +594,6 @@ def run_ui_section_top_n_matches(df, app_options):
 
     df_top_N = df.head(N).rename(columns=df_format_dict)
 
-    def pct_fmt(x):
-        return f"{round(100*x, 2):.0f}%"
-
     with st.expander("Score Contributions", expanded=True):
         fig = px.bar(
             df_top_N,
@@ -568,7 +610,7 @@ def run_ui_section_top_n_matches(df, app_options):
         )
         for idx, row in df_top_N.iterrows():
             fig.add_annotation(
-                x=row['Country'],
+                x=row["Country"],
                 y=row["Overall Score"],
                 yanchor="bottom",
                 showarrow=False,
@@ -578,7 +620,6 @@ def run_ui_section_top_n_matches(df, app_options):
             )
         fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
-        
 
     with st.expander("Culture Fit Radar Plots"):
         show_radar = st.checkbox(
@@ -586,11 +627,13 @@ def run_ui_section_top_n_matches(df, app_options):
             value=False,
         )
         if show_radar:
-            st.caption('', help="The dashed :red[red shape] depicts your preferences.")
-            radar = get_radar(country_names=df_top_N['Country'], user_ideal=get_user_ideal(app_options))
+            st.caption("", help="The dashed :red[red shape] depicts your preferences.")
+            radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
             st.pyplot(radar)
         else:
-            st.info('Enable "Show radar plots" to populate this section. Note that enabling radar plots can slow rendering time significantly.')
+            st.info(
+                'Enable "Show radar plots" to populate this section. Note that enabling radar plots can slow rendering time significantly.'
+            )
 
 
 def run_ui_section_all_matches(df):
@@ -609,11 +652,20 @@ def run_ui_section_all_matches(df):
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
-    plottable_fields = ["overall_score", "cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"]
+    plottable_fields = [
+        "overall_score",
+        "cf_score",
+        "hp_score",
+        "bn_score",
+        "fw_score",
+        "op_score",
+        "pf_score",
+        "ef_score",
+    ]
     plottable_fields += dimensions_info.DIMENSIONS
     if "english_ratio" in df.columns:
         plottable_fields += ["english_ratio"]
-    
+
     plottable_field_default_index = plottable_fields.index("overall_score")
 
     with st.expander("World Map", expanded=True):
@@ -626,40 +678,53 @@ def run_ui_section_all_matches(df):
                 format_func=df_format_func,
             )
         with cols[1]:
-            world_map_resolution = st.selectbox("Resolution", options=[50, 110], index=1, help="Lower numbers will render finer details, but will run slower. Resolution <= 50 needed for small countries e.g. Singapore.")
+            world_map_resolution = st.selectbox(
+                "Resolution",
+                options=[50, 110],
+                index=1,
+                help="Lower numbers will render finer details, but will run slower. Resolution 50 needed for small countries e.g. Singapore.",
+            )
         with cols[2]:
             world_map_projection_type = st.selectbox(
                 label="Projection Type",
                 options=PLOTLY_MAP_PROJECTION_TYPES,
                 index=PLOTLY_MAP_PROJECTION_TYPES.index("robinson"),
                 format_func=lambda s: s.title(),
-                help='See the "Map Projections" section of https://plotly.com/python/map-configuration/ for more details.'
+                help='See the "Map Projections" section of https://plotly.com/python/map-configuration/ for more details.',
             )
         fig = generate_choropleth(df, field_for_world_map)
         fig.update_geos(resolution=world_map_resolution)
         fig.update_geos(projection_type=world_map_projection_type)
         fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
-        fig.update_layout(geo_bgcolor="#0E1117")  # manually match the theme backgroundColor
+        fig.update_layout(geo_bgcolor="#0E1117")  # manually match the ftheme backgroundColor
         st.plotly_chart(fig, use_container_width=True)
 
-
     with st.expander("Results Data"):
-        df_for_table = df.rename(columns=df_format_dict).set_index('Country').drop('Acceptable', axis='columns')
-
+        df_for_table = df.rename(columns=df_format_dict).set_index("Country").drop("Acceptable", axis="columns")
         st.dataframe(df_for_table, use_container_width=True)
-        st.download_button("Download", df_for_table.to_csv().encode('utf-8'), "results.csv")
+        st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 
     with st.expander("Flag Plot"):
         with st.form("plot_options"):
             cols = st.columns(2)
             with cols[0]:
-                x_column = st.selectbox("x-axis", options=plottable_fields, index=plottable_fields.index('pf_score'), format_func=df_format_func)
+                x_column = st.selectbox(
+                    "x-axis",
+                    options=plottable_fields,
+                    index=plottable_fields.index("pf_score"),
+                    format_func=df_format_func,
+                )
             with cols[1]:
-                y_column = st.selectbox("y-axis", options=plottable_fields, index=plottable_fields.index('ef_score'), format_func=df_format_func)
+                y_column = st.selectbox(
+                    "y-axis",
+                    options=plottable_fields,
+                    index=plottable_fields.index("ef_score"),
+                    format_func=df_format_func,
+                )
             st.form_submit_button("Update Plot Options")
         scatterplot = visualisation.generate_scatterplot(df.set_index("country"), x_column, y_column)
         st.bokeh_chart(scatterplot, use_container_width=True)
-    
+
     with st.expander("Pair Plot"):
         show_pair_plot = st.checkbox(
             label="Show pair plot",
@@ -669,22 +734,95 @@ def run_ui_section_all_matches(df):
             with st.form("pairplot_options"):
                 cols = st.columns(2)
                 with cols[0]:
-                    x_fields_for_pairplot = st.multiselect("X Fields for Pair Plot", options=plottable_fields, default=["cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"], format_func=df_format_func)
+                    x_fields_for_pairplot = st.multiselect(
+                        "X Fields for Pair Plot",
+                        options=plottable_fields,
+                        default=["cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"],
+                        format_func=df_format_func,
+                    )
                     x_len = len(x_fields_for_pairplot)
                 with cols[1]:
-                    y_fields_for_pairplot = st.multiselect("Y Fields for Pair Plot", options=plottable_fields, default=['overall_score'], format_func=df_format_func)
+                    y_fields_for_pairplot = st.multiselect(
+                        "Y Fields for Pair Plot",
+                        options=plottable_fields,
+                        default=["overall_score"],
+                        format_func=df_format_func,
+                    )
                     y_len = len(y_fields_for_pairplot)
-                                
+
                 st.form_submit_button("Update Pair Plot Options")
-                fig = sns.pairplot(data=df.rename(columns=df_format_dict), 
-                                   x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
-                                   y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
-                                   )
+                fig = sns.pairplot(
+                    data=df.rename(columns=df_format_dict),
+                    x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
+                    y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
+                )
             if x_len * y_len > 10:
-                st.warning('Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection).')
+                st.warning(
+                    "Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection)."
+                )
             st.pyplot(fig, use_container_width=True)
         else:
-            st.info('Enable "Show pair plot" to populate this section. Note that enabling pair plots can slow rendering time significantly.')
+            st.info(
+                'Enable "Show pair plot" to populate this section. Note that enabling pair plots can slow rendering time significantly.'
+            )
+
+    # TODO move to config
+    pdist_metric_options = [
+        "cityblock",
+        "euclidean",
+        "cosine",
+        "braycurtis",
+        "canberra",
+        "chebyshev",
+        "correlation",
+        "dice",
+        "hamming",
+        "jaccard",
+        "jensenshannon",
+        "kulczynski1",
+        "mahalanobis",
+        "matching",
+        "minkowski",
+        "rogerstanimoto",
+        "russellrao",
+        "seuclidean",
+        "sokalmichener",
+        "sokalsneath",
+        "sqeuclidean",
+        "yule",
+    ]
+
+    with st.expander("Hierarchical Clustering"):
+        # Use containers to have the dendrogram above the options, since the options will take up a lot of space
+        clustering_plot_container = st.container()
+        clustering_options_container = st.container()
+        dfh = df.set_index("country")
+        with clustering_options_container:
+            with st.form("clustering_options"):
+                countries_for_clustering = st.multiselect(
+                    "Countries to Cluster",
+                    options=dfh.index.to_list(),
+                    default=dfh.index.to_list(),
+                )
+                fields_for_clustering = st.multiselect(
+                    "Fields for Clustering",
+                    options=plottable_fields,
+                    default=plottable_fields,
+                    format_func=df_format_func,
+                )
+                color_threshold = st.slider("Cluster Color Threshold", min_value=0.0, max_value=5.0, value=2.0)
+                metric = st.selectbox("Distance Metric", options=pdist_metric_options)
+                st.form_submit_button("Update Clustering Options")
+            distfun = partial(distance.pdist, metric=metric)
+            dfh = dfh.loc[countries_for_clustering]
+            fig = ff.create_dendrogram(
+                dfh[fields_for_clustering],
+                labels=countries_for_clustering,
+                distfun=distfun,
+                color_threshold=color_threshold,
+            )
+        with clustering_plot_container:
+            st.plotly_chart(fig, use_container_width=True)
 
 
 def run_ui_subsection_culture_fit_help():
@@ -692,11 +830,11 @@ def run_ui_subsection_culture_fit_help():
 
     # Programmatically generate the help for national culture dimensions
     st.markdown("## What are the 6 dimensions of national culture?")
-    dim_tabs = st.tabs([dimensions_info.DIMENSIONS_INFO[dimension]['name'] for dimension in dimensions_info.DIMENSIONS])
+    dim_tabs = st.tabs([dimensions_info.DIMENSIONS_INFO[dimension]["name"] for dimension in dimensions_info.DIMENSIONS])
     for dim_idx, dimension in enumerate(dimensions_info.DIMENSIONS):
         with dim_tabs[dim_idx]:
             dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
-            
+
             st.markdown(f'### {dimension_info["name"]} ({dimension_info["abbreviation"]})')
             cols = st.columns([4, 2])
             with cols[0]:
@@ -712,7 +850,9 @@ def run_ui_section_help():
     st.header("Help", anchor=False)
 
     with st.expander("Tutorial 🏫"):
-        st.success("If you have not already, we highly recommend reading the rest of the help section before proceeding. :blush:")
+        st.success(
+            "If you have not already, we highly recommend reading the rest of the help section before proceeding. :blush:"
+        )
         st.markdown(open("./help/tutorial.md", encoding="utf8").read())
 
     with st.expander("About Terra ℹ️"):
@@ -741,12 +881,14 @@ def run_ui_section_help():
 
 def run_ui_section_share(app_options):
     st.header("Share Link")
-    terra_url_base = 'https://terra-country-recommender.streamlit.app'
+    terra_url_base = "https://terra-country-recommender.streamlit.app"
     query_params = dataclasses.asdict(app_options)
     query_string = urlencode(query_params, doseq=True)
-    url = f'{terra_url_base}/?{query_string}'
-    st.write(f"Copy the link by using the copy-to-clipboard button below, or secondary-click and copy this [link address]({url}).")
-    st.code(url, language='http')
+    url = f"{terra_url_base}/?{query_string}"
+    st.write(
+        f"Copy the link by using the copy-to-clipboard button below, or secondary-click and copy this [link address]({url})."
+    )
+    st.code(url, language="http")
 
 
 def set_query_params(app_options):
