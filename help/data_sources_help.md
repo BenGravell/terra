@@ -1,4 +1,4 @@
-**(under construction)** The data included in the `data` directory was collected from the following sources:
+The data included in the `data` directory was collected from the following sources:
 - `culture_dimensions.json`: https://geerthofstede.com/research-and-vsm/dimension-data-matrix/
 - `social_progress_index_2022.csv`: https://en.wikipedia.org/wiki/Social_Progress_Index#2022_Social_Progress_Index_Rankings
 - `happy_planet_index_2019.csv`: https://happyplanetindex.org/hpi/
