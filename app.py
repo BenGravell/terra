@@ -1,5 +1,6 @@
 import dataclasses
 from copy import deepcopy
+from urllib.parse import urlencode
 
 import pandas as pd
 import streamlit as st
@@ -641,10 +642,12 @@ def run_ui_section_all_matches(df):
         fig.update_layout(geo_bgcolor="#0E1117")  # manually match the theme backgroundColor
         st.plotly_chart(fig, use_container_width=True)
 
-    dfc = df.set_index("country")
 
     with st.expander("Results Data"):
-        st.dataframe(dfc.rename(columns=df_format_dict), use_container_width=True)
+        df_for_table = df.rename(columns=df_format_dict).set_index('Country').drop('Acceptable', axis='columns')
+
+        st.dataframe(df_for_table, use_container_width=True)
+        st.download_button("Download", df_for_table.to_csv().encode('utf-8'), "results.csv")
 
     with st.expander("Flag Plot"):
         with st.form("plot_options"):
@@ -654,7 +657,7 @@ def run_ui_section_all_matches(df):
             with cols[1]:
                 y_column = st.selectbox("y-axis", options=plottable_fields, index=plottable_fields.index('ef_score'), format_func=df_format_func)
             st.form_submit_button("Update Plot Options")
-        scatterplot = visualisation.generate_scatterplot(dfc, x_column, y_column)
+        scatterplot = visualisation.generate_scatterplot(df.set_index("country"), x_column, y_column)
         st.bokeh_chart(scatterplot, use_container_width=True)
     
     with st.expander("Pair Plot"):
@@ -708,7 +711,11 @@ def run_ui_subsection_culture_fit_help():
 def run_ui_section_help():
     st.header("Help", anchor=False)
 
-    with st.expander("About This App ℹ️"):
+    with st.expander("Tutorial 🏫"):
+        st.success("If you have not already, we highly recommend reading the rest of the help section before proceeding. :blush:")
+        st.markdown(open("./help/tutorial.md", encoding="utf8").read())
+
+    with st.expander("About Terra ℹ️"):
         run_ui_section_title()
         st.markdown(open("./help/general_help.md", encoding="utf8").read())
 
@@ -729,6 +736,15 @@ def run_ui_section_help():
 
     with st.expander("Data Sources 📊"):
         st.markdown(open("./help/data_sources_help.md", encoding="utf8").read())
+
+
+def run_ui_section_share(app_options):
+    terra_url_base = 'https://terra-country-recommender.streamlit.app'
+    query_params = dataclasses.asdict(app_options)
+    query_string = urlencode(query_params, doseq=True)
+    url = f'{terra_url_base}/?{query_string}'
+    st.write(f"Copy the link below or [open in new tab]({url}).")
+    st.code(url, language='http')
 
 
 def set_query_params(app_options):
@@ -775,7 +791,7 @@ no_matches = df.shape[0] == 0
 if no_matches:
     st.warning("No matches found! Try adjusting the filters to be less strict.")
 else:
-    tabs = st.tabs(["Best Match", "Top Matches", "All Matches", "Help"])
+    tabs = st.tabs(["Best Match", "Top Matches", "All Matches", "Help", "Share"])
     with tabs[0]:
         run_ui_section_best_match(df)
     with tabs[1]:
@@ -784,6 +800,8 @@ else:
         run_ui_section_all_matches(df)
     with tabs[3]:
         run_ui_section_help()
+    with tabs[4]:
+        run_ui_section_share(app_options)
 
 teardown(app_options)
 
