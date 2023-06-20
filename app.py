@@ -357,6 +357,12 @@ def first_run_per_session():
 
 def get_options():
     with st.sidebar:
+        # Clear cache
+        clear_cache = st.button("Clear Cache", use_container_width=True)
+        if clear_cache:
+            st.cache_data.clear()
+            st.cache_resource.clear()
+
         # Reference Country
         culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
         st.selectbox(
@@ -367,12 +373,13 @@ def get_options():
         st.button(
             label="Set Culture Fit Preferences to Reference Country",
             on_click=culture_fit_reference_callback,
+            use_container_width=True,
         )
 
         # Options
         with st.form(key="options_form"):
             app_options = get_options_from_ui()
-            st.form_submit_button(label="Update Options")
+            st.form_submit_button(label="Update Options", use_container_width=True)
 
     return app_options
 
@@ -810,7 +817,7 @@ def run_ui_section_all_matches(df):
             #     no_plot=True,
             #     color_threshold=color_threshold,
             # )
-            
+
         with clustering_plot_container:
             st.plotly_chart(fig, use_container_width=True)
 
