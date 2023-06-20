@@ -217,120 +217,122 @@ def get_options_from_ui():
 
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
+    # TODO construct these programmatically
     with st.expander("Overall Preferences"):
         app_options.cf_score_weight = st.slider(
             "Culture Fit Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.cf_score_weight,
             help=culture_fit_score_help,
+            key='cf_score_weight',
         )
         app_options.hp_score_weight = st.slider(
             "Happy Planet Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.hp_score_weight,
             help=happy_planet_score_help,
+            key='hp_score_weight',
         )
         app_options.bn_score_weight = st.slider(
             "Basic Human Needs Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.bn_score_weight,
             help=basic_needs_score_help,
+            key='bn_score_weight',
         )
         app_options.fw_score_weight = st.slider(
             "Foundations of Wellbeing Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.fw_score_weight,
             help=foundations_wellbeing_score_help,
+            key='fw_score_weight',
         )
         app_options.op_score_weight = st.slider(
             "Opportunity Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.op_score_weight,
             help=opportunity_score_help,
+            key='op_score_weight',
         )
         app_options.pf_score_weight = st.slider(
             "Personal Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.pf_score_weight,
             help=personal_freedom_score_help,
+            key='pf_score_weight',
         )
         app_options.ef_score_weight = st.slider(
             "Economic Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.ef_score_weight,
             help=economic_freedom_score_help,
+            key='ef_score_weight',
         )
 
+    # TODO construct these programmatically
     with st.expander("Filters"):
         app_options.cf_score_min = st.slider(
             "Culture Fit Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.cf_score_min,
             help=culture_fit_score_help,
+            key='cf_score_min',
         )
         app_options.hp_score_min = st.slider(
             "Happy Planet Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.hp_score_min,
             help=happy_planet_score_help,
+            key='hp_score_min',
         )
         app_options.bn_score_min = st.slider(
             "Basic Human Needs Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.bn_score_min,
             help=basic_needs_score_help,
+            key='bn_score_min',
         )
         app_options.fw_score_min = st.slider(
             "Foundations of Wellbeing Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.fw_score_min,
             help=foundations_wellbeing_score_help,
+            key='fw_score_min',
         )
         app_options.op_score_min = st.slider(
             "Opportunity Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.op_score_min,
             help=opportunity_score_help,
+            key='op_score_min',
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.pf_score_min,
             help=personal_freedom_score_help,
+            key='pf_score_min',
         )
         app_options.ef_score_min = st.slider(
             "Economic Freedom Score Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.ef_score_min,
             help=economic_freedom_score_help,
+            key='ef_score_min',
         )
         app_options.english_ratio_min = st.slider(
             "English Speaking Ratio Min",
             min_value=0.0,
             max_value=1.0,
-            value=app_options.english_ratio_min,
             help=english_speaking_ratio_help,
+            key='english_ratio_min',
         )
         app_options.year_min, app_options.year_max = st.slider(
             "Year Range",
             min_value=2000,
             max_value=2020,
-            value=(app_options.year_min, app_options.year_max),
             help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
+            key='year_minmax',
         )
     return app_options
 
@@ -342,6 +344,17 @@ def initialize_widget_state_from_app_options(app_options):
     # See https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/27
     for dimension in dimensions_info.DIMENSIONS:
         state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
+    
+    # TODO move list to config
+    for code in ["cf", "hp", "bn", "fw", "op", "pf", "ef"]:
+        weight_field = f'{code}_score_weight'
+        min_field = f'{code}_score_min'
+        state[weight_field] = getattr(app_options, weight_field)
+        state[min_field] = getattr(app_options, min_field)
+    
+    state['english_ratio_min'] = getattr(app_options, 'english_ratio_min')
+
+    state['year_minmax'] = (getattr(app_options, 'year_min'), getattr(app_options, 'year_max'))
 
 
 def first_run_per_session():
