@@ -797,7 +797,7 @@ def run_ui_section_all_matches(df):
                 fields_for_clustering = st.multiselect(
                     "Fields for Clustering",
                     options=plottable_fields,
-                    default=plottable_fields,
+                    default=[field for field in plottable_fields if field not in ['overall_score', 'cf_score']],
                     format_func=df_format_func,
                 )
                 countries_for_clustering = st.multiselect(
