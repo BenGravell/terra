@@ -9,8 +9,8 @@ The general flow of Terra goes like this:
     - Click `Update Options`
 2. Analyze the results in each tab:
     - `Best Match` gives details about the single country that best matches your criteria.
-        - Browse the CIA World Factbook page for the country for summary information.
-        - Browse Google Maps for the country to get a feel for the geography.
+        - Browse the `CIA World Factbook` page for the country for summary information.
+        - Open `Google Maps` centered on the country to get a feel for the geography.
     - `Top Matches` gives details about a few of the countries that best match your criteria.
         - `Score Contributions` shows a breakdown of the contribution of each component to the Overall Score.
         - `Culture Fit Radar Plots` show how each country aligns with your Culture Fit Preferences in each cultural dimension.
