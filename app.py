@@ -368,13 +368,20 @@ def first_run_per_session():
     state.initialized = True
 
 
+def clear_cache_callback():
+    st.cache_data.clear()
+    st.cache_resource.clear()
+
+
+def reset_options_callback():
+    app_options = AppOptions()
+    initialize_widget_state_from_app_options(app_options)
+
+
 def get_options():
     with st.sidebar:
         # Clear cache
-        clear_cache = st.button("Clear Cache", use_container_width=True)
-        if clear_cache:
-            st.cache_data.clear()
-            st.cache_resource.clear()
+        st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
 
         # Reference Country
         culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
@@ -393,6 +400,8 @@ def get_options():
         with st.form(key="options_form"):
             app_options = get_options_from_ui()
             st.form_submit_button(label="Update Options", use_container_width=True)
+        
+        st.button("Reset Options to Default", use_container_width=True, on_click=reset_options_callback)
 
     return app_options
 
