@@ -565,9 +565,14 @@ def get_google_maps_url(lat: float, lon: float) -> str:
     return url
 
 
-def run_ui_section_title():
+def run_ui_section_welcome():
     st.title("🌎 :blue[Terra]", anchor=False)
     st.caption("Find the right country for you!")
+    # Get part of the README and display it
+    whole_README_str = open("./README.md", encoding="utf8").read()
+    search_str = "## What is Terra?"
+    welcome_str = whole_README_str[whole_README_str.find(search_str):]
+    st.markdown(welcome_str)
 
 
 def run_ui_section_best_match(df):
@@ -935,11 +940,6 @@ def run_ui_section_help():
         )
         st.markdown(open("./help/tutorial.md", encoding="utf8").read())
 
-    with st.expander("About Terra ℹ️"):
-        run_ui_section_title()
-        st.markdown(open("./README.md", encoding="utf8").read())
-        st.markdown(open("./help/general_help.md", encoding="utf8").read())
-
     with st.expander("Culture Fit 🗺️"):
         run_ui_subsection_culture_fit_help()
 
@@ -954,6 +954,9 @@ def run_ui_section_help():
 
     with st.expander("Language Prevalence 💬"):
         st.markdown(open("./help/language_prevalence_help.md", encoding="utf8").read())
+
+    with st.expander("About Terra ℹ️"):
+        st.markdown(open("./help/general_help.md", encoding="utf8").read())
 
     with st.expander("Data Sources 📊"):
         st.markdown(open("./help/data_sources_help.md", encoding="utf8").read())
@@ -1024,16 +1027,18 @@ no_matches = df.shape[0] == 0
 if no_matches:
     st.warning("No matches found! Try adjusting the filters to be less strict.")
 else:
-    tabs = st.tabs(["Best Match", "Top Matches", "All Matches", "Help", "Share"])
+    tabs = st.tabs(["Welcome", "Best Match", "Top Matches", "All Matches", "Help", "Share"])
     with tabs[0]:
-        run_ui_section_best_match(df)
+        run_ui_section_welcome()
     with tabs[1]:
-        run_ui_section_top_n_matches(df, app_options)
+        run_ui_section_best_match(df)
     with tabs[2]:
-        run_ui_section_all_matches(df)
+        run_ui_section_top_n_matches(df, app_options)
     with tabs[3]:
-        run_ui_section_help()
+        run_ui_section_all_matches(df)
     with tabs[4]:
+        run_ui_section_help()
+    with tabs[5]:
         run_ui_section_share(app_options)
 
 teardown(app_options)
