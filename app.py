@@ -565,14 +565,22 @@ def get_google_maps_url(lat: float, lon: float) -> str:
     return url
 
 
+def open_and_st_markdown(path, encoding='utf8'):
+    st.markdown(open(path, encoding=encoding).read())
+
+
 def run_ui_section_welcome():
     st.title("🌎 :blue[Terra]", anchor=False)
     st.caption("Find the right country for you!")
-    # Get part of the README and display it
-    whole_README_str = open("./README.md", encoding="utf8").read()
-    search_str = "## What is Terra?"
-    welcome_str = whole_README_str[whole_README_str.find(search_str):]
-    st.markdown(welcome_str)
+    cols = st.columns((6, 2))
+    with cols[0]:
+        # Get part of the README and display it
+        whole_README_str = open("./README.md", encoding='utf8').read()
+        search_str = "## What is Terra?"
+        welcome_str = whole_README_str[whole_README_str.find(search_str):]
+        st.markdown(welcome_str)
+    with cols[1]:
+        st.image('./assets/data_to_recommendation.png', use_column_width=True)
 
 
 def run_ui_section_best_match(df):
@@ -911,7 +919,7 @@ def run_ui_section_all_matches(df):
 
 
 def run_ui_subsection_culture_fit_help():
-    st.markdown(open("./culture_fit/culture_fit_help_intro.md", encoding="utf8").read())
+    open_and_st_markdown("./culture_fit/culture_fit_help_intro.md")
 
     # Programmatically generate the help for national culture dimensions
     st.markdown("## What are the 6 dimensions of national culture?")
@@ -928,7 +936,7 @@ def run_ui_subsection_culture_fit_help():
             with cols[1]:
                 st.video(dimension_info["hofstede_youtube_video_url"])
 
-    st.markdown(open("./culture_fit/culture_fit_help_outro.md", encoding="utf8").read())
+    open_and_st_markdown("./culture_fit/culture_fit_help_outro.md")
 
 
 def run_ui_section_help():
@@ -938,28 +946,28 @@ def run_ui_section_help():
         st.success(
             "If you have not already, we highly recommend reading the rest of the help section before proceeding. :blush:"
         )
-        st.markdown(open("./help/tutorial.md", encoding="utf8").read())
+        open_and_st_markdown("./help/tutorial.md")
 
     with st.expander("Culture Fit 🗺️"):
         run_ui_subsection_culture_fit_help()
 
     with st.expander("Happy Planet 😊"):
-        st.markdown(open("./help/happy_planet_help.md", encoding="utf8").read())
+        open_and_st_markdown("./help/happy_planet_help.md")
 
     with st.expander("Social Progress 📈"):
-        st.markdown(open("./help/social_progress_help.md", encoding="utf8").read())
+        open_and_st_markdown("./help/social_progress_help.md")
 
     with st.expander("Human Freedom 🎊"):
-        st.markdown(open("./help/human_freedom_help.md", encoding="utf8").read())
+        open_and_st_markdown("./help/human_freedom_help.md")
 
     with st.expander("Language Prevalence 💬"):
-        st.markdown(open("./help/language_prevalence_help.md", encoding="utf8").read())
+        open_and_st_markdown("./help/language_prevalence_help.md")
 
     with st.expander("About Terra ℹ️"):
-        st.markdown(open("./help/general_help.md", encoding="utf8").read())
+        open_and_st_markdown("./help/general_help.md")
 
     with st.expander("Data Sources 📊"):
-        st.markdown(open("./help/data_sources_help.md", encoding="utf8").read())
+        open_and_st_markdown("./help/data_sources_help.md")
 
 
 def run_ui_section_share(app_options):
