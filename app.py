@@ -380,8 +380,7 @@ def reset_options_callback():
 
 def get_options():
     with st.sidebar:
-        # Clear cache
-        st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
+        st.header("Options")
 
         # Reference Country
         culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
@@ -998,12 +997,21 @@ def check_if_app_options_are_default(app_options):
 ################################################################################
 ## Main
 ################################################################################
+# TODO move main operations to main() function
+
 
 if not "initialized" in state:
     first_run_per_session()
 
 
 app_options = get_options()
+
+# TODO move to function
+with st.sidebar:
+    st.divider()
+    st.header("Utilities")
+    # Clear cache
+    st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
 
 if check_if_app_options_are_default(app_options):
     st.info(
