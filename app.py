@@ -572,11 +572,12 @@ def open_and_st_markdown(path, encoding='utf8'):
 def run_ui_section_welcome():
     st.title("🌎 :blue[Terra]", anchor=False)
     st.caption("Find the right country for you!")
+    st.subheader("What is Terra?", anchor=False)
     cols = st.columns((6, 2))
     with cols[0]:
         # Get part of the README and display it
         whole_README_str = open("./README.md", encoding='utf8').read()
-        search_str = "## What is Terra?"
+        search_str = "[Terra](https://terra-country-recommender.streamlit.app/)"
         welcome_str = whole_README_str[whole_README_str.find(search_str):]
         st.markdown(welcome_str)
     with cols[1]:
