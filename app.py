@@ -14,11 +14,11 @@ import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from culture_fit import country_data, distance_calculations, visualisation, dimensions_info
 from app_options import AppOptions, NONE_COUNTRY
 import map_options
 import color_options
-
+import utils
+from culture_fit import country_data, distance_calculations, visualisation, dimensions_info
 
 # Streamlit setup
 st.set_page_config(page_title="Terra", page_icon="🌎", layout="wide")
@@ -28,12 +28,6 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 
 # Short convenience alias
 state = st.session_state
-
-
-# TODO move to another module
-# UTILS
-def pct_fmt(x):
-    return f"{round(100*x, 2):.0f}%"
 
 
 @st.cache_data
@@ -664,7 +658,7 @@ def run_ui_section_top_n_matches(df, app_options):
                 yanchor="bottom",
                 showarrow=False,
                 align="left",
-                text=f"{pct_fmt(row['Overall Score'])}",
+                text=f"{utils.pct_fmt(row['Overall Score'])}",
                 font={"size": 12},
             )
         fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
