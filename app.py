@@ -3,6 +3,8 @@ from copy import deepcopy
 from functools import partial
 from urllib.parse import urlencode
 
+from sklearn.manifold import TSNE
+import hdbscan
 from scipy.spatial import distance
 from scipy.cluster import hierarchy
 import pandas as pd
@@ -224,49 +226,49 @@ def get_options_from_ui():
             min_value=0.0,
             max_value=1.0,
             help=culture_fit_score_help,
-            key='cf_score_weight',
+            key="cf_score_weight",
         )
         app_options.hp_score_weight = st.slider(
             "Happy Planet Score Weight",
             min_value=0.0,
             max_value=1.0,
             help=happy_planet_score_help,
-            key='hp_score_weight',
+            key="hp_score_weight",
         )
         app_options.bn_score_weight = st.slider(
             "Basic Human Needs Score Weight",
             min_value=0.0,
             max_value=1.0,
             help=basic_needs_score_help,
-            key='bn_score_weight',
+            key="bn_score_weight",
         )
         app_options.fw_score_weight = st.slider(
             "Foundations of Wellbeing Score Weight",
             min_value=0.0,
             max_value=1.0,
             help=foundations_wellbeing_score_help,
-            key='fw_score_weight',
+            key="fw_score_weight",
         )
         app_options.op_score_weight = st.slider(
             "Opportunity Score Weight",
             min_value=0.0,
             max_value=1.0,
             help=opportunity_score_help,
-            key='op_score_weight',
+            key="op_score_weight",
         )
         app_options.pf_score_weight = st.slider(
             "Personal Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
             help=personal_freedom_score_help,
-            key='pf_score_weight',
+            key="pf_score_weight",
         )
         app_options.ef_score_weight = st.slider(
             "Economic Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
             help=economic_freedom_score_help,
-            key='ef_score_weight',
+            key="ef_score_weight",
         )
 
     # TODO construct these programmatically
@@ -276,63 +278,63 @@ def get_options_from_ui():
             min_value=0.0,
             max_value=1.0,
             help=culture_fit_score_help,
-            key='cf_score_min',
+            key="cf_score_min",
         )
         app_options.hp_score_min = st.slider(
             "Happy Planet Score Min",
             min_value=0.0,
             max_value=1.0,
             help=happy_planet_score_help,
-            key='hp_score_min',
+            key="hp_score_min",
         )
         app_options.bn_score_min = st.slider(
             "Basic Human Needs Score Min",
             min_value=0.0,
             max_value=1.0,
             help=basic_needs_score_help,
-            key='bn_score_min',
+            key="bn_score_min",
         )
         app_options.fw_score_min = st.slider(
             "Foundations of Wellbeing Score Min",
             min_value=0.0,
             max_value=1.0,
             help=foundations_wellbeing_score_help,
-            key='fw_score_min',
+            key="fw_score_min",
         )
         app_options.op_score_min = st.slider(
             "Opportunity Score Min",
             min_value=0.0,
             max_value=1.0,
             help=opportunity_score_help,
-            key='op_score_min',
+            key="op_score_min",
         )
         app_options.pf_score_min = st.slider(
             "Personal Freedom Score Min",
             min_value=0.0,
             max_value=1.0,
             help=personal_freedom_score_help,
-            key='pf_score_min',
+            key="pf_score_min",
         )
         app_options.ef_score_min = st.slider(
             "Economic Freedom Score Min",
             min_value=0.0,
             max_value=1.0,
             help=economic_freedom_score_help,
-            key='ef_score_min',
+            key="ef_score_min",
         )
         app_options.english_ratio_min = st.slider(
             "English Speaking Ratio Min",
             min_value=0.0,
             max_value=1.0,
             help=english_speaking_ratio_help,
-            key='english_ratio_min',
+            key="english_ratio_min",
         )
         app_options.year_min, app_options.year_max = st.slider(
             "Year Range",
             min_value=2000,
             max_value=2020,
             help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
-            key='year_minmax',
+            key="year_minmax",
         )
     return app_options
 
@@ -344,17 +346,17 @@ def initialize_widget_state_from_app_options(app_options):
     # See https://discuss.streamlit.io/t/why-do-default-values-cause-a-session-state-warning/15485/27
     for dimension in dimensions_info.DIMENSIONS:
         state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
-    
+
     # TODO move list to config
     for code in ["cf", "hp", "bn", "fw", "op", "pf", "ef"]:
-        weight_field = f'{code}_score_weight'
-        min_field = f'{code}_score_min'
+        weight_field = f"{code}_score_weight"
+        min_field = f"{code}_score_min"
         state[weight_field] = getattr(app_options, weight_field)
         state[min_field] = getattr(app_options, min_field)
-    
-    state['english_ratio_min'] = getattr(app_options, 'english_ratio_min')
 
-    state['year_minmax'] = (getattr(app_options, 'year_min'), getattr(app_options, 'year_max'))
+    state["english_ratio_min"] = getattr(app_options, "english_ratio_min")
+
+    state["year_minmax"] = (getattr(app_options, "year_min"), getattr(app_options, "year_max"))
 
 
 def first_run_per_session():
@@ -399,7 +401,7 @@ def get_options():
         with st.form(key="options_form"):
             app_options = get_options_from_ui()
             st.form_submit_button(label="Update Options", use_container_width=True)
-        
+
         st.button("Reset Options to Default", use_container_width=True, on_click=reset_options_callback)
 
     return app_options
@@ -565,7 +567,7 @@ def get_google_maps_url(lat: float, lon: float) -> str:
     return url
 
 
-def open_and_st_markdown(path, encoding='utf8'):
+def open_and_st_markdown(path, encoding="utf8"):
     st.markdown(open(path, encoding=encoding).read())
 
 
@@ -576,12 +578,12 @@ def run_ui_section_welcome():
     cols = st.columns((6, 2))
     with cols[0]:
         # Get part of the README and display it
-        whole_README_str = open("./README.md", encoding='utf8').read()
+        whole_README_str = open("./README.md", encoding="utf8").read()
         search_str = "[Terra](https://terra-country-recommender.streamlit.app/)"
-        welcome_str = whole_README_str[whole_README_str.find(search_str):]
+        welcome_str = whole_README_str[whole_README_str.find(search_str) :]
         st.markdown(welcome_str)
     with cols[1]:
-        st.image('./assets/data_to_recommendation.png', use_column_width=True)
+        st.image("./assets/data_to_recommendation.png", use_column_width=True)
 
 
 def run_ui_section_best_match(df):
@@ -785,6 +787,64 @@ def run_ui_section_all_matches(df):
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 
+    with st.expander("Dimensionality Reduction & Clustering"):        
+
+        cols = st.columns(4)
+        with cols[0]:
+            perplexity = st.slider("Perplexity", min_value=1.0, max_value=20.0, value=5.0)
+        with cols[1]:
+            min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
+        with cols[2]:
+            min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
+        with cols[3]:
+            cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
+        
+        fields_for_dr_all = [field for field in plottable_fields if field not in ['overall_score', 'cf_score', 'english_ratio']]
+        fields_for_dr = st.multiselect("Fields for Dimensionality Reduction & Clustering", options=fields_for_dr_all, default=dimensions_info.DIMENSIONS, format_func=df_format_func)
+
+        df_for_dr = df[fields_for_dr]
+
+        projection = TSNE(n_components=2, perplexity=perplexity, random_state=0).fit_transform(df_for_dr)
+        df_projection = pd.DataFrame(projection).rename(columns={0: "t_sne_x", 1: "t_sne_y"})
+        
+        if cluster_in_projected_space:
+            df_for_clustering = df_projection
+        else:
+            df_for_clustering = df_for_dr
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples).fit(df_for_clustering)
+        df_clusters = pd.DataFrame(clusterer.labels_).rename(columns={0: "cluster"}).astype(str)
+
+        df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
+        df_for_dr_plot["marker_size"] = df_for_dr_plot["overall_score"] ** 4
+
+        color_discrete_map = {
+            "-1": "grey",
+            "0": "#636EFA",
+            "1": "#EF553B",
+            "2": "#00CC96",
+            "3": "#AB63FA",
+            "4": "#FFA15A",
+            "5": "#19D3F3",
+            "6": "#FF6692",
+            "7": "#B6E880",
+            "8": "#FF97FF",
+            "9": "#FECB52",
+        }
+        category_orders = {"cluster": [str(i) for i in range(-1, max(clusterer.labels_))]}
+
+        fig = px.scatter(
+            df_for_dr_plot,
+            x="t_sne_x",
+            y="t_sne_y",
+            hover_name="country",
+            hover_data=["overall_score"],
+            color="cluster",
+            color_discrete_map=color_discrete_map,
+            category_orders=category_orders,
+            size="marker_size",
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
     with st.expander("Hierarchical Clustering"):
         # Use containers to have the dendrogram above the options, since the options will take up a lot of space
         clustering_plot_container = st.container()
@@ -819,7 +879,11 @@ def run_ui_section_all_matches(df):
                 fields_for_clustering = st.multiselect(
                     "Fields for Clustering",
                     options=plottable_fields,
-                    default=[field for field in plottable_fields if field not in ['overall_score', 'cf_score', 'english_ratio']],
+                    default=[
+                        field
+                        for field in plottable_fields
+                        if field not in ["overall_score", "cf_score", "english_ratio"]
+                    ],
                     format_func=df_format_func,
                 )
                 countries_for_clustering = st.multiselect(
