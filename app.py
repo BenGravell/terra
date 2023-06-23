@@ -15,7 +15,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from culture_fit import country_data, distance_calculations, visualisation, dimensions_info
-from options import AppOptions, NONE_COUNTRY, PLOTLY_MAP_PROJECTION_TYPES
+from app_options import AppOptions, NONE_COUNTRY
+import map_options
+import color_options
 
 
 # Streamlit setup
@@ -694,7 +696,7 @@ def run_ui_section_all_matches(df):
             locations="country",
             color=name,
             hover_name="country",
-            color_continuous_scale=px.colors.sequential.deep_r,
+            color_continuous_scale=color_options.CHOROPLETH_COLORMAP,
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
@@ -770,8 +772,8 @@ def run_ui_section_all_matches(df):
         with cols[2]:
             world_map_projection_type = st.selectbox(
                 label="Projection Type",
-                options=PLOTLY_MAP_PROJECTION_TYPES,
-                index=PLOTLY_MAP_PROJECTION_TYPES.index("robinson"),
+                options=map_options.PLOTLY_MAP_PROJECTION_TYPES,
+                index=map_options.PLOTLY_MAP_PROJECTION_TYPES.index("robinson"),
                 format_func=lambda s: s.title(),
                 help='See the "Map Projections" section of https://plotly.com/python/map-configuration/ for more details.',
             )
@@ -817,19 +819,6 @@ def run_ui_section_all_matches(df):
         df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
         df_for_dr_plot["marker_size"] = df_for_dr_plot["overall_score"] ** 4
 
-        color_discrete_map = {
-            "-1": "grey",
-            "0": "#636EFA",
-            "1": "#EF553B",
-            "2": "#00CC96",
-            "3": "#AB63FA",
-            "4": "#FFA15A",
-            "5": "#19D3F3",
-            "6": "#FF6692",
-            "7": "#B6E880",
-            "8": "#FF97FF",
-            "9": "#FECB52",
-        }
         category_orders = {"cluster": [str(i) for i in range(-1, max(clusterer.labels_))]}
 
         fig = px.scatter(
@@ -839,7 +828,7 @@ def run_ui_section_all_matches(df):
             hover_name="country",
             hover_data=["overall_score"],
             color="cluster",
-            color_discrete_map=color_discrete_map,
+            color_discrete_map=color_options.CLUSTER_COLOR_SEQUENCE_MAP,
             category_orders=category_orders,
             size="marker_size",
         )
