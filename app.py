@@ -4,6 +4,7 @@ from functools import partial
 from urllib.parse import urlencode
 
 from sklearn.manifold import TSNE
+from umap import UMAP
 import hdbscan
 from scipy.spatial import distance
 from scipy.cluster import hierarchy
@@ -783,26 +784,60 @@ def run_ui_section_all_matches(df):
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 
-    with st.expander("Dimensionality Reduction & Clustering"):        
+    with st.expander("Dimensionality Reduction & Clustering"):
+        dimensionality_reducer_name = st.selectbox("Dimesionality Reduction Method", options=['UMAP', 't-SNE'])
+        dimensionality_reducer_name_to_class_map = {
+            't-SNE': TSNE,
+            'UMAP': UMAP,
+        }
+        with st.form("dimesionality_reduction_options"):
+            st.write("Dimensionality Reduction Options")
+            dimensionality_reducer_kwargs = {}
+            cols = st.columns(3)
+            if dimensionality_reducer_name == 't-SNE':
+                with cols[0]:
+                    perplexity = st.slider("Perplexity", min_value=1.0, max_value=20.0, value=5.0, help="The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets usually require a larger perplexity. Consider selecting a value between 5 and 50. Different values can result in significantly different results. The perplexity must be less than the number of samples. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html")
+                with cols[1]:
+                    early_exaggeration = st.slider("Early Exaggeration", min_value=1.0, max_value=30.0, value=10.0, help="Controls how tight natural clusters in the original space are in the embedded space and how much space will be between them. For larger values, the space between natural clusters will be larger in the embedded space. Again, the choice of this parameter is not very critical. If the cost function increases during initial optimization, the early exaggeration factor or the learning rate might be too high. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html")
 
-        cols = st.columns(4)
-        with cols[0]:
-            perplexity = st.slider("Perplexity", min_value=1.0, max_value=20.0, value=5.0)
-        with cols[1]:
-            min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
-        with cols[2]:
-            min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
-        with cols[3]:
-            cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
-        
+                dimensionality_reducer_kwargs['perplexity'] = perplexity
+                dimensionality_reducer_kwargs['early_exaggeration'] = early_exaggeration
+                
+            elif dimensionality_reducer_name == "UMAP":
+                with cols[0]:
+                    n_neighbors = st.slider("Number of Neighbors", min_value=1, max_value=50, value=10, help="This parameter controls how UMAP balances local versus global structure in the data. It does this by constraining the size of the local neighborhood UMAP will look at when attempting to learn the manifold structure of the data. This means that low values will force UMAP to concentrate on very local structure (potentially to the detriment of the big picture), while large values will push UMAP to look at larger neighborhoods of each point when estimating the manifold structure of the data, losing fine detail structure for the sake of getting the broader of the data. See https://umap-learn.readthedocs.io/en/latest/parameters.html")
+                with cols[1]:
+                    min_dist = st.slider("Minimum Distance in Projected Space", min_value=0.0, max_value=1.0, value=0.1, help="This parameter controls how tightly UMAP is allowed to pack points together. It, quite literally, provides the minimum distance apart that points are allowed to be in the low dimensional representation. This means that low values will result in clumpier embeddings. This can be useful if you are interested in clustering, or in finer topological structure. Larger values will prevent UMAP from packing points together and will focus on the preservation of the broad topological structure instead. See https://umap-learn.readthedocs.io/en/latest/parameters.html")
+
+                dimensionality_reducer_kwargs['n_neighbors'] = n_neighbors
+                dimensionality_reducer_kwargs['min_dist'] = min_dist
+
+            with cols[-1]:
+                random_state = st.number_input("Random State", min_value=0, max_value=10, value=0, step=1)
+                dimensionality_reducer_kwargs['random_state'] = random_state
+            
+            st.form_submit_button("Update Options")
+
+        dimensionality_reducer_class = dimensionality_reducer_name_to_class_map[dimensionality_reducer_name]
+        dimensionality_reducer = dimensionality_reducer_class(**dimensionality_reducer_kwargs)
+
         fields_for_dr_all = [field for field in plottable_fields if field not in ['overall_score', 'cf_score', 'english_ratio']]
         fields_for_dr = st.multiselect("Fields for Dimensionality Reduction & Clustering", options=fields_for_dr_all, default=dimensions_info.DIMENSIONS, format_func=df_format_func)
 
-        df_for_dr = df[fields_for_dr]
-
-        projection = TSNE(n_components=2, perplexity=perplexity, random_state=0).fit_transform(df_for_dr)
+        df_for_dr = df[fields_for_dr]        
+        projection = dimensionality_reducer.fit_transform(df_for_dr)
         df_projection = pd.DataFrame(projection).rename(columns={0: "t_sne_x", 1: "t_sne_y"})
         
+        st.write("Clustering Options")
+        # TODO expose different clustering methods
+        cols = st.columns(3)
+        with cols[0]:
+            min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
+        with cols[1]:
+            min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
+        with cols[2]:
+            cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
+
         if cluster_in_projected_space:
             df_for_clustering = df_projection
         else:
