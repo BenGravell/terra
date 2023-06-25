@@ -31,6 +31,31 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 state = st.session_state
 
 
+def expander_checkbox_spinner_execute(
+    func, label="", checkbox_value=False, expanded=False, func_args=None, func_kwargs=None
+):
+    """Conditionally execute func if an st.checkbox is checked."""
+    if func_args is None:
+        func_args = ()
+    if func_kwargs is None:
+        func_kwargs = {}
+
+    expander_label = label
+    checkbox_label = f"Show {label}"
+    spinner_label = f"Executing {label}"
+    not_shown_info_body = (
+        f'Enable "{checkbox_label}" to populate this section. Note that this may increase rendering time.'
+    )
+
+    with st.expander(expander_label, expanded=expanded):
+        if st.checkbox(checkbox_label, value=checkbox_value):
+            with st.spinner(spinner_label):
+                func(*func_args, **func_kwargs)
+        else:
+            # TODO make slow verbiage optional in args to this function
+            st.info(not_shown_info_body)
+
+
 @st.cache_data
 def load_data():
     """Load all data sources."""
@@ -595,11 +620,13 @@ def run_ui_section_best_match(df):
     with cols[1]:
         st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
 
-    # CIA World Factbook viewer
-    cia_world_factbook_url = get_world_factbook_url(best_match_country)
-    with st.expander("CIA World Factbook"):
+    def execute_world_factbook():
+        # CIA World Factbook viewer
+        cia_world_factbook_url = get_world_factbook_url(best_match_country)
         st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
+
+    expander_checkbox_spinner_execute(func=execute_world_factbook, label="CIA World Factbook")
 
     # Google Maps viewer
     # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
@@ -638,7 +665,7 @@ def run_ui_section_top_n_matches(df, app_options):
 
     df_top_N = df.head(N).rename(columns=df_format_dict)
 
-    with st.expander("Score Contributions", expanded=True):
+    def execute_score_contributions():
         fig = px.bar(
             df_top_N,
             x="Country",
@@ -665,19 +692,13 @@ def run_ui_section_top_n_matches(df, app_options):
         fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Culture Fit Radar Plots"):
-        show_radar = st.checkbox(
-            label="Show radar plots",
-            value=False,
-        )
-        if show_radar:
-            st.caption("", help="The dashed :red[red shape] depicts your preferences.")
-            radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
-            st.pyplot(radar)
-        else:
-            st.info(
-                'Enable "Show radar plots" to populate this section. Note that enabling radar plots can slow rendering time significantly.'
-            )
+    def execute_culture_fit_radar_plots():
+        st.caption("", help="The dashed :red[red shape] depicts your preferences.")
+        radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
+        st.pyplot(radar)
+
+    expander_checkbox_spinner_execute(func=execute_score_contributions, label="Score Contributions")
+    expander_checkbox_spinner_execute(func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots")
 
 
 def run_ui_section_all_matches(df):
@@ -748,7 +769,7 @@ def run_ui_section_all_matches(df):
         "ward",
     ]
 
-    with st.expander("World Map", expanded=True):
+    def execute_world_map():
         cols = st.columns(3)
         with cols[0]:
             field_for_world_map = st.selectbox(
@@ -779,55 +800,86 @@ def run_ui_section_all_matches(df):
         fig.update_layout(geo_bgcolor="#0E1117")  # manually match the ftheme backgroundColor
         st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Results Data"):
+    def execute_results_data():
         df_for_table = df.rename(columns=df_format_dict).set_index("Country").drop("Acceptable", axis="columns")
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 
-    with st.expander("Dimensionality Reduction & Clustering"):
-        dimensionality_reducer_name = st.selectbox("Dimesionality Reduction Method", options=['UMAP', 't-SNE'])
+    def execute_dimensionality_reduction_and_clustering():
+        dimensionality_reducer_name = st.selectbox("Dimensionality Reduction Method", options=["UMAP", "t-SNE"])
         dimensionality_reducer_name_to_class_map = {
-            't-SNE': TSNE,
-            'UMAP': UMAP,
+            "t-SNE": TSNE,
+            "UMAP": UMAP,
         }
         with st.form("dimesionality_reduction_options"):
             st.write("Dimensionality Reduction Options")
             dimensionality_reducer_kwargs = {}
             cols = st.columns(3)
-            if dimensionality_reducer_name == 't-SNE':
+            if dimensionality_reducer_name == "t-SNE":
                 with cols[0]:
-                    perplexity = st.slider("Perplexity", min_value=1.0, max_value=20.0, value=5.0, help="The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets usually require a larger perplexity. Consider selecting a value between 5 and 50. Different values can result in significantly different results. The perplexity must be less than the number of samples. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html")
+                    perplexity = st.slider(
+                        "Perplexity",
+                        min_value=1.0,
+                        max_value=20.0,
+                        value=5.0,
+                        help="The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets usually require a larger perplexity. Consider selecting a value between 5 and 50. Different values can result in significantly different results. The perplexity must be less than the number of samples. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html",
+                    )
                 with cols[1]:
-                    early_exaggeration = st.slider("Early Exaggeration", min_value=1.0, max_value=30.0, value=10.0, help="Controls how tight natural clusters in the original space are in the embedded space and how much space will be between them. For larger values, the space between natural clusters will be larger in the embedded space. Again, the choice of this parameter is not very critical. If the cost function increases during initial optimization, the early exaggeration factor or the learning rate might be too high. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html")
+                    early_exaggeration = st.slider(
+                        "Early Exaggeration",
+                        min_value=1.0,
+                        max_value=30.0,
+                        value=10.0,
+                        help="Controls how tight natural clusters in the original space are in the embedded space and how much space will be between them. For larger values, the space between natural clusters will be larger in the embedded space. Again, the choice of this parameter is not very critical. If the cost function increases during initial optimization, the early exaggeration factor or the learning rate might be too high. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html",
+                    )
 
-                dimensionality_reducer_kwargs['perplexity'] = perplexity
-                dimensionality_reducer_kwargs['early_exaggeration'] = early_exaggeration
-                
+                dimensionality_reducer_kwargs["perplexity"] = perplexity
+                dimensionality_reducer_kwargs["early_exaggeration"] = early_exaggeration
+
             elif dimensionality_reducer_name == "UMAP":
                 with cols[0]:
-                    n_neighbors = st.slider("Number of Neighbors", min_value=1, max_value=50, value=10, help="This parameter controls how UMAP balances local versus global structure in the data. It does this by constraining the size of the local neighborhood UMAP will look at when attempting to learn the manifold structure of the data. This means that low values will force UMAP to concentrate on very local structure (potentially to the detriment of the big picture), while large values will push UMAP to look at larger neighborhoods of each point when estimating the manifold structure of the data, losing fine detail structure for the sake of getting the broader of the data. See https://umap-learn.readthedocs.io/en/latest/parameters.html")
+                    n_neighbors = st.slider(
+                        "Number of Neighbors",
+                        min_value=1,
+                        max_value=50,
+                        value=10,
+                        help="This parameter controls how UMAP balances local versus global structure in the data. It does this by constraining the size of the local neighborhood UMAP will look at when attempting to learn the manifold structure of the data. This means that low values will force UMAP to concentrate on very local structure (potentially to the detriment of the big picture), while large values will push UMAP to look at larger neighborhoods of each point when estimating the manifold structure of the data, losing fine detail structure for the sake of getting the broader of the data. See https://umap-learn.readthedocs.io/en/latest/parameters.html",
+                    )
                 with cols[1]:
-                    min_dist = st.slider("Minimum Distance in Projected Space", min_value=0.0, max_value=1.0, value=0.1, help="This parameter controls how tightly UMAP is allowed to pack points together. It, quite literally, provides the minimum distance apart that points are allowed to be in the low dimensional representation. This means that low values will result in clumpier embeddings. This can be useful if you are interested in clustering, or in finer topological structure. Larger values will prevent UMAP from packing points together and will focus on the preservation of the broad topological structure instead. See https://umap-learn.readthedocs.io/en/latest/parameters.html")
+                    min_dist = st.slider(
+                        "Minimum Distance in Projected Space",
+                        min_value=0.0,
+                        max_value=1.0,
+                        value=0.1,
+                        help="This parameter controls how tightly UMAP is allowed to pack points together. It, quite literally, provides the minimum distance apart that points are allowed to be in the low dimensional representation. This means that low values will result in clumpier embeddings. This can be useful if you are interested in clustering, or in finer topological structure. Larger values will prevent UMAP from packing points together and will focus on the preservation of the broad topological structure instead. See https://umap-learn.readthedocs.io/en/latest/parameters.html",
+                    )
 
-                dimensionality_reducer_kwargs['n_neighbors'] = n_neighbors
-                dimensionality_reducer_kwargs['min_dist'] = min_dist
+                dimensionality_reducer_kwargs["n_neighbors"] = n_neighbors
+                dimensionality_reducer_kwargs["min_dist"] = min_dist
 
             with cols[-1]:
                 random_state = st.number_input("Random State", min_value=0, max_value=10, value=0, step=1)
-                dimensionality_reducer_kwargs['random_state'] = random_state
-            
+                dimensionality_reducer_kwargs["random_state"] = random_state
+
             st.form_submit_button("Update Options")
 
         dimensionality_reducer_class = dimensionality_reducer_name_to_class_map[dimensionality_reducer_name]
         dimensionality_reducer = dimensionality_reducer_class(**dimensionality_reducer_kwargs)
 
-        fields_for_dr_all = [field for field in plottable_fields if field not in ['overall_score', 'cf_score', 'english_ratio']]
-        fields_for_dr = st.multiselect("Fields for Dimensionality Reduction & Clustering", options=fields_for_dr_all, default=dimensions_info.DIMENSIONS, format_func=df_format_func)
+        fields_for_dr_all = [
+            field for field in plottable_fields if field not in ["overall_score", "cf_score", "english_ratio"]
+        ]
+        fields_for_dr = st.multiselect(
+            "Fields for Dimensionality Reduction & Clustering",
+            options=fields_for_dr_all,
+            default=dimensions_info.DIMENSIONS,
+            format_func=df_format_func,
+        )
 
-        df_for_dr = df[fields_for_dr]        
+        df_for_dr = df[fields_for_dr]
         projection = dimensionality_reducer.fit_transform(df_for_dr)
         df_projection = pd.DataFrame(projection).rename(columns={0: "t_sne_x", 1: "t_sne_y"})
-        
+
         st.write("Clustering Options")
         # TODO expose different clustering methods
         cols = st.columns(3)
@@ -863,7 +915,7 @@ def run_ui_section_all_matches(df):
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Hierarchical Clustering"):
+    def execute_hierarchical_clustering():
         # Use containers to have the dendrogram above the options, since the options will take up a lot of space
         clustering_plot_container = st.container()
         clustering_options_container = st.container()
@@ -938,7 +990,7 @@ def run_ui_section_all_matches(df):
         with clustering_plot_container:
             st.plotly_chart(fig, use_container_width=True)
 
-    with st.expander("Flag Plot"):
+    def execute_flag_plot():
         with st.form("plot_options"):
             cols = st.columns(2)
             with cols[0]:
@@ -959,46 +1011,46 @@ def run_ui_section_all_matches(df):
         scatterplot = visualisation.generate_scatterplot(df.set_index("country"), x_column, y_column)
         st.bokeh_chart(scatterplot, use_container_width=True)
 
-    with st.expander("Pair Plot"):
-        show_pair_plot = st.checkbox(
-            label="Show pair plot",
-            value=False,
-        )
-        if show_pair_plot:
-            with st.form("pairplot_options"):
-                cols = st.columns(2)
-                with cols[0]:
-                    x_fields_for_pairplot = st.multiselect(
-                        "X Fields for Pair Plot",
-                        options=plottable_fields,
-                        default=["cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"],
-                        format_func=df_format_func,
-                    )
-                    x_len = len(x_fields_for_pairplot)
-                with cols[1]:
-                    y_fields_for_pairplot = st.multiselect(
-                        "Y Fields for Pair Plot",
-                        options=plottable_fields,
-                        default=["overall_score"],
-                        format_func=df_format_func,
-                    )
-                    y_len = len(y_fields_for_pairplot)
+    def execute_pair_plot():
+        with st.form("pairplot_options"):
+            cols = st.columns(2)
+            with cols[0]:
+                x_fields_for_pairplot = st.multiselect(
+                    "X Fields for Pair Plot",
+                    options=plottable_fields,
+                    default=["cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"],
+                    format_func=df_format_func,
+                )
+                x_len = len(x_fields_for_pairplot)
+            with cols[1]:
+                y_fields_for_pairplot = st.multiselect(
+                    "Y Fields for Pair Plot",
+                    options=plottable_fields,
+                    default=["overall_score"],
+                    format_func=df_format_func,
+                )
+                y_len = len(y_fields_for_pairplot)
 
-                st.form_submit_button("Update Pair Plot Options")
-                fig = sns.pairplot(
-                    data=df.rename(columns=df_format_dict),
-                    x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
-                    y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
-                )
-            if x_len * y_len > 10:
-                st.warning(
-                    "Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection)."
-                )
-            st.pyplot(fig, use_container_width=True)
-        else:
-            st.info(
-                'Enable "Show pair plot" to populate this section. Note that enabling pair plots can slow rendering time significantly.'
+            st.form_submit_button("Update Pair Plot Options")
+            fig = sns.pairplot(
+                data=df.rename(columns=df_format_dict),
+                x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
+                y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
             )
+        if x_len * y_len > 10:
+            st.warning(
+                "Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection)."
+            )
+        st.pyplot(fig, use_container_width=True)
+
+    expander_checkbox_spinner_execute(func=execute_world_map, label="World Map")
+    expander_checkbox_spinner_execute(func=execute_results_data, label="Results Data")
+    expander_checkbox_spinner_execute(
+        func=execute_dimensionality_reduction_and_clustering, label="Dimensionality Reduction & Clustering"
+    )
+    expander_checkbox_spinner_execute(func=execute_hierarchical_clustering, label="Hierarchical Clustering")
+    expander_checkbox_spinner_execute(func=execute_flag_plot, label="Flag Plot")
+    expander_checkbox_spinner_execute(func=execute_pair_plot, label="Pair Plot")
 
 
 def run_ui_subsection_culture_fit_help():
@@ -1104,8 +1156,8 @@ app_options = get_options()
 with st.sidebar:
     st.divider()
     st.header("Utilities")
-    # Clear cache
     st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
+
 
 if check_if_app_options_are_default(app_options):
     st.info(
