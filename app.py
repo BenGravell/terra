@@ -20,6 +20,7 @@ from app_options import AppOptions, NONE_COUNTRY
 import map_options
 import color_options
 import utils
+import world_factbook_utils
 from culture_fit import country_data, distance_calculations, visualisation, dimensions_info
 
 # Streamlit setup
@@ -575,14 +576,6 @@ def process_data(app_options):
 
 
 @st.cache_data
-def get_world_factbook_url(country: str) -> str:
-    url_base = "https://www.cia.gov/the-world-factbook/countries"
-    country_slug = country.lower().replace(" ", "-")
-    url = f"{url_base}/{country_slug}/"
-    return url
-
-
-@st.cache_data
 def get_google_maps_url(lat: float, lon: float) -> str:
     url_base = "https://www.google.com/maps"
     zoom_level = 5.0
@@ -623,7 +616,7 @@ def run_ui_section_best_match(df):
 
     def execute_world_factbook():
         # CIA World Factbook viewer
-        cia_world_factbook_url = get_world_factbook_url(best_match_country)
+        cia_world_factbook_url = world_factbook_utils.get_world_factbook_url(best_match_country)
         st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
