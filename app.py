@@ -98,20 +98,19 @@ def load_data():
     culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
 
     # Happy Planet
-    happy_planet_df = happy_planet_df[["Country", "HPI"]]
-    happy_planet_df = happy_planet_df.rename(columns={"Country": "country", "HPI": "hp_score"})
+    happy_planet_df = happy_planet_df[["country", "HPI"]]
+    happy_planet_df = happy_planet_df.rename(columns={"HPI": "hp_score"})
     happy_planet_df["hp_score"] /= 100
 
     # Social Progress
     # Pick out just the columns we need and rename country column
-    social_progress_cols_keep = ["Country", "Basic Human Needs", "Foundations of Wellbeing", "Opportunity"]
+    social_progress_cols_keep = ["country", "Basic Human Needs", "Foundations of Wellbeing", "Opportunity"]
     social_progress_df = social_progress_df[social_progress_cols_keep]
-    social_progress_df = social_progress_df.set_index("Country")
+    social_progress_df = social_progress_df.set_index("country")
     social_progress_df /= 100.0  # Undo 100X scaling
     social_progress_df = social_progress_df.reset_index()
     social_progress_df = social_progress_df.rename(
         columns={
-            "Country": "country",
             "Basic Human Needs": "bn_score",
             "Foundations of Wellbeing": "fw_score",
             "Opportunity": "op_score",
