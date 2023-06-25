@@ -15,6 +15,7 @@ import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import config
 from app_options import AppOptions, NONE_COUNTRY
 import map_options
 import color_options
@@ -797,7 +798,7 @@ def run_ui_section_all_matches(df):
         fig.update_geos(resolution=world_map_resolution)
         fig.update_geos(projection_type=world_map_projection_type)
         fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
-        fig.update_layout(geo_bgcolor="#0E1117")  # manually match the ftheme backgroundColor
+        fig.update_layout(geo_bgcolor=config.STREAMLIT_CONFIG["theme"]["backgroundColor"])
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_results_data():
