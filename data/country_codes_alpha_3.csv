@@ -121,7 +121,7 @@ KGZ,Kyrgyzstan
 KHM,Cambodia
 KIR,Kiribati
 KNA,Saint Kitts and Nevis
-KOR,"Korea, Republic of"
+KOR,South Korea
 KWT,Kuwait
 LAO,Laos
 LBN,Lebanon
@@ -138,7 +138,7 @@ MAC,Macao
 MAF,Saint Martin (French part)
 MAR,Morocco
 MCO,Monaco
-MDA,"Moldova"
+MDA,Moldova
 MDG,Madagascar
 MDV,Maldives
 MEX,Mexico
@@ -165,7 +165,7 @@ NFK,Norfolk Island
 NGA,Nigeria
 NIC,Nicaragua
 NIU,Niue
-NLD,"Netherlands"
+NLD,Netherlands
 NOR,Norway
 NPL,Nepal
 NRU,Nauru
@@ -180,7 +180,7 @@ PLW,Palau
 PNG,Papua New Guinea
 POL,Poland
 PRI,Puerto Rico
-PRK,"Korea, Democratic People's Republic of"
+PRK,North Korea
 PRT,Portugal
 PRY,Paraguay
 PSE,Palestine
@@ -227,8 +227,8 @@ TTO,Trinidad and Tobago
 TUN,Tunisia
 TUR,Turkey
 TUV,Tuvalu
-TWN,"Taiwan"
-TZA,"Tanzania"
+TWN,Taiwan
+TZA,Tanzania
 UGA,Uganda
 UKR,Ukraine
 UMI,United States Minor Outlying Islands
