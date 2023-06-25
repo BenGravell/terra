@@ -150,6 +150,7 @@ def load_data():
 ) = load_data()
 
 
+# TODO move to a config file
 df_format_dict = {
     "country": "Country",
     "overall_score": "Overall Score",
@@ -1079,10 +1080,11 @@ def run_ui_section_help():
     st.header("Help", anchor=False)
 
     with st.expander("Tutorial 🏫"):
-        st.success(
-            "If you have not already, we highly recommend reading the rest of the help section before proceeding. :blush:"
-        )
         open_and_st_markdown("./help/tutorial.md")
+        st.divider()
+        st.success(
+            "Now that you know the general flow, you can either jump right in and start playing with the app! For a better understanding, we highly recommend reading the rest of the help section. :blush:"
+        )
 
     with st.expander("Culture Fit 🗺️"):
         run_ui_subsection_culture_fit_help()
