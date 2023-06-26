@@ -17,7 +17,7 @@ The general flow of Terra goes like this:
     - `All Matches` gives details about all countries that satisfy the Filters.
         - `World Map` shows how a field is distributed over the earth.
         - `Results Data` shows all the data for matching countries in table form. You can sort each column in the app, or take a `.csv` download of the data.
-        - `Hierarchical Clustering` lets you see groups of countries with similar attributes.
+        - `Dimensionality Reduction & Clustering` and `Hierarchical Clustering` let you see groups of countries with similar attributes.
         - `Flag Plot` lets you plot two fields against each other, using country flags as the markers.
         - `Pair Plot` lets you plot any two sets of fields against each other to see interactions between variables.
 3. Share your results:
