@@ -11,6 +11,7 @@ from scipy.cluster import hierarchy
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -653,6 +654,7 @@ def run_ui_section_best_match(df):
             )
 
     selected_country_emoji = country_to_emoji[selected_country]
+    selected_country_row = df.set_index('country').loc[selected_country]
 
     with focus_container:
         st.header("Selected Country", anchor=False)
@@ -684,26 +686,44 @@ def run_ui_section_best_match(df):
         )
     
     # Detailed Results
-    selected_country_row = df.set_index('country').loc[selected_country]
-
+    # TODO put this in a function
     with st.expander("High-level Scores", expanded=True):
         cols = st.columns(len(overall_fields))
         for col, field in zip(cols, overall_fields):
             with col:
                 st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
 
+                fig = px.box(df, y=field, labels={field: df_format_func(field)}, points="all", notched=True, hover_name='country')
+                fig.add_hline(y=selected_country_row[field], line_dash="dash", line_color="white", opacity=0.5, annotation_text=selected_country, 
+                annotation_position="top right")
+                fig.update_layout(showlegend=True)
+                st.plotly_chart(fig, use_container_width=True)
+
+
     with st.expander("Culture Dimensions", expanded=True):
         cols = st.columns(len(culture_fields))
         for col, field in zip(cols, culture_fields):
             with col:
                 st.metric(df_format_func(field), int(selected_country_row[field]*100))
-    
+
+                fig = px.box(df, y=field, labels={field: df_format_func(field)}, points="all", notched=True, hover_name='country')
+                fig.add_hline(y=selected_country_row[field], line_dash="dash", line_color="white", opacity=0.5, annotation_text=selected_country, 
+                annotation_position="top right")
+                fig.update_layout(showlegend=True)
+                st.plotly_chart(fig, use_container_width=True)
+
+
     with st.expander("Quality of Life Scores", expanded=True):
         cols = st.columns(len(score_fields))
         for col, field in zip(cols, score_fields):
             with col:
                 st.metric(df_format_func(field)[:-6], utils.pct_fmt(selected_country_row[field]))
 
+                fig = px.box(df, y=field, labels={field: df_format_func(field)}, points="all", notched=True, hover_name='country')
+                fig.add_hline(y=selected_country_row[field], line_dash="dash", line_color="white", opacity=0.5, annotation_text=selected_country, 
+                annotation_position="top right")
+                fig.update_layout(showlegend=True)
+                st.plotly_chart(fig, use_container_width=True)
 
 # TODO replace pyplot radar plots with plotly radar plots
 # See https://plotly.com/python/radar-chart/
