@@ -923,7 +923,14 @@ def run_ui_section_all_matches(df):
         df_clusters = pd.DataFrame(clusterer.labels_).rename(columns={0: "cluster"}).astype(str)
 
         df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
-        df_for_dr_plot["marker_size"] = df_for_dr_plot["overall_score"] ** 4
+
+
+        cols = st.columns(2)
+        with cols[0]:
+            marker_size_field = st.selectbox("Marker Size Field", options=plottable_fields, format_func=df_format_func)
+        with cols[1]:
+            marker_size_power = st.slider("Marker Size Power", min_value=0.0, max_value=10.0, value=4.0, help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.")
+        df_for_dr_plot["marker_size"] = df_for_dr_plot[marker_size_field] ** marker_size_power
 
         category_orders = {"cluster": [str(i) for i in range(-1, max(clusterer.labels_))]}
 
