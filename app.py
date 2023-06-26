@@ -179,6 +179,22 @@ def df_format_func(key):
     return df_format_dict[key]
 
 
+# TODO move to config file
+overall_fields = [
+    "overall_score",
+    "cf_score",
+]
+score_fields = [
+    "hp_score",
+    "bn_score",
+    "fw_score",
+    "op_score",
+    "pf_score",
+    "ef_score",
+]
+culture_fields = dimensions_info.DIMENSIONS
+
+
 def culture_fit_reference_callback():
     if state.culture_fit_reference_country == NONE_COUNTRY:
         return
@@ -603,44 +619,48 @@ def run_ui_section_welcome():
 
 
 def run_ui_section_best_match(df):
-    cols = st.columns(2)
-    with cols[1]:
-        sort_by_col = st.selectbox(
-            "Sort By",
-            options=["overall_score", "country"],
-            format_func=lambda x: {"overall_score": "Overall Score", "country": "Alphabetical"}[x],
-        )
+    focus_container = st.container()
 
-    if sort_by_col == "country":
-        ascending = True
-    elif sort_by_col == "overall_score":
-        ascending = False
+    with st.expander("Selection Options"):
+        cols = st.columns(2)
+        with cols[1]:
+            sort_by_col = st.selectbox(
+                "Sort By",
+                options=["overall_score", "country"],
+                format_func=lambda x: {"overall_score": "Overall Score", "country": "Alphabetical"}[x],
+            )
 
-    df_sorted = df.sort_values(sort_by_col, ascending=ascending).reset_index().drop(columns="index")
-    countries = list(df_sorted["country"])
-
-    def get_rank_prefix(country):
-        return df_sorted[df_sorted.country == country].index[0].item() + 1
-
-    def get_rank_prefix_str(country, sort_by_col):
         if sort_by_col == "country":
-            return ""
+            ascending = True
         elif sort_by_col == "overall_score":
-            return f"({get_rank_prefix(country)}) "
+            ascending = False
 
-    with cols[0]:
-        selected_country = st.selectbox(
-            "Country", options=countries, format_func=lambda x: f"{get_rank_prefix_str(x, sort_by_col)}{x}"
-        )
+        df_sorted = df.sort_values(sort_by_col, ascending=ascending).reset_index().drop(columns="index")
+        countries = list(df_sorted["country"])
+
+        def get_rank_prefix(country):
+            return df_sorted[df_sorted.country == country].index[0].item() + 1
+
+        def get_rank_prefix_str(country, sort_by_col):
+            if sort_by_col == "country":
+                return ""
+            elif sort_by_col == "overall_score":
+                return f"({get_rank_prefix(country)}) "
+
+        with cols[0]:
+            selected_country = st.selectbox(
+                "Country", options=countries, format_func=lambda x: f"{get_rank_prefix_str(x, sort_by_col)}{x}"
+            )
 
     selected_country_emoji = country_to_emoji[selected_country]
 
-    st.header("Selected Country", anchor=False)
-    cols = st.columns([4, 2])
-    with cols[0]:
-        st.header(f":blue[{selected_country}] ({selected_country_emoji})", anchor=False)
-    with cols[1]:
-        st.image(visualisation.country_urls.COUNTRY_URLS[selected_country], width=100)
+    with focus_container:
+        st.header("Selected Country", anchor=False)
+        cols = st.columns([4, 2])
+        with cols[0]:
+            st.header(f":blue[{selected_country}] ({selected_country_emoji})", anchor=False)
+        with cols[1]:
+            st.image(visualisation.country_urls.COUNTRY_URLS[selected_country], width=100)
 
     def execute_world_factbook():
         # CIA World Factbook viewer
@@ -662,6 +682,27 @@ def run_ui_section_best_match(df):
         st.caption(
             "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
         )
+    
+    # Detailed Results
+    selected_country_row = df.set_index('country').loc[selected_country]
+
+    with st.expander("High-level Scores", expanded=True):
+        cols = st.columns(len(overall_fields))
+        for col, field in zip(cols, overall_fields):
+            with col:
+                st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
+
+    with st.expander("Culture Dimensions", expanded=True):
+        cols = st.columns(len(culture_fields))
+        for col, field in zip(cols, culture_fields):
+            with col:
+                st.metric(df_format_func(field), int(selected_country_row[field]*100))
+    
+    with st.expander("Quality of Life Scores", expanded=True):
+        cols = st.columns(len(score_fields))
+        for col, field in zip(cols, score_fields):
+            with col:
+                st.metric(df_format_func(field)[:-6], utils.pct_fmt(selected_country_row[field]))
 
 
 # TODO replace pyplot radar plots with plotly radar plots
@@ -740,20 +781,6 @@ def run_ui_section_all_matches(df):
         return fig
 
     # TODO move to config file
-    overall_fields = [
-        "overall_score",
-        "cf_score",
-    ]
-    score_fields = [
-        "hp_score",
-        "bn_score",
-        "fw_score",
-        "op_score",
-        "pf_score",
-        "ef_score",
-    ]
-    culture_fields = dimensions_info.DIMENSIONS
-
     plottable_fields = overall_fields + score_fields + culture_fields
 
     # Special handling for language
