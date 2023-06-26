@@ -603,20 +603,48 @@ def run_ui_section_welcome():
 
 
 def run_ui_section_best_match(df):
-    best_match_row = df.iloc[0]
-    best_match_country = str(best_match_row.country)
-    best_match_country_emoji = country_to_emoji[best_match_country]
+    cols = st.columns(2)
+    with cols[1]:
+        sort_by_col = st.selectbox(
+            "Sort By",
+            options=["overall_score", "country"],
+            format_func=lambda x: {"overall_score": "Overall Score", "country": "Alphabetical"}[x],
+        )
 
-    st.header("Your Best Match Country", anchor=False)
+    if sort_by_col == "country":
+        ascending = True
+    elif sort_by_col == "overall_score":
+        ascending = False
+
+    df_sorted = df.sort_values(sort_by_col, ascending=ascending).reset_index().drop(columns="index")
+    countries = list(df_sorted["country"])
+
+    def get_rank_prefix(country):
+        return df_sorted[df_sorted.country == country].index[0].item() + 1
+
+    def get_rank_prefix_str(country, sort_by_col):
+        if sort_by_col == "country":
+            return ""
+        elif sort_by_col == "overall_score":
+            return f"({get_rank_prefix(country)}) "
+
+    with cols[0]:
+        selected_country = st.selectbox(
+            "Country", options=countries, format_func=lambda x: f"{get_rank_prefix_str(x, sort_by_col)}{x}"
+        )
+
+    selected_country_emoji = country_to_emoji[selected_country]
+
+    st.header("Selected Country", anchor=False)
     cols = st.columns([4, 2])
     with cols[0]:
-        st.header(f":blue[{best_match_country}] ({best_match_country_emoji})", anchor=False)
+        st.header(f":blue[{selected_country}] ({selected_country_emoji})", anchor=False)
     with cols[1]:
-        st.image(visualisation.country_urls.COUNTRY_URLS[best_match_country], width=100)
+        st.image(visualisation.country_urls.COUNTRY_URLS[selected_country], width=100)
 
     def execute_world_factbook():
         # CIA World Factbook viewer
-        cia_world_factbook_url = world_factbook_utils.get_world_factbook_url(best_match_country)
+        cia_world_factbook_url = world_factbook_utils.get_world_factbook_url(selected_country)
         st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
@@ -624,7 +652,7 @@ def run_ui_section_best_match(df):
 
     # Google Maps viewer
     # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
-    latlon_row = df_coords.loc[best_match_country]
+    latlon_row = df_coords.loc[selected_country]
     lat = latlon_row.latitude
     lon = latlon_row.longitude
 
@@ -727,7 +755,7 @@ def run_ui_section_all_matches(df):
     culture_fields = dimensions_info.DIMENSIONS
 
     plottable_fields = overall_fields + score_fields + culture_fields
-    
+
     # Special handling for language
     if "english_ratio" in df.columns:
         plottable_fields += ["english_ratio"]
@@ -806,14 +834,13 @@ def run_ui_section_all_matches(df):
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 
-
     def set_dr_fields_callback(fields):
         st.session_state.dr_fields = fields
 
     def execute_dimensionality_reduction_and_clustering():
         # Use containers to have the plot above the options, since the options will take up a lot of space
         plot_container = st.container()
-        options_container = st.container()    
+        options_container = st.container()
 
         dr_fields_all = culture_fields + score_fields
 
@@ -831,13 +858,25 @@ def run_ui_section_all_matches(df):
 
             cols = st.columns(3)
             with cols[0]:
-                st.button("Set Fields to All", use_container_width=True, on_click=set_dr_fields_callback, args=[dr_fields_all])
+                st.button(
+                    "Set Fields to All", use_container_width=True, on_click=set_dr_fields_callback, args=[dr_fields_all]
+                )
             with cols[1]:
-                st.button("Set Fields to Culture Dimensions", use_container_width=True, on_click=set_dr_fields_callback, args=[culture_fields])
+                st.button(
+                    "Set Fields to Culture Dimensions",
+                    use_container_width=True,
+                    on_click=set_dr_fields_callback,
+                    args=[culture_fields],
+                )
             with cols[2]:
-                st.button("Set Fields to Score Dimensions", use_container_width=True, on_click=set_dr_fields_callback, args=[score_fields])
+                st.button(
+                    "Set Fields to Score Dimensions",
+                    use_container_width=True,
+                    on_click=set_dr_fields_callback,
+                    args=[score_fields],
+                )
 
-            df_for_dr = df[dr_fields]    
+            df_for_dr = df[dr_fields]
 
             dimensionality_reducer_name = st.selectbox("Dimensionality Reduction Method", options=["UMAP", "t-SNE"])
             dimensionality_reducer_name_to_class_map = {
@@ -911,7 +950,7 @@ def run_ui_section_all_matches(df):
                     min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
                 with cols[2]:
                     cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
-                
+
                 st.form_submit_button("Update Clustering Options", use_container_width=True)
 
         if cluster_in_projected_space:
@@ -924,28 +963,42 @@ def run_ui_section_all_matches(df):
 
         df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
 
-
-        cols = st.columns(2)
+        cols = st.columns(3)
         with cols[0]:
-            marker_size_field = st.selectbox("Marker Size Field", options=plottable_fields, format_func=df_format_func)
+            show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
         with cols[1]:
-            marker_size_power = st.slider("Marker Size Power", min_value=0.0, max_value=10.0, value=4.0, help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.")
+            marker_size_field = st.selectbox("Marker Size Field", options=plottable_fields, format_func=df_format_func)
+        with cols[2]:
+            marker_size_power = st.slider(
+                "Marker Size Power",
+                min_value=0.0,
+                max_value=10.0,
+                value=4.0,
+                help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
+            )
+
         df_for_dr_plot["marker_size"] = df_for_dr_plot[marker_size_field] ** marker_size_power
 
         category_orders = {"cluster": [str(i) for i in range(-1, max(clusterer.labels_))]}
 
+        scatter_kwargs = dict(
+            x="x",
+            y="y",
+            hover_name="country",
+            hover_data=["overall_score"],
+            color="cluster",
+            color_discrete_map=color_options.CLUSTER_COLOR_SEQUENCE_MAP,
+            category_orders=category_orders,
+            size="marker_size",
+        )
+
+        if show_country_text:
+            scatter_kwargs["text"] = "country"
+
         with plot_container:
-            fig = px.scatter(
-                df_for_dr_plot,
-                x="x",
-                y="y",
-                hover_name="country",
-                hover_data=["overall_score"],
-                color="cluster",
-                color_discrete_map=color_options.CLUSTER_COLOR_SEQUENCE_MAP,
-                category_orders=category_orders,
-                size="marker_size",
-            )
+            fig = px.scatter(df_for_dr_plot, **scatter_kwargs)
+            if show_country_text:
+                fig.update_traces(textposition="top center")
             st.plotly_chart(fig, use_container_width=True)
 
     def execute_hierarchical_clustering():
@@ -979,7 +1032,7 @@ def run_ui_section_all_matches(df):
                     )
                 with cols[3]:
                     orientation = st.selectbox("Plot Orientation", options=["bottom", "top", "right", "left"])
-                
+
                 fields_for_clustering = st.multiselect(
                     "Fields for Clustering",
                     options=culture_fields + score_fields,
@@ -987,7 +1040,9 @@ def run_ui_section_all_matches(df):
                     format_func=df_format_func,
                 )
 
-                clusterion_options_submit_container.form_submit_button("Update Hierarchical Clustering Options", use_container_width=True)
+                clusterion_options_submit_container.form_submit_button(
+                    "Update Hierarchical Clustering Options", use_container_width=True
+                )
             distfun = partial(distance.pdist, metric=distance_metric)
             linkagefun = partial(hierarchy.linkage, method=linkage_method)
             X = dfh[fields_for_clustering]
