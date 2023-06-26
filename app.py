@@ -711,9 +711,12 @@ def run_ui_section_all_matches(df):
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
-    plottable_fields = [
+    # TODO move to config file
+    overall_fields = [
         "overall_score",
         "cf_score",
+    ]
+    score_fields = [
         "hp_score",
         "bn_score",
         "fw_score",
@@ -721,7 +724,11 @@ def run_ui_section_all_matches(df):
         "pf_score",
         "ef_score",
     ]
-    plottable_fields += dimensions_info.DIMENSIONS
+    culture_fields = dimensions_info.DIMENSIONS
+
+    plottable_fields = overall_fields + score_fields + culture_fields
+    
+    # Special handling for language
     if "english_ratio" in df.columns:
         plottable_fields += ["english_ratio"]
 
@@ -799,14 +806,41 @@ def run_ui_section_all_matches(df):
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 
+
+    def set_dr_fields_callback(fields):
+        st.session_state.dr_fields = fields
+
     def execute_dimensionality_reduction_and_clustering():
+        dr_fields_all = culture_fields + score_fields
+
+        # Set default for multiselect
+        if "dr_fields" not in st.session_state:
+            set_dr_fields_callback(culture_fields)
+
+        dr_fields = st.multiselect(
+            "Fields for Dimensionality Reduction & Clustering",
+            options=dr_fields_all,
+            format_func=df_format_func,
+            key="dr_fields",
+        )
+
+        cols = st.columns(3)
+        with cols[0]:
+            st.button("Set Fields to All", use_container_width=True, on_click=set_dr_fields_callback, args=[dr_fields_all])
+        with cols[1]:
+            st.button("Set Fields to Culture Dimensions", use_container_width=True, on_click=set_dr_fields_callback, args=[culture_fields])
+        with cols[2]:
+            st.button("Set Fields to Score Dimensions", use_container_width=True, on_click=set_dr_fields_callback, args=[score_fields])
+
+        df_for_dr = df[dr_fields]    
+
         dimensionality_reducer_name = st.selectbox("Dimensionality Reduction Method", options=["UMAP", "t-SNE"])
         dimensionality_reducer_name_to_class_map = {
             "t-SNE": TSNE,
             "UMAP": UMAP,
         }
+
         with st.form("dimesionality_reduction_options"):
-            st.write("Dimensionality Reduction Options")
             dimensionality_reducer_kwargs = {}
             cols = st.columns(3)
             if dimensionality_reducer_name == "t-SNE":
@@ -855,40 +889,32 @@ def run_ui_section_all_matches(df):
                 random_state = st.number_input("Random State", min_value=0, max_value=10, value=0, step=1)
                 dimensionality_reducer_kwargs["random_state"] = random_state
 
-            st.form_submit_button("Update Options")
+            st.form_submit_button("Update Dimensionality Reduction Options", use_container_width=True)
 
         dimensionality_reducer_class = dimensionality_reducer_name_to_class_map[dimensionality_reducer_name]
         dimensionality_reducer = dimensionality_reducer_class(**dimensionality_reducer_kwargs)
 
-        fields_for_dr_all = [
-            field for field in plottable_fields if field not in ["overall_score", "cf_score", "english_ratio"]
-        ]
-        fields_for_dr = st.multiselect(
-            "Fields for Dimensionality Reduction & Clustering",
-            options=fields_for_dr_all,
-            default=dimensions_info.DIMENSIONS,
-            format_func=df_format_func,
-        )
-
-        df_for_dr = df[fields_for_dr]
         projection = dimensionality_reducer.fit_transform(df_for_dr)
-        df_projection = pd.DataFrame(projection).rename(columns={0: "t_sne_x", 1: "t_sne_y"})
+        df_projection = pd.DataFrame(projection).rename(columns={0: "x", 1: "y"})
 
-        st.write("Clustering Options")
-        # TODO expose different clustering methods
-        cols = st.columns(3)
-        with cols[0]:
-            min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
-        with cols[1]:
-            min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
-        with cols[2]:
-            cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
+        with st.form("clustering_options"):
+            # TODO expose different clustering methods
+            cols = st.columns(3)
+            with cols[0]:
+                min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
+            with cols[1]:
+                min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
+            with cols[2]:
+                cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
+            
+            st.form_submit_button("Update Clustering Options", use_container_width=True)
 
         if cluster_in_projected_space:
             df_for_clustering = df_projection
         else:
             df_for_clustering = df_for_dr
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples).fit(df_for_clustering)
+        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
+        clusterer.fit(df_for_clustering)
         df_clusters = pd.DataFrame(clusterer.labels_).rename(columns={0: "cluster"}).astype(str)
 
         df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
@@ -898,8 +924,8 @@ def run_ui_section_all_matches(df):
 
         fig = px.scatter(
             df_for_dr_plot,
-            x="t_sne_x",
-            y="t_sne_y",
+            x="x",
+            y="y",
             hover_name="country",
             hover_data=["overall_score"],
             color="cluster",
@@ -915,7 +941,7 @@ def run_ui_section_all_matches(df):
         clustering_options_container = st.container()
         dfh = df.set_index("country")
         with clustering_options_container:
-            with st.form("clustering_options"):
+            with st.form("hierarchical_clustering_options"):
                 clusterion_options_submit_container = st.container()
                 cols = st.columns(4)
                 with cols[0]:
@@ -923,7 +949,7 @@ def run_ui_section_all_matches(df):
                         "Cluster Color Threshold",
                         min_value=0.0,
                         max_value=5.0,
-                        value=2.0,
+                        value=2.5,
                         help="Lower values will result in more clusters.",
                     )
                 with cols[1]:
@@ -939,47 +965,28 @@ def run_ui_section_all_matches(df):
                         help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html",
                     )
                 with cols[3]:
-                    orientation = st.selectbox("Orientation", options=["bottom", "top", "right", "left"])
+                    orientation = st.selectbox("Plot Orientation", options=["bottom", "top", "right", "left"])
+                
                 fields_for_clustering = st.multiselect(
                     "Fields for Clustering",
-                    options=plottable_fields,
-                    default=[
-                        field
-                        for field in plottable_fields
-                        if field not in ["overall_score", "cf_score", "english_ratio"]
-                    ],
+                    options=culture_fields + score_fields,
+                    default=culture_fields,
                     format_func=df_format_func,
                 )
-                countries_for_clustering = st.multiselect(
-                    "Countries to Cluster",
-                    options=dfh.index.to_list(),
-                    default=dfh.index.to_list(),
-                )
-                clusterion_options_submit_container.form_submit_button("Update Clustering Options")
+
+                clusterion_options_submit_container.form_submit_button("Update Hierarchical Clustering Options", use_container_width=True)
             distfun = partial(distance.pdist, metric=distance_metric)
             linkagefun = partial(hierarchy.linkage, method=linkage_method)
-            dfh = dfh.loc[countries_for_clustering]
             X = dfh[fields_for_clustering]
             fig = ff.create_dendrogram(
                 X,
                 orientation=orientation,
-                labels=countries_for_clustering,
+                labels=dfh.index,
                 distfun=distfun,
                 linkagefun=linkagefun,
                 color_threshold=color_threshold,
             )
             fig.add_hline(y=color_threshold, line_dash="dash", line_color="white", opacity=0.5)
-            # NOTE: I was trying to convert ClusterNode tree to dict for JSON download here, but it was too much work...
-            # Get dendrogram data using identical process as that implemented internally in ff.create_dendrogram
-            # d = distfun(X)
-            # Z = linkagefun(d)
-            # P = hierarchy.dendrogram(
-            #     Z,
-            #     orientation=orientation,
-            #     labels=countries_for_clustering,
-            #     no_plot=True,
-            #     color_threshold=color_threshold,
-            # )
 
         with clustering_plot_container:
             st.plotly_chart(fig, use_container_width=True)
