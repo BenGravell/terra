@@ -543,7 +543,7 @@ def process_data_overall_score(df, app_options):
 def process_data_ranks(df, app_options):
     fields_to_rank = overall_fields + culture_fields + score_fields
     for field in fields_to_rank:
-        df[f'{field}_rank'] = df[field].rank(ascending=False)
+        df[f"{field}_rank"] = df[field].rank(ascending=False)
     return df
 
 
@@ -629,7 +629,7 @@ def run_ui_section_welcome():
 
 def run_ui_section_best_match(df, app_options):
     focus_container = st.container()
-    best_match_country = df.iloc[0]['country']  # We sorted by overall score previously in process_data_overall_score()
+    best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
     with st.expander("Selection Options"):
         cols = st.columns(2)
@@ -664,8 +664,8 @@ def run_ui_section_best_match(df, app_options):
             )
 
     selected_country_emoji = country_to_emoji[selected_country]
-    selected_country_row = df.set_index('country').loc[selected_country]
-    best_match_country_row = df.set_index('country').loc[best_match_country]
+    selected_country_row = df.set_index("country").loc[selected_country]
+    best_match_country_row = df.set_index("country").loc[best_match_country]
 
     with focus_container:
         st.header("Selected Country", anchor=False)
@@ -695,7 +695,7 @@ def run_ui_section_best_match(df, app_options):
         st.caption(
             "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
         )
-    
+
     total = df.shape[0]
 
     def detailed_country_breakdown(fields, name):
@@ -704,25 +704,63 @@ def run_ui_section_best_match(df, app_options):
             with cols[0]:
                 st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
             with cols[1]:
-                rank = int(selected_country_row[f'{field}_rank'])
-                
-                st.metric(f'{df_format_func(field)} Rank', f'{rank} of {total}')
+                rank = int(selected_country_row[f"{field}_rank"])
 
-            fig = px.box(df, y=field, labels={field: df_format_func(field)}, points="all", hover_name='country', orientation='v')
+                st.metric(f"{df_format_func(field)} Rank", f"{rank} of {total}")
 
-            fig.add_hline(best_match_country_row[field], line_dash="dash", line_color="gold", opacity=0.5, annotation_text=f'{best_match_country} (Best Match)', annotation_position="top right", annotation_font_color="gold")
-            
-            fig.add_hline(selected_country_row[field], line_dash="dash", line_color="white", opacity=0.5, annotation_text=f'{selected_country} (Selected)', annotation_position="bottom right", annotation_font_color="white")
+            fig = px.box(
+                df, y=field, labels={field: df_format_func(field)}, points="all", hover_name="country", orientation="v"
+            )
+
+            fig.add_hline(
+                best_match_country_row[field],
+                line_dash="dash",
+                line_color="gold",
+                opacity=0.5,
+                annotation_text=f"{best_match_country} (Best Match)",
+                annotation_position="top right",
+                annotation_font_color="gold",
+            )
+
+            fig.add_hline(
+                selected_country_row[field],
+                line_dash="dash",
+                line_color="white",
+                opacity=0.5,
+                annotation_text=f"{selected_country} (Selected)",
+                annotation_position="bottom right",
+                annotation_font_color="white",
+            )
 
             if name == "Culture Dimensions":
                 ref_val = getattr(app_options, f"culture_fit_preference_{field}") * 0.01
-                fig.add_hline(ref_val, line_dash="dash", line_color="springgreen", opacity=0.5, annotation_text=f'(User Ideal)', annotation_position="top right", annotation_font_color="springgreen")
+                fig.add_hline(
+                    ref_val,
+                    line_dash="dash",
+                    line_color="springgreen",
+                    opacity=0.5,
+                    annotation_text=f"(User Ideal)",
+                    annotation_position="top right",
+                    annotation_font_color="springgreen",
+                )
             fig.update_layout(showlegend=True)
             st.plotly_chart(fig, use_container_width=True)
 
-    expander_checkbox_spinner_execute(func=detailed_country_breakdown, label="High-level Scores", func_kwargs=dict(fields=overall_fields, name="High-level Scores"))
-    expander_checkbox_spinner_execute(func=detailed_country_breakdown, label="Culture Dimensions", func_kwargs=dict(fields=culture_fields, name="Culture Dimensions"))
-    expander_checkbox_spinner_execute(func=detailed_country_breakdown, label="Quality-of-Life Scores", func_kwargs=dict(fields=score_fields, name="Quality-of-Life Scores"))
+    expander_checkbox_spinner_execute(
+        func=detailed_country_breakdown,
+        label="High-level Scores",
+        func_kwargs=dict(fields=overall_fields, name="High-level Scores"),
+    )
+    expander_checkbox_spinner_execute(
+        func=detailed_country_breakdown,
+        label="Culture Dimensions",
+        func_kwargs=dict(fields=culture_fields, name="Culture Dimensions"),
+    )
+    expander_checkbox_spinner_execute(
+        func=detailed_country_breakdown,
+        label="Quality-of-Life Scores",
+        func_kwargs=dict(fields=score_fields, name="Quality-of-Life Scores"),
+    )
 
 
 # TODO replace pyplot radar plots with plotly radar plots
