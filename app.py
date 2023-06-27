@@ -174,6 +174,15 @@ df_format_dict = {
     "op_score": "Opportunity Score",
     "pf_score": "Personal Freedom Score",
     "ef_score": "Economic Freedom Score",
+    "overall_score_rank": "Overall Score Rank",
+    "cf_score_rank": "Culture Fit Score Rank",
+    "ql_score_rank": "Quality-of-Life Score Rank",
+    "hp_score_rank": "Happy Planet Score Rank",
+    "bn_score_rank": "Basic Human Needs Score Rank",
+    "fw_score_rank": "Foundations of Wellbeing Score Rank",
+    "op_score_rank": "Opportunity Score Rank",
+    "pf_score_rank": "Personal Freedom Score Rank",
+    "ef_score_rank": "Economic Freedom Score Rank",    
     "cf_score_weighted": "Culture Fit Score (weighted)",
     "ql_score_weighted": "Quality-of-Life Score (weighted)",
     "hp_score_weighted": "Happy Planet Score (weighted)",
@@ -187,6 +196,7 @@ df_format_dict = {
 }
 for dimension in dimensions_info.DIMENSIONS:
     df_format_dict[dimension] = dimensions_info.DIMENSIONS_INFO[dimension]["name"]
+    df_format_dict[f'{dimension}_rank'] = f'{df_format_dict[dimension]} Rank'
 
 
 def df_format_func(key):
