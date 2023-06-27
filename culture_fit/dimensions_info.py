@@ -8,7 +8,7 @@ DIMENSIONS_INFO = {
     },
     "idv": {
         "name": "Individualism",
-        "question": "How independent would you like to be in your society?",
+        "question": "How important is it for you to be an independent person in society?",
         "hofstede_youtube_video_url": "https://youtu.be/zQj1VPNPHlI",
     },
     "mas": {
@@ -24,7 +24,7 @@ DIMENSIONS_INFO = {
     },
     "lto": {
         "name": "Long Term Orientation",
-        "question": "How much do you consider the past when dealing with challenges present now and challenges that may arise in the future?",
+        "question": "How much are you willing to adapt and try new approaches to solving societal problems that may arise in the future?",
         "hofstede_youtube_video_url": "https://youtu.be/H8ygYIGsIQ4",
     },
     "ind": {

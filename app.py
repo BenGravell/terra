@@ -600,12 +600,13 @@ def process_data_overall_score(df, app_options):
 def process_data_ranks(df, app_options):
     fields_to_rank = overall_fields + culture_fields + score_fields
     for field in fields_to_rank:
-        df[f"{field}_rank"] = df[field].rank(ascending=False)
+        df[f"{field}_rank"] = df[field].rank(ascending=False, method='min').astype(int)
     return df
 
 
 # TODO move to config files
 culture_fit_codes = ["cf"]
+quality_of_life_codes = ["ql"]
 happy_planet_codes = ["hp"]
 social_progress_codes = ["bn", "fw", "op"]
 human_freedom_codes = ["pf", "ef"]
@@ -623,6 +624,9 @@ def process_data_filters(df, app_options):
     df["acceptable"] = True
     if app_options.do_filter_culture_fit:
         df = filter_by_codes(df, app_options, culture_fit_codes)
+
+    if app_options.do_filter_quality_of_life:
+        df = filter_by_codes(df, app_options, quality_of_life_codes)
 
     if app_options.do_filter_happy_planet:
         df = filter_by_codes(df, app_options, happy_planet_codes)
@@ -652,9 +656,10 @@ def process_data(app_options):
     df = process_data_language_prevalence(df, app_options)
     df = process_data_overall_score(df, app_options)
     df = process_data_ranks(df, app_options)
+    num_total = df.shape[0]  # do this before filtering to get all rows
     df = process_data_filters(df, app_options)
 
-    return df
+    return df, num_total
 
 
 @st.cache_data
@@ -684,7 +689,7 @@ def run_ui_section_welcome():
         st.image("./assets/data_to_recommendation.png", use_column_width=True)
 
 
-def run_ui_section_best_match(df, app_options):
+def run_ui_section_best_match(df, app_options, num_total):
     focus_container = st.container()
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
@@ -753,17 +758,15 @@ def run_ui_section_best_match(df, app_options):
             "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
         )
 
-    total = df.shape[0]
-
     def detailed_country_breakdown(fields, name):
         for field in fields:
             cols = st.columns(2)
             with cols[0]:
                 st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
             with cols[1]:
-                rank = int(selected_country_row[f"{field}_rank"])
+                rank = selected_country_row[f"{field}_rank"]
 
-                st.metric(f"{df_format_func(field)} Rank", f"{rank} of {total}")
+                st.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
 
             fig = px.box(
                 df, y=field, labels={field: df_format_func(field)}, points="all", hover_name="country", orientation="v"
@@ -794,11 +797,11 @@ def run_ui_section_best_match(df, app_options):
                 fig.add_hline(
                     ref_val,
                     line_dash="dash",
-                    line_color="springgreen",
+                    line_color="orange",
                     opacity=0.5,
                     annotation_text=f"(User Ideal)",
-                    annotation_position="top right",
-                    annotation_font_color="springgreen",
+                    annotation_position="top left",
+                    annotation_font_color="orange",
                 )
             fig.update_layout(showlegend=True)
             st.plotly_chart(fig, use_container_width=True)
@@ -831,7 +834,7 @@ def get_radar(country_names, user_ideal):
     return radar
 
 
-def run_ui_section_top_n_matches(df, app_options):
+def run_ui_section_top_n_matches(df, app_options, num_total):
     st.header(f"Top Matching Countries", anchor=False)
 
     N = st.number_input(
@@ -841,20 +844,26 @@ def run_ui_section_top_n_matches(df, app_options):
         value=10,
     )
 
-    df_top_N = df.head(N).rename(columns=df_format_dict)
+    df_top_N = df.head(N)
 
-    def execute_overall_score_contributions():
+    df_top_N['country_with_overall_score_rank'] = df_top_N['country'] + ' (' + df_top_N['overall_score_rank'].astype(str) + ')'
+    df_top_N['country_with_ql_score_rank'] = df_top_N['country'] + ' (' + df_top_N['ql_score_rank'].astype(str) + ')'
+
+    df_top_N = df_top_N.rename(columns=df_format_dict)
+
+    def execute_overall_score_contributions(df_top_N):
         fig = px.bar(
             df_top_N,
-            x="Country",
+            x="country_with_overall_score_rank",
             y=[
                 "Culture Fit Score (weighted)",
                 "Quality-of-Life Score (weighted)",
-            ]
+            ],
+            labels={'country_with_overall_score_rank': 'Country'}
         )
         for idx, row in df_top_N.iterrows():
             fig.add_annotation(
-                x=row["Country"],
+                x=row['country_with_overall_score_rank'],
                 y=row["Overall Score"],
                 yanchor="bottom",
                 showarrow=False,
@@ -865,10 +874,12 @@ def run_ui_section_top_n_matches(df, app_options):
         fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
 
-    def execute_ql_score_contributions():
+    def execute_ql_score_contributions(df_top_N):
+        sort_by_field = st.selectbox("Sort By", options=["overall_score", "ql_score"], format_func=df_format_func)
+        df_top_N = df_top_N.sort_values(df_format_func(sort_by_field), ascending=False)
         fig = px.bar(
             df_top_N,
-            x="Country",
+            x="country_with_ql_score_rank",
             y=[
                 "Happy Planet Score (weighted)",
                 "Basic Human Needs Score (weighted)",
@@ -876,19 +887,30 @@ def run_ui_section_top_n_matches(df, app_options):
                 "Opportunity Score (weighted)",
                 "Personal Freedom Score (weighted)",
                 "Economic Freedom Score (weighted)",
-            ]
+            ],
+            labels={'country_with_ql_score_rank': 'Country'}
         )
+        for idx, row in df_top_N.iterrows():
+            fig.add_annotation(
+                x=row["country_with_ql_score_rank"],
+                y=row["Quality-of-Life Score"],
+                yanchor="bottom",
+                showarrow=False,
+                align="left",
+                text=f"{utils.pct_fmt(row['Quality-of-Life Score'])}",
+                font={"size": 12},
+            )
         fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
 
-    def execute_culture_fit_radar_plots():
+    def execute_culture_fit_radar_plots(df_top_N):
         st.caption("", help="The dashed :red[red shape] depicts your preferences.")
         radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
         st.pyplot(radar)
 
-    expander_checkbox_spinner_execute(func=execute_overall_score_contributions, label="Overall Score Contributions")
-    expander_checkbox_spinner_execute(func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions")
-    expander_checkbox_spinner_execute(func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots")
+    expander_checkbox_spinner_execute(func=execute_overall_score_contributions, label="Overall Score Contributions", func_args=[df_top_N])
+    expander_checkbox_spinner_execute(func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df_top_N])
+    expander_checkbox_spinner_execute(func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots", func_args=[df_top_N])
 
 
 def run_ui_section_all_matches(df):
@@ -1399,7 +1421,7 @@ def main():
         return
 
 
-    df = process_data(app_options)
+    df, num_total = process_data(app_options)
 
     no_matches = df.shape[0] == 0
     if no_matches:
@@ -1409,9 +1431,9 @@ def main():
         with tabs[0]:
             run_ui_section_welcome()
         with tabs[1]:
-            run_ui_section_best_match(df, app_options)
+            run_ui_section_best_match(df, app_options, num_total)
         with tabs[2]:
-            run_ui_section_top_n_matches(df, app_options)
+            run_ui_section_top_n_matches(df, app_options, num_total)
         with tabs[3]:
             run_ui_section_all_matches(df)
         with tabs[4]:
