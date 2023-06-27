@@ -21,6 +21,7 @@ class AppOptions:
     year_min: int = 2015
     year_max: int = 2020
     cf_score_min: float = 0.0
+    ql_score_min: float = 0.0
     hp_score_min: float = 0.0
     bn_score_min: float = 0.0
     fw_score_min: float = 0.0
@@ -31,17 +32,35 @@ class AppOptions:
 
     # Weights
     cf_score_weight: float = 1.0
-    hp_score_weight: float = 0.0
-    bn_score_weight: float = 0.0
-    fw_score_weight: float = 0.0
-    op_score_weight: float = 0.0
-    pf_score_weight: float = 0.0
-    ef_score_weight: float = 0.0
+    ql_score_weight: float = 1.0
+    hp_score_weight: float = 1.0
+    bn_score_weight: float = 1.0
+    fw_score_weight: float = 1.0
+    op_score_weight: float = 1.0
+    pf_score_weight: float = 1.0
+    ef_score_weight: float = 1.0
+
+    @property
+    def are_overall_weights_valid(self):
+        if all([getattr(self, field) < EPS for field in ["cf_score_weight", "ql_score_weight"]]):
+            return False
+        return True
+    
+    @property
+    def are_ql_weights_valid(self):
+        if all([getattr(self, field) < EPS for field in ["hp_score_weight", "bn_score_weight", "fw_score_weight", "op_score_weight", "pf_score_weight", "ef_score_weight"]]):
+            return False
+        
+        return True
 
     @property
     def do_filter_culture_fit(self):
         return self.cf_score_min > EPS
-    
+
+    @property
+    def do_filter_quality_of_life(self):
+        return self.ql_score_min > EPS
+
     @property
     def do_filter_happy_planet(self):
         return self.hp_score_min > EPS

@@ -96,20 +96,21 @@ def load_data():
         culture_fit_data_dict.pop(country_name)
 
     culture_fit_df = pd.DataFrame.from_dict(culture_fit_data_dict, orient="index")[dimensions_info.DIMENSIONS]
-    culture_fit_df *= 0.01  # undo 100X scaling
+    culture_fit_df *= 0.01  # Undo 100X scaling
     culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
 
     # Happy Planet
     happy_planet_df = happy_planet_df[["country", "HPI"]]
     happy_planet_df = happy_planet_df.rename(columns={"HPI": "hp_score"})
-    happy_planet_df["hp_score"] /= 100
+    happy_planet_df["hp_score"] *= 0.01  # Undo 100X scaling
+    happy_planet_df["hp_score"] /= happy_planet_df["hp_score"].max()  # Normalize by max value achieved in the dataset
 
     # Social Progress
     # Pick out just the columns we need and rename country column
     social_progress_cols_keep = ["country", "Basic Human Needs", "Foundations of Wellbeing", "Opportunity"]
     social_progress_df = social_progress_df[social_progress_cols_keep]
     social_progress_df = social_progress_df.set_index("country")
-    social_progress_df /= 100.0  # Undo 100X scaling
+    social_progress_df *= 0.01  # Undo 100X scaling
     social_progress_df = social_progress_df.reset_index()
     social_progress_df = social_progress_df.rename(
         columns={
@@ -119,9 +120,19 @@ def load_data():
         }
     )
 
+    social_progress_df["bn_score"] /= social_progress_df["bn_score"].max()  # Normalize by max value achieved in the dataset
+    social_progress_df["fw_score"] /= social_progress_df["fw_score"].max()  # Normalize by max value achieved in the dataset
+    social_progress_df["op_score"] /= social_progress_df["op_score"].max()  # Normalize by max value achieved in the dataset
+
+    # Human Freedom
+    human_freedom_df["pf_score"] /= human_freedom_df["pf_score"].max()  # Normalize by max value achieved in the dataset
+    human_freedom_df["ef_score"] /= human_freedom_df["ef_score"].max()  # Normalize by max value achieved in the dataset
+
+
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
     country_to_emoji = df_country_to_emoji[["country", "emoji"]].set_index("country").to_dict()["emoji"]
+
     return (
         culture_fit_data_dict,
         culture_fit_df,
@@ -156,6 +167,7 @@ df_format_dict = {
     "country": "Country",
     "overall_score": "Overall Score",
     "cf_score": "Culture Fit Score",
+    "ql_score": "Quality-of-Life Score",
     "hp_score": "Happy Planet Score",
     "bn_score": "Basic Human Needs Score",
     "fw_score": "Foundations of Wellbeing Score",
@@ -163,6 +175,7 @@ df_format_dict = {
     "pf_score": "Personal Freedom Score",
     "ef_score": "Economic Freedom Score",
     "cf_score_weighted": "Culture Fit Score (weighted)",
+    "ql_score_weighted": "Quality-of-Life Score (weighted)",
     "hp_score_weighted": "Happy Planet Score (weighted)",
     "bn_score_weighted": "Basic Human Needs Score (weighted)",
     "fw_score_weighted": "Foundations of Wellbeing Score (weighted)",
@@ -179,11 +192,14 @@ for dimension in dimensions_info.DIMENSIONS:
 def df_format_func(key):
     return df_format_dict[key]
 
+# TODO move to a config file
+app_options_codes = ["cf", "ql", "hp", "bn", "fw", "op", "pf", "ef"]
 
 # TODO move to config file
 overall_fields = [
     "overall_score",
     "cf_score",
+    "ql_score",
 ]
 score_fields = [
     "hp_score",
@@ -208,6 +224,8 @@ def culture_fit_reference_callback():
 
 # TODO move this to a data file
 culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html) of the culture dimension vectors of the nation and your ideal."
+
+quality_of_life_score_help = "Quality-of-Life Score measures how high the quality of life is expected to be based on your preferences."
 
 happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) is a measure of sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
 
@@ -261,14 +279,7 @@ def get_options_from_ui():
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
     # TODO construct these programmatically
-    with st.expander("Overall Preferences"):
-        app_options.cf_score_weight = st.slider(
-            "Culture Fit Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            help=culture_fit_score_help,
-            key="cf_score_weight",
-        )
+    with st.expander("Quality-of-Life Preferences"):
         app_options.hp_score_weight = st.slider(
             "Happy Planet Score Weight",
             min_value=0.0,
@@ -312,6 +323,22 @@ def get_options_from_ui():
             key="ef_score_weight",
         )
 
+    with st.expander("Overall Preferences"):
+        app_options.cf_score_weight = st.slider(
+            "Culture Fit Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            help=culture_fit_score_help,
+            key="cf_score_weight",
+        )
+        app_options.ql_score_weight = st.slider(
+            "Quality-of-Life Score Weight",
+            min_value=0.0,
+            max_value=1.0,
+            help=quality_of_life_score_help,
+            key="ql_score_weight",
+        )
+
     # TODO construct these programmatically
     with st.expander("Filters"):
         app_options.cf_score_min = st.slider(
@@ -320,6 +347,13 @@ def get_options_from_ui():
             max_value=1.0,
             help=culture_fit_score_help,
             key="cf_score_min",
+        )
+        app_options.ql_score_min = st.slider(
+            "Quality-of-Life Score Min",
+            min_value=0.0,
+            max_value=1.0,
+            help=quality_of_life_score_help,
+            key="ql_score_min",
         )
         app_options.hp_score_min = st.slider(
             "Happy Planet Score Min",
@@ -389,7 +423,7 @@ def initialize_widget_state_from_app_options(app_options):
         state[dimension] = getattr(app_options, f"culture_fit_preference_{dimension}")
 
     # TODO move list to config
-    for code in ["cf", "hp", "bn", "fw", "op", "pf", "ef"]:
+    for code in app_options_codes:
         weight_field = f"{code}_score_weight"
         min_field = f"{code}_score_min"
         state[weight_field] = getattr(app_options, weight_field)
@@ -463,7 +497,6 @@ def process_data_human_freedom(df, app_options):
     human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
     freedom_score_cols = ["pf_score", "ef_score"]
     df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
-    df[freedom_score_cols] *= 0.1  # undo 10X scaling
     df = df.reset_index()
     return df
 
@@ -517,23 +550,47 @@ def process_data_language_prevalence(df, app_options):
 
 def process_data_overall_score(df, app_options):
     # Make copies to protect app_options from modification
-    twoletter_codes_to_weight = ["cf", "hp", "bn", "fw", "op", "pf", "ef"]
-    weights = {
-        f"{twoletter_code}_score": deepcopy(getattr(app_options, f"{twoletter_code}_score_weight"))
-        for twoletter_code in twoletter_codes_to_weight
+
+    # Quality-of-Life Score
+    ql_subcodes = ["hp", "bn", "fw", "op", "pf", "ef"]
+
+    ql_weights = {
+        f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight"))
+        for code in ql_subcodes
     }
 
-    weight_sum = sum([weights[key] for key in weights])
-    for key in weights:
-        weights[key] /= weight_sum
+    ql_weight_sum = sum([ql_weights[key] for key in ql_weights])
+    for key in ql_weights:
+        ql_weights[key] /= ql_weight_sum
 
-    score_names_to_weight = [f"{twoletter_code}_score" for twoletter_code in twoletter_codes_to_weight]
-    for score_name in score_names_to_weight:
-        df[f"{score_name}_weighted"] = df[score_name] * weights[score_name]
+    ql_score_names_to_weight = [f"{code}_score" for code in ql_subcodes]
+    for score_name in ql_score_names_to_weight:
+        df[f"{score_name}_weighted"] = df[score_name] * ql_weights[score_name]
 
-    df["overall_score"] = 0.0
-    for key in weights:
-        df["overall_score"] = df["overall_score"] + df[f"{key}_weighted"]
+    df['ql_score'] = 0.0
+    for score_name in ql_score_names_to_weight:
+        df["ql_score"] += df[f"{score_name}_weighted"]
+
+    # Overall Score
+    overall_subcodes = ["cf", "ql"]
+
+    overall_weights = {
+        f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight"))
+        for code in overall_subcodes
+    }
+
+    overall_weight_sum = sum([overall_weights[key] for key in overall_weights])
+    for key in overall_weights:
+        overall_weights[key] /= overall_weight_sum
+
+    overall_score_names_to_weight = [f"{code}_score" for code in overall_subcodes]
+    for score_name in overall_score_names_to_weight:
+        df[f"{score_name}_weighted"] = df[score_name] * overall_weights[score_name]
+
+    df['overall_score'] = 0.0
+    for score_name in overall_score_names_to_weight:
+        df["overall_score"] += df[f"{score_name}_weighted"]
+
 
     df = df.sort_values("overall_score", ascending=False)
 
@@ -554,7 +611,7 @@ social_progress_codes = ["bn", "fw", "op"]
 human_freedom_codes = ["pf", "ef"]
 
 
-def filter_by_codes(df, codes):
+def filter_by_codes(df, app_options, codes):
     for code in codes:
         threshold = getattr(app_options, f"{code}_score_min")
         df["acceptable"] = df["acceptable"] & (df[f"{code}_score"] > threshold)
@@ -565,16 +622,16 @@ def filter_by_codes(df, codes):
 def process_data_filters(df, app_options):
     df["acceptable"] = True
     if app_options.do_filter_culture_fit:
-        df = filter_by_codes(df, culture_fit_codes)
+        df = filter_by_codes(df, app_options, culture_fit_codes)
 
     if app_options.do_filter_happy_planet:
-        df = filter_by_codes(df, happy_planet_codes)
+        df = filter_by_codes(df, app_options, happy_planet_codes)
 
     if app_options.do_filter_social_progress:
-        df = filter_by_codes(df, social_progress_codes)
+        df = filter_by_codes(df, app_options, social_progress_codes)
 
     if app_options.do_filter_freedom:
-        df = filter_by_codes(df, human_freedom_codes)
+        df = filter_by_codes(df, app_options, human_freedom_codes)
 
     if app_options.do_filter_english:
         df["acceptable"] = df["acceptable"] & (df["english_ratio"] > app_options.english_ratio_min)
@@ -786,19 +843,14 @@ def run_ui_section_top_n_matches(df, app_options):
 
     df_top_N = df.head(N).rename(columns=df_format_dict)
 
-    def execute_score_contributions():
+    def execute_overall_score_contributions():
         fig = px.bar(
             df_top_N,
             x="Country",
             y=[
                 "Culture Fit Score (weighted)",
-                "Happy Planet Score (weighted)",
-                "Basic Human Needs Score (weighted)",
-                "Foundations of Wellbeing Score (weighted)",
-                "Opportunity Score (weighted)",
-                "Personal Freedom Score (weighted)",
-                "Economic Freedom Score (weighted)",
-            ],
+                "Quality-of-Life Score (weighted)",
+            ]
         )
         for idx, row in df_top_N.iterrows():
             fig.add_annotation(
@@ -813,12 +865,29 @@ def run_ui_section_top_n_matches(df, app_options):
         fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
 
+    def execute_ql_score_contributions():
+        fig = px.bar(
+            df_top_N,
+            x="Country",
+            y=[
+                "Happy Planet Score (weighted)",
+                "Basic Human Needs Score (weighted)",
+                "Foundations of Wellbeing Score (weighted)",
+                "Opportunity Score (weighted)",
+                "Personal Freedom Score (weighted)",
+                "Economic Freedom Score (weighted)",
+            ]
+        )
+        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
+        st.plotly_chart(fig, use_container_width=True)
+
     def execute_culture_fit_radar_plots():
         st.caption("", help="The dashed :red[red shape] depicts your preferences.")
         radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
         st.pyplot(radar)
 
-    expander_checkbox_spinner_execute(func=execute_score_contributions, label="Score Contributions")
+    expander_checkbox_spinner_execute(func=execute_overall_score_contributions, label="Overall Score Contributions")
+    expander_checkbox_spinner_execute(func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions")
     expander_checkbox_spinner_execute(func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots")
 
 
@@ -1172,7 +1241,7 @@ def run_ui_section_all_matches(df):
                 x_fields_for_pairplot = st.multiselect(
                     "X Fields for Pair Plot",
                     options=plottable_fields,
-                    default=["cf_score", "hp_score", "bn_score", "fw_score", "op_score", "pf_score", "ef_score"],
+                    default=score_fields,
                     format_func=df_format_func,
                 )
                 x_len = len(x_fields_for_pairplot)
@@ -1186,15 +1255,19 @@ def run_ui_section_all_matches(df):
                 y_len = len(y_fields_for_pairplot)
 
             st.form_submit_button("Update Pair Plot Options")
-            fig = sns.pairplot(
-                data=df.rename(columns=df_format_dict),
-                x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
-                y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
-            )
-        if x_len * y_len > 10:
+
+        num_plots = x_len * y_len
+        if num_plots > 10:
             st.warning(
-                "Selected fields will attempt to generate many plots, rendering may take a long time (be prepared to wait or change your selection)."
+                f"Selected fields will result in {num_plots} plots, rendering may take a long time (be prepared to wait or change your selection)."
             )
+        
+        fig = sns.pairplot(
+            data=df.rename(columns=df_format_dict),
+            x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
+            y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
+        )
+
         st.pyplot(fig, use_container_width=True)
 
     expander_checkbox_spinner_execute(func=execute_world_map, label="World Map")
@@ -1278,11 +1351,11 @@ def set_query_params(app_options):
 
 
 def teardown(app_options):
-    # Update the state
+    # Update the state.
     # app_options should not be modified after this point
     state.app_options = app_options
 
-    # Update the query_params
+    # Update the query_params.
     set_query_params(app_options)
     return
 
@@ -1298,48 +1371,58 @@ def check_if_app_options_are_default(app_options):
 ################################################################################
 ## Main
 ################################################################################
-# TODO move main operations to main() function
+def main():
+    if not "initialized" in state:
+        first_run_per_session()
 
 
-if not "initialized" in state:
-    first_run_per_session()
+    app_options = get_options()
+
+    # TODO move to function
+    with st.sidebar:
+        st.divider()
+        st.header("Utilities")
+        st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
 
 
-app_options = get_options()
+    if check_if_app_options_are_default(app_options):
+        st.info(
+            "It looks like you are using the default app options. Try opening the sidebar and changing some things! :blush:"
+        )
 
-# TODO move to function
-with st.sidebar:
-    st.divider()
-    st.header("Utilities")
-    st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
+    if not app_options.are_overall_weights_valid:
+        st.warning("The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue.")
+        return
+
+    if not app_options.are_ql_weights_valid:
+        st.warning("The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue.")
+        return
 
 
-if check_if_app_options_are_default(app_options):
-    st.info(
-        "It looks like you are using the default app options. Try opening the sidebar and changing some things! :blush:"
-    )
+    df = process_data(app_options)
 
-df = process_data(app_options)
+    no_matches = df.shape[0] == 0
+    if no_matches:
+        st.warning("No matches found! Try adjusting the filters to be less strict.")
+    else:
+        tabs = st.tabs(["Welcome", "Best Match", "Top Matches", "All Matches", "Help", "Share"])
+        with tabs[0]:
+            run_ui_section_welcome()
+        with tabs[1]:
+            run_ui_section_best_match(df, app_options)
+        with tabs[2]:
+            run_ui_section_top_n_matches(df, app_options)
+        with tabs[3]:
+            run_ui_section_all_matches(df)
+        with tabs[4]:
+            run_ui_section_help()
+        with tabs[5]:
+            run_ui_section_share(app_options)
 
-no_matches = df.shape[0] == 0
-if no_matches:
-    st.warning("No matches found! Try adjusting the filters to be less strict.")
-else:
-    tabs = st.tabs(["Welcome", "Best Match", "Top Matches", "All Matches", "Help", "Share"])
-    with tabs[0]:
-        run_ui_section_welcome()
-    with tabs[1]:
-        run_ui_section_best_match(df, app_options)
-    with tabs[2]:
-        run_ui_section_top_n_matches(df, app_options)
-    with tabs[3]:
-        run_ui_section_all_matches(df)
-    with tabs[4]:
-        run_ui_section_help()
-    with tabs[5]:
-        run_ui_section_share(app_options)
+    teardown(app_options)
 
-teardown(app_options)
+
+main()
 
 
 # TODO - re-index all data by country codes
