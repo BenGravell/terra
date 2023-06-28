@@ -283,7 +283,7 @@ def get_options_from_ui():
             slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
             help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): *{dimension_info["question"]}* \n\n {dimension_info["description"]}'
 
-            preference_val = st.slider(slider_str, min_value=0, max_value=100, help=help_str, key=dimension)
+            preference_val = st.slider(slider_str, min_value=0, max_value=100, step=5, help=help_str, key=dimension)
 
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
@@ -293,6 +293,7 @@ def get_options_from_ui():
             "Happy Planet Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=happy_planet_score_help,
             key="hp_score_weight",
         )
@@ -300,6 +301,7 @@ def get_options_from_ui():
             "Basic Human Needs Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=basic_needs_score_help,
             key="bn_score_weight",
         )
@@ -307,6 +309,7 @@ def get_options_from_ui():
             "Foundations of Wellbeing Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=foundations_wellbeing_score_help,
             key="fw_score_weight",
         )
@@ -314,6 +317,7 @@ def get_options_from_ui():
             "Opportunity Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=opportunity_score_help,
             key="op_score_weight",
         )
@@ -321,6 +325,7 @@ def get_options_from_ui():
             "Personal Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=personal_freedom_score_help,
             key="pf_score_weight",
         )
@@ -328,6 +333,7 @@ def get_options_from_ui():
             "Economic Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=economic_freedom_score_help,
             key="ef_score_weight",
         )
@@ -337,6 +343,7 @@ def get_options_from_ui():
             "Culture Fit Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=culture_fit_score_help,
             key="cf_score_weight",
         )
@@ -344,6 +351,7 @@ def get_options_from_ui():
             "Quality-of-Life Score Weight",
             min_value=0.0,
             max_value=1.0,
+            step=0.05,
             help=quality_of_life_score_help,
             key="ql_score_weight",
         )
@@ -364,6 +372,7 @@ def get_options_from_ui():
             help=quality_of_life_score_help,
             key="ql_score_min",
         )
+        st.divider()
         app_options.hp_score_min = st.slider(
             "Happy Planet Score Min",
             min_value=0.0,
@@ -406,6 +415,7 @@ def get_options_from_ui():
             help=economic_freedom_score_help,
             key="ef_score_min",
         )
+        st.divider()
         app_options.english_ratio_min = st.slider(
             "English Speaking Ratio Min",
             min_value=0.0,
@@ -817,8 +827,8 @@ def run_ui_section_best_match(df, app_options, num_total):
 
     expander_checkbox_spinner_execute(
         func=detailed_country_breakdown,
-        label="High-level Scores",
-        func_kwargs=dict(fields=overall_fields, name="High-level Scores"),
+        label="Overall Scores",
+        func_kwargs=dict(fields=overall_fields, name="Overall Scores"),
     )
     expander_checkbox_spinner_execute(
         func=detailed_country_breakdown,
@@ -847,9 +857,9 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
     st.header(f"Top Matching Countries", anchor=False)
 
     N = st.number_input(
-        "Number of Top Matching countries to show",
+        "Number of Top Matching Countries to show",
         min_value=1,
-        max_value=40,
+        max_value=100,
         value=10,
     )
 
