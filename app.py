@@ -231,16 +231,6 @@ social_progress_score_help = "The [Social Progress Index](https://www.socialprog
 human_freedom_score_help = "The [Human Freedom Index](https://www.cato.org/human-freedom-index/2022) measures the state of human freedom in the world based on a broad measure that encompasses personal, civil, and economic freedom."
 
 
-# basic_needs_score_help = "Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens. This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety."
-
-# foundations_wellbeing_score_help = "Foundations of Wellbeing measures the capacity of a society to establish the building blocks that allow citizens and communities to enhance and sustain the quality of their lives. This includes access to basic knowledge via primary and secondary education, access to information and communication, health and wellness, and environmental quality."
-
-# opportunity_score_help = "Opportunity measures the capacity of a society to create the conditions for all individuals to reach their full potential. This includes personal rights, personal freedoms, inclusiveness (especially as it relates to marginalized groups), and access to advanced education."
-
-# personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms."
-
-# economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
-
 english_speaking_ratio_help = (
     "Ratio of people who speak English as a mother tongue or foreign language to the total population."
 )
