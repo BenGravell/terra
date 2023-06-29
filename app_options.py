@@ -23,22 +23,16 @@ class AppOptions:
     cf_score_min: float = 0.0
     ql_score_min: float = 0.0
     hp_score_min: float = 0.0
-    bn_score_min: float = 0.0
-    fw_score_min: float = 0.0
-    op_score_min: float = 0.0
-    pf_score_min: float = 0.0
-    ef_score_min: float = 0.0
+    sp_score_min: float = 0.0
+    hf_score_min: float = 0.0
     english_ratio_min: float = 0.0
 
     # Weights
     cf_score_weight: float = 1.0
     ql_score_weight: float = 1.0
     hp_score_weight: float = 1.0
-    bn_score_weight: float = 1.0
-    fw_score_weight: float = 1.0
-    op_score_weight: float = 1.0
-    pf_score_weight: float = 1.0
-    ef_score_weight: float = 1.0
+    sp_score_weight: float = 1.0
+    hf_score_weight: float = 1.0
 
     @property
     def are_overall_weights_valid(self):
@@ -48,7 +42,7 @@ class AppOptions:
     
     @property
     def are_ql_weights_valid(self):
-        if all([getattr(self, field) < EPS for field in ["hp_score_weight", "bn_score_weight", "fw_score_weight", "op_score_weight", "pf_score_weight", "ef_score_weight"]]):
+        if all([getattr(self, field) < EPS for field in ["hp_score_weight", "sp_score_weight", "hf_score_weight"]]):
             return False
         
         return True
@@ -67,11 +61,11 @@ class AppOptions:
 
     @property
     def do_filter_social_progress(self):
-        return any([val > EPS for val in [self.bn_score_min, self.fw_score_min, self.op_score_min]])
+        return self.sp_score_min > EPS
 
     @property
     def do_filter_freedom(self):
-        return self.pf_score_min > EPS or self.ef_score_min > EPS
+        return self.hf_score_min > EPS
 
     @property
     def do_filter_english(self):

@@ -106,26 +106,20 @@ def load_data():
 
     # Social Progress
     # Pick out just the columns we need and rename country column
-    social_progress_cols_keep = ["country", "Basic Human Needs", "Foundations of Wellbeing", "Opportunity"]
+    social_progress_cols_keep = ["country", "Social Progress Score"]
     social_progress_df = social_progress_df[social_progress_cols_keep]
     social_progress_df = social_progress_df.set_index("country")
     social_progress_df *= 0.01  # Undo 100X scaling
     social_progress_df = social_progress_df.reset_index()
     social_progress_df = social_progress_df.rename(
         columns={
-            "Basic Human Needs": "bn_score",
-            "Foundations of Wellbeing": "fw_score",
-            "Opportunity": "op_score",
+            "Social Progress Score": "sp_score"
         }
     )
-
-    social_progress_df["bn_score"] /= social_progress_df["bn_score"].max()  # Normalize by max value achieved in the dataset
-    social_progress_df["fw_score"] /= social_progress_df["fw_score"].max()  # Normalize by max value achieved in the dataset
-    social_progress_df["op_score"] /= social_progress_df["op_score"].max()  # Normalize by max value achieved in the dataset
+    social_progress_df["sp_score"] /= social_progress_df["sp_score"].max()  # Normalize by max value achieved in the dataset
 
     # Human Freedom
-    human_freedom_df["pf_score"] /= human_freedom_df["pf_score"].max()  # Normalize by max value achieved in the dataset
-    human_freedom_df["ef_score"] /= human_freedom_df["ef_score"].max()  # Normalize by max value achieved in the dataset
+    human_freedom_df["hf_score"] /= human_freedom_df["hf_score"].max()  # Normalize by max value achieved in the dataset
 
 
     # Country emoji
@@ -168,28 +162,19 @@ df_format_dict = {
     "cf_score": "Culture Fit Score",
     "ql_score": "Quality-of-Life Score",
     "hp_score": "Happy Planet Score",
-    "bn_score": "Basic Human Needs Score",
-    "fw_score": "Foundations of Wellbeing Score",
-    "op_score": "Opportunity Score",
-    "pf_score": "Personal Freedom Score",
-    "ef_score": "Economic Freedom Score",
+    "sp_score": "Social Progress Score",
+    "hf_score": "Human Freedom Score",
     "overall_score_rank": "Overall Score Rank",
     "cf_score_rank": "Culture Fit Score Rank",
     "ql_score_rank": "Quality-of-Life Score Rank",
     "hp_score_rank": "Happy Planet Score Rank",
-    "bn_score_rank": "Basic Human Needs Score Rank",
-    "fw_score_rank": "Foundations of Wellbeing Score Rank",
-    "op_score_rank": "Opportunity Score Rank",
-    "pf_score_rank": "Personal Freedom Score Rank",
-    "ef_score_rank": "Economic Freedom Score Rank",    
+    "sp_score_rank": "Social Progress Score Rank",
+    "hf_score_rank": "Human Freedom Score Rank",
     "cf_score_weighted": "Culture Fit Score (weighted)",
     "ql_score_weighted": "Quality-of-Life Score (weighted)",
     "hp_score_weighted": "Happy Planet Score (weighted)",
-    "bn_score_weighted": "Basic Human Needs Score (weighted)",
-    "fw_score_weighted": "Foundations of Wellbeing Score (weighted)",
-    "op_score_weighted": "Opportunity Score (weighted)",
-    "pf_score_weighted": "Personal Freedom Score (weighted)",
-    "ef_score_weighted": "Economic Freedom Score (weighted)",
+    "sp_score_weighted": "Social Progress Score (weighted)",
+    "hf_score_weighted": "Human Freedom Score (weighted)",
     "english_ratio": "English Speaking Ratio",
     "acceptable": "Acceptable",
 }
@@ -202,7 +187,7 @@ def df_format_func(key):
     return df_format_dict[key]
 
 # TODO move to a config file
-app_options_codes = ["cf", "ql", "hp", "bn", "fw", "op", "pf", "ef"]
+app_options_codes = ["cf", "ql", "hp", "sp", "hf"]
 
 # TODO move to config file
 overall_fields = [
@@ -212,11 +197,8 @@ overall_fields = [
 ]
 score_fields = [
     "hp_score",
-    "bn_score",
-    "fw_score",
-    "op_score",
-    "pf_score",
-    "ef_score",
+    "sp_score",
+    "hf_score",
 ]
 culture_fields = dimensions_info.DIMENSIONS
 
@@ -238,15 +220,20 @@ quality_of_life_score_help = "Quality-of-Life Score measures how high the qualit
 
 happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) is a measure of sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
 
-basic_needs_score_help = "Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens. This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety."
+social_progress_score_help = "TODO"
 
-foundations_wellbeing_score_help = "Foundations of Wellbeing measures the capacity of a society to establish the building blocks that allow citizens and communities to enhance and sustain the quality of their lives. This includes access to basic knowledge via primary and secondary education, access to information and communication, health and wellness, and environmental quality."
+human_freedom_score_help = "TODO"
 
-opportunity_score_help = "Opportunity measures the capacity of a society to create the conditions for all individuals to reach their full potential. This includes personal rights, personal freedoms, inclusiveness (especially as it relates to marginalized groups), and access to advanced education."
 
-personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms."
+# basic_needs_score_help = "Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens. This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety."
 
-economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
+# foundations_wellbeing_score_help = "Foundations of Wellbeing measures the capacity of a society to establish the building blocks that allow citizens and communities to enhance and sustain the quality of their lives. This includes access to basic knowledge via primary and secondary education, access to information and communication, health and wellness, and environmental quality."
+
+# opportunity_score_help = "Opportunity measures the capacity of a society to create the conditions for all individuals to reach their full potential. This includes personal rights, personal freedoms, inclusiveness (especially as it relates to marginalized groups), and access to advanced education."
+
+# personal_freedom_score_help = "Personal Freedom measures the degree to which members of a country are free to exercise civil liberties. This includes freedom of movement, freedom of religion, freedom of assembly and political action, freedom of the press and information, and freedom to engage in various interpersonal relationships. This also includes the rule of law, security, and safety, which are necessary for meaningful exercise of personal freedoms."
+
+# economic_freedom_score_help = "Economic Freedom measures the degree to which members of a country are free to exercise financial liberties. This includes the freedom to trade, the freedom to use sound money. This also includes the size of government, legal system and property rights, and market regulation, which are necessary for meaningful exercise of economic freedoms."
 
 english_speaking_ratio_help = (
     "Ratio of people who speak English as a mother tongue or foreign language to the total population."
@@ -297,45 +284,21 @@ def get_options_from_ui():
             help=happy_planet_score_help,
             key="hp_score_weight",
         )
-        app_options.bn_score_weight = st.slider(
-            "Basic Human Needs Score Weight",
+        app_options.sp_score_weight = st.slider(
+            "Social Progress Score Weight",
             min_value=0.0,
             max_value=1.0,
             step=0.05,
-            help=basic_needs_score_help,
-            key="bn_score_weight",
+            help=social_progress_score_help,
+            key="sp_score_weight",
         )
-        app_options.fw_score_weight = st.slider(
-            "Foundations of Wellbeing Score Weight",
+        app_options.hf_score_weight = st.slider(
+            "Human Freedom Score Weight",
             min_value=0.0,
             max_value=1.0,
             step=0.05,
-            help=foundations_wellbeing_score_help,
-            key="fw_score_weight",
-        )
-        app_options.op_score_weight = st.slider(
-            "Opportunity Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=opportunity_score_help,
-            key="op_score_weight",
-        )
-        app_options.pf_score_weight = st.slider(
-            "Personal Freedom Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=personal_freedom_score_help,
-            key="pf_score_weight",
-        )
-        app_options.ef_score_weight = st.slider(
-            "Economic Freedom Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=economic_freedom_score_help,
-            key="ef_score_weight",
+            help=human_freedom_score_help,
+            key="hf_score_weight",
         )
 
     with st.expander("Overall Preferences"):
@@ -381,39 +344,18 @@ def get_options_from_ui():
             key="hp_score_min",
         )
         app_options.bn_score_min = st.slider(
-            "Basic Human Needs Score Min",
+            "Social Progress Score Min",
             min_value=0.0,
             max_value=1.0,
-            help=basic_needs_score_help,
-            key="bn_score_min",
+            help=social_progress_score_help,
+            key="sp_score_min",
         )
-        app_options.fw_score_min = st.slider(
-            "Foundations of Wellbeing Score Min",
+        app_options.hf_score_min = st.slider(
+            "Human Freedom Score Min",
             min_value=0.0,
             max_value=1.0,
-            help=foundations_wellbeing_score_help,
-            key="fw_score_min",
-        )
-        app_options.op_score_min = st.slider(
-            "Opportunity Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=opportunity_score_help,
-            key="op_score_min",
-        )
-        app_options.pf_score_min = st.slider(
-            "Personal Freedom Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=personal_freedom_score_help,
-            key="pf_score_min",
-        )
-        app_options.ef_score_min = st.slider(
-            "Economic Freedom Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=economic_freedom_score_help,
-            key="ef_score_min",
+            help=human_freedom_score_help,
+            key="hf_score_min",
         )
         st.divider()
         app_options.english_ratio_min = st.slider(
@@ -514,7 +456,7 @@ def process_data_social_progress(df, app_options):
 @st.cache_data
 def process_data_human_freedom(df, app_options):
     human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
-    freedom_score_cols = ["pf_score", "ef_score"]
+    freedom_score_cols = ["hf_score"]
     df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
     df = df.reset_index()
     return df
@@ -571,7 +513,7 @@ def process_data_overall_score(df, app_options):
     # Make copies to protect app_options from modification
 
     # Quality-of-Life Score
-    ql_subcodes = ["hp", "bn", "fw", "op", "pf", "ef"]
+    ql_subcodes = ["hp", "sp", "hf"]
 
     ql_weights = {
         f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight"))
@@ -627,8 +569,8 @@ def process_data_ranks(df, app_options):
 culture_fit_codes = ["cf"]
 quality_of_life_codes = ["ql"]
 happy_planet_codes = ["hp"]
-social_progress_codes = ["bn", "fw", "op"]
-human_freedom_codes = ["pf", "ef"]
+social_progress_codes = ["sp"]
+human_freedom_codes = ["hf"]
 
 
 def filter_by_codes(df, app_options, codes):
@@ -901,11 +843,8 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
             x="country_with_ql_score_rank",
             y=[
                 "Happy Planet Score (weighted)",
-                "Basic Human Needs Score (weighted)",
-                "Foundations of Wellbeing Score (weighted)",
-                "Opportunity Score (weighted)",
-                "Personal Freedom Score (weighted)",
-                "Economic Freedom Score (weighted)",
+                "Social Progress Score (weighted)",
+                "Human Freedom Score (weighted)",
             ],
             labels={'country_with_ql_score_rank': 'Country'}
         )
@@ -1261,14 +1200,14 @@ def run_ui_section_all_matches(df):
                 x_column = st.selectbox(
                     "x-axis",
                     options=plottable_fields,
-                    index=plottable_fields.index("pf_score"),
+                    index=plottable_fields.index("hp_score"),
                     format_func=df_format_func,
                 )
             with cols[1]:
                 y_column = st.selectbox(
                     "y-axis",
                     options=plottable_fields,
-                    index=plottable_fields.index("ef_score"),
+                    index=plottable_fields.index("hf_score"),
                     format_func=df_format_func,
                 )
             st.form_submit_button("Update Plot Options")
