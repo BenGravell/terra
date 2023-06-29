@@ -26,6 +26,12 @@ from culture_fit import country_data, distance_calculations, visualisation, dime
 # Streamlit setup
 st.set_page_config(page_title="Terra", page_icon="🌎", layout="wide")
 
+# Custom CSS ("css hack") to set the background color of all iframe components to white.
+# This is needed because most websites assume a white background and will be illegible when iframed without this.
+st.markdown("""
+<style>iframe {background-color: white;}</style>
+""", unsafe_allow_html=True)
+
 # Pyplot setup
 plt.style.use(["dark_background", "./terra.mplstyle"])
 
@@ -1295,12 +1301,19 @@ def run_ui_section_help():
         run_ui_subsection_culture_fit_help()
 
     with st.expander("Happy Planet 😊"):
+        st.components.v1.iframe("https://happyplanetindex.org/", height=600, scrolling=True)
         open_and_st_markdown("./help/happy_planet_help.md")
 
     with st.expander("Social Progress 📈"):
+        st.caption("The [Social Progress Imperative website](https://www.socialprogress.org/) cannot be embedded in this app.")
+        st.caption("As an alternative, the [Harvard Business School Institute for Strategy and Competitiveness page](https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx) is embedded here.")
+        st.components.v1.iframe("https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx", height=600, scrolling=True)
         open_and_st_markdown("./help/social_progress_help.md")
 
     with st.expander("Human Freedom 🎊"):
+        st.caption("Neither the [Cato Institute website](https://www.cato.org/human-freedom-index/2022) nor the [Fraser Institute website](https://www.fraserinstitute.org/studies/human-freedom-index-2022) can be embedded in this app.")
+        st.caption("As an alternative, the [Wikipedia article on freedom indices](https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices), which references the Human Freedom Index, is embedded here.")
+        st.components.v1.iframe("https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices", height=600, scrolling=True)
         open_and_st_markdown("./help/human_freedom_help.md")
 
     with st.expander("Language Prevalence 💬"):
