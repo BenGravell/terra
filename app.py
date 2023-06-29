@@ -224,11 +224,11 @@ culture_fit_score_help = "Culture Fit Score measures how closely a national cult
 
 quality_of_life_score_help = "Quality-of-Life Score measures how high the quality of life is expected to be based on your preferences."
 
-happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) is a measure of sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
+happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) mesaures sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
 
-social_progress_score_help = "TODO"
+social_progress_score_help = "The [Social Progress Index](https://www.socialprogress.org/global-index-2022overview/) measures the capacity of a society to meet the basic human needs of its citizens, establish the building blocks that allow citizens and communities to enhance and sustain the quality of their lives, and create the conditions for all individuals to reach their full potential."
 
-human_freedom_score_help = "TODO"
+human_freedom_score_help = "The [Human Freedom Index](https://www.cato.org/human-freedom-index/2022) measures the state of human freedom in the world based on a broad measure that encompasses personal, civil, and economic freedom."
 
 
 # basic_needs_score_help = "Basic Human Needs measures the capacity of a society to meet the basic human needs of its citizens. This includes access to nutrition and basic medical care, water and sanitation, shelter, and personal safety."
