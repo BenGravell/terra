@@ -838,7 +838,6 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
                 text=f"{utils.pct_fmt(row['Overall Score'])}",
                 font={"size": 12},
             )
-        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_ql_score_contributions(df_top_N):
@@ -864,7 +863,6 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
                 text=f"{utils.pct_fmt(row['Quality-of-Life Score'])}",
                 font={"size": 12},
             )
-        fig.update_layout(legend=dict(orientation="v", yanchor="top", y=-0.3, xanchor="left", x=0))
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_culture_fit_radar_plots(df_top_N):
