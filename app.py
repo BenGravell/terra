@@ -28,9 +28,12 @@ st.set_page_config(page_title="Terra", page_icon="🌎", layout="wide")
 
 # Custom CSS ("css hack") to set the background color of all iframe components to white.
 # This is needed because most websites assume a white background and will be illegible when iframed without this.
-st.markdown("""
+st.markdown(
+    """
 <style>iframe {background-color: white;}</style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # Pyplot setup
 plt.style.use(["dark_background", "./terra.mplstyle"])
@@ -117,16 +120,13 @@ def load_data():
     social_progress_df = social_progress_df.set_index("country")
     social_progress_df *= 0.01  # Undo 100X scaling
     social_progress_df = social_progress_df.reset_index()
-    social_progress_df = social_progress_df.rename(
-        columns={
-            "Social Progress Score": "sp_score"
-        }
-    )
-    social_progress_df["sp_score"] /= social_progress_df["sp_score"].max()  # Normalize by max value achieved in the dataset
+    social_progress_df = social_progress_df.rename(columns={"Social Progress Score": "sp_score"})
+    social_progress_df["sp_score"] /= social_progress_df[
+        "sp_score"
+    ].max()  # Normalize by max value achieved in the dataset
 
     # Human Freedom
     human_freedom_df["hf_score"] /= human_freedom_df["hf_score"].max()  # Normalize by max value achieved in the dataset
-
 
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
@@ -186,11 +186,12 @@ df_format_dict = {
 }
 for dimension in dimensions_info.DIMENSIONS:
     df_format_dict[dimension] = dimensions_info.DIMENSIONS_INFO[dimension]["name"]
-    df_format_dict[f'{dimension}_rank'] = f'{df_format_dict[dimension]} Rank'
+    df_format_dict[f"{dimension}_rank"] = f"{df_format_dict[dimension]} Rank"
 
 
 def df_format_func(key):
     return df_format_dict[key]
+
 
 # TODO move to a config file
 app_options_codes = ["cf", "ql", "hp", "sp", "hf"]
@@ -222,7 +223,9 @@ def culture_fit_reference_callback():
 # TODO move this to a data file
 culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html) of the culture dimension vectors of the nation and your ideal."
 
-quality_of_life_score_help = "Quality-of-Life Score measures how high the quality of life is expected to be based on your preferences."
+quality_of_life_score_help = (
+    "Quality-of-Life Score measures how high the quality of life is expected to be based on your preferences."
+)
 
 happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) mesaures sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
 
@@ -511,10 +514,7 @@ def process_data_overall_score(df, app_options):
     # Quality-of-Life Score
     ql_subcodes = ["hp", "sp", "hf"]
 
-    ql_weights = {
-        f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight"))
-        for code in ql_subcodes
-    }
+    ql_weights = {f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight")) for code in ql_subcodes}
 
     ql_weight_sum = sum([ql_weights[key] for key in ql_weights])
     for key in ql_weights:
@@ -524,7 +524,7 @@ def process_data_overall_score(df, app_options):
     for score_name in ql_score_names_to_weight:
         df[f"{score_name}_weighted"] = df[score_name] * ql_weights[score_name]
 
-    df['ql_score'] = 0.0
+    df["ql_score"] = 0.0
     for score_name in ql_score_names_to_weight:
         df["ql_score"] += df[f"{score_name}_weighted"]
 
@@ -532,8 +532,7 @@ def process_data_overall_score(df, app_options):
     overall_subcodes = ["cf", "ql"]
 
     overall_weights = {
-        f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight"))
-        for code in overall_subcodes
+        f"{code}_score": deepcopy(getattr(app_options, f"{code}_score_weight")) for code in overall_subcodes
     }
 
     overall_weight_sum = sum([overall_weights[key] for key in overall_weights])
@@ -544,10 +543,9 @@ def process_data_overall_score(df, app_options):
     for score_name in overall_score_names_to_weight:
         df[f"{score_name}_weighted"] = df[score_name] * overall_weights[score_name]
 
-    df['overall_score'] = 0.0
+    df["overall_score"] = 0.0
     for score_name in overall_score_names_to_weight:
         df["overall_score"] += df[f"{score_name}_weighted"]
-
 
     df = df.sort_values("overall_score", ascending=False)
 
@@ -557,7 +555,7 @@ def process_data_overall_score(df, app_options):
 def process_data_ranks(df, app_options):
     fields_to_rank = overall_fields + culture_fields + score_fields
     for field in fields_to_rank:
-        df[f"{field}_rank"] = df[field].rank(ascending=False, method='min').astype(int)
+        df[f"{field}_rank"] = df[field].rank(ascending=False, method="min").astype(int)
     return df
 
 
@@ -803,8 +801,10 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
 
     df_top_N = df.head(N)
 
-    df_top_N['country_with_overall_score_rank'] = df_top_N['country'] + ' (' + df_top_N['overall_score_rank'].astype(str) + ')'
-    df_top_N['country_with_ql_score_rank'] = df_top_N['country'] + ' (' + df_top_N['ql_score_rank'].astype(str) + ')'
+    df_top_N["country_with_overall_score_rank"] = (
+        df_top_N["country"] + " (" + df_top_N["overall_score_rank"].astype(str) + ")"
+    )
+    df_top_N["country_with_ql_score_rank"] = df_top_N["country"] + " (" + df_top_N["ql_score_rank"].astype(str) + ")"
 
     df_top_N = df_top_N.rename(columns=df_format_dict)
 
@@ -816,11 +816,11 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
                 "Culture Fit Score (weighted)",
                 "Quality-of-Life Score (weighted)",
             ],
-            labels={'country_with_overall_score_rank': 'Country'}
+            labels={"country_with_overall_score_rank": "Country"},
         )
         for idx, row in df_top_N.iterrows():
             fig.add_annotation(
-                x=row['country_with_overall_score_rank'],
+                x=row["country_with_overall_score_rank"],
                 y=row["Overall Score"],
                 yanchor="bottom",
                 showarrow=False,
@@ -841,7 +841,7 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
                 "Social Progress Score (weighted)",
                 "Human Freedom Score (weighted)",
             ],
-            labels={'country_with_ql_score_rank': 'Country'}
+            labels={"country_with_ql_score_rank": "Country"},
         )
         for idx, row in df_top_N.iterrows():
             fig.add_annotation(
@@ -860,9 +860,15 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
         radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
         st.pyplot(radar)
 
-    expander_checkbox_spinner_execute(func=execute_overall_score_contributions, label="Overall Score Contributions", func_args=[df_top_N])
-    expander_checkbox_spinner_execute(func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df_top_N])
-    expander_checkbox_spinner_execute(func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots", func_args=[df_top_N])
+    expander_checkbox_spinner_execute(
+        func=execute_overall_score_contributions, label="Overall Score Contributions", func_args=[df_top_N]
+    )
+    expander_checkbox_spinner_execute(
+        func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df_top_N]
+    )
+    expander_checkbox_spinner_execute(
+        func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots", func_args=[df_top_N]
+    )
 
 
 def run_ui_section_all_matches(df):
@@ -1235,7 +1241,7 @@ def run_ui_section_all_matches(df):
             st.warning(
                 f"Selected fields will result in {num_plots} plots, rendering may take a long time (be prepared to wait or change your selection)."
             )
-        
+
         fig = sns.pairplot(
             data=df.rename(columns=df_format_dict),
             x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
@@ -1293,15 +1299,27 @@ def run_ui_section_help():
         open_and_st_markdown("./help/happy_planet_help.md")
 
     with st.expander("Social Progress 📈"):
-        st.caption("The [Social Progress Imperative website](https://www.socialprogress.org/) cannot be embedded in this app.")
-        st.caption("As an alternative, the [Harvard Business School Institute for Strategy and Competitiveness page](https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx) is embedded here.")
-        st.components.v1.iframe("https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx", height=600, scrolling=True)
+        st.caption(
+            "The [Social Progress Imperative website](https://www.socialprogress.org/) cannot be embedded in this app."
+        )
+        st.caption(
+            "As an alternative, the [Harvard Business School Institute for Strategy and Competitiveness page](https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx) is embedded here."
+        )
+        st.components.v1.iframe(
+            "https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx", height=600, scrolling=True
+        )
         open_and_st_markdown("./help/social_progress_help.md")
 
     with st.expander("Human Freedom 🎊"):
-        st.caption("Neither the [Cato Institute website](https://www.cato.org/human-freedom-index/2022) nor the [Fraser Institute website](https://www.fraserinstitute.org/studies/human-freedom-index-2022) can be embedded in this app.")
-        st.caption("As an alternative, the [Wikipedia article on freedom indices](https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices), which references the Human Freedom Index, is embedded here.")
-        st.components.v1.iframe("https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices", height=600, scrolling=True)
+        st.caption(
+            "Neither the [Cato Institute website](https://www.cato.org/human-freedom-index/2022) nor the [Fraser Institute website](https://www.fraserinstitute.org/studies/human-freedom-index-2022) can be embedded in this app."
+        )
+        st.caption(
+            "As an alternative, the [Wikipedia article on freedom indices](https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices), which references the Human Freedom Index, is embedded here."
+        )
+        st.components.v1.iframe(
+            "https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices", height=600, scrolling=True
+        )
         open_and_st_markdown("./help/human_freedom_help.md")
 
     with st.expander("Language Prevalence 💬"):
@@ -1356,7 +1374,6 @@ def main():
     if not "initialized" in state:
         first_run_per_session()
 
-
     app_options = get_options()
 
     # TODO move to function
@@ -1365,20 +1382,22 @@ def main():
         st.header("Utilities")
         st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
 
-
     if check_if_app_options_are_default(app_options):
         st.info(
             "It looks like you are using the default app options. Try opening the sidebar and changing some things! :blush:"
         )
 
     if not app_options.are_overall_weights_valid:
-        st.warning("The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue.")
+        st.warning(
+            "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue."
+        )
         return
 
     if not app_options.are_ql_weights_valid:
-        st.warning("The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue.")
+        st.warning(
+            "The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue."
+        )
         return
-
 
     df, num_total = process_data(app_options)
 
