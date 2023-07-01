@@ -637,7 +637,7 @@ def run_ui_section_welcome():
     with cols[0]:
         # Get part of the README and display it
         whole_README_str = open("./README.md", encoding="utf8").read()
-        search_str = "[Terra](https://terra-country-recommender.streamlit.app/)"
+        search_str = "Terra is an app"
         welcome_str = whole_README_str[whole_README_str.find(search_str) :]
         st.markdown(welcome_str)
     with cols[1]:
@@ -778,20 +778,8 @@ def run_ui_section_best_match(df, app_options, num_total):
     )
 
 
-# TODO replace pyplot radar plots with plotly radar plots
-# See https://plotly.com/python/radar-chart/
-def get_radar(country_names, user_ideal):
-    dimensions = distance_calculations.compute_dimensions(
-        [culture_fit_data_dict[country_name] for country_name in country_names]
-    )
-    reference = distance_calculations.compute_dimensions([user_ideal])
-    radar = visualisation.generate_radar_plot(dimensions, reference)
-    return radar
 
-
-def run_ui_section_top_n_matches(df, app_options, num_total):
-    st.header(f"Top Matching Countries", anchor=False)
-
+def get_df_top_N(df):
     N = st.number_input(
         "Number of Top Matching Countries to show",
         min_value=1,
@@ -808,7 +796,13 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
 
     df_top_N = df_top_N.rename(columns=df_format_dict)
 
-    def execute_overall_score_contributions(df_top_N):
+    return df_top_N
+
+
+def run_ui_section_top_n_matches(df, app_options, num_total):
+
+    def execute_overall_score_contributions(df):
+        df_top_N = get_df_top_N(df)
         fig = px.bar(
             df_top_N,
             x="country_with_overall_score_rank",
@@ -831,6 +825,7 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_ql_score_contributions(df_top_N):
+        df_top_N = get_df_top_N(df)
         sort_by_field = st.selectbox("Sort By", options=["overall_score", "ql_score"], format_func=df_format_func)
         df_top_N = df_top_N.sort_values(df_format_func(sort_by_field), ascending=False)
         fig = px.bar(
@@ -855,25 +850,16 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
             )
         st.plotly_chart(fig, use_container_width=True)
 
-    def execute_culture_fit_radar_plots(df_top_N):
-        st.caption("", help="The dashed :red[red shape] depicts your preferences.")
-        radar = get_radar(country_names=df_top_N["Country"], user_ideal=get_user_ideal(app_options))
-        st.pyplot(radar)
+    expander_checkbox_spinner_execute(
+        func=execute_overall_score_contributions, label="Overall Score Contributions", func_args=[df]
+    )
+    expander_checkbox_spinner_execute(
+        func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df]
+    )
 
-    expander_checkbox_spinner_execute(
-        func=execute_overall_score_contributions, label="Overall Score Contributions", func_args=[df_top_N]
-    )
-    expander_checkbox_spinner_execute(
-        func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df_top_N]
-    )
-    expander_checkbox_spinner_execute(
-        func=execute_culture_fit_radar_plots, label="Culture Fit Radar Plots", func_args=[df_top_N]
-    )
 
 
 def run_ui_section_all_matches(df):
-    st.header(f"All Matching Countries ({df.shape[0]})", anchor=False)
-
     def generate_choropleth(df, name):
         df = df.reset_index()
         fig = px.choropleth(
@@ -1405,18 +1391,16 @@ def main():
     if no_matches:
         st.warning("No matches found! Try adjusting the filters to be less strict.")
     else:
-        tabs = st.tabs(["Welcome", "Best Match", "Top Matches", "All Matches", "Help", "Share"])
+        tabs = st.tabs(["Welcome", "Options", "Results", "Help", "Share"])
         with tabs[0]:
             run_ui_section_welcome()
-        with tabs[1]:
-            run_ui_section_best_match(df, app_options, num_total)
         with tabs[2]:
+            run_ui_section_best_match(df, app_options, num_total)
             run_ui_section_top_n_matches(df, app_options, num_total)
-        with tabs[3]:
             run_ui_section_all_matches(df)
-        with tabs[4]:
+        with tabs[3]:
             run_ui_section_help()
-        with tabs[5]:
+        with tabs[4]:
             run_ui_section_share(app_options)
 
     teardown(app_options)

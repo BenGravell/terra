@@ -4,8 +4,8 @@
 
 ## What is Terra?
 
-[Terra](https://terra-country-recommender.streamlit.app/) is an app designed to help you answer the question *"which country should I live in?"*
+Terra is an app designed to help you answer the question *"which country should I live in?"*
 
 Use data to decide which country is right **for you**. Terra takes your personal preferences regarding Culture Fit, Planet Happiness, Social Progress, Human Freedom, and Language into account and recommends one or more countries that match.
 
-See the "Help" section in [the app](https://terra-country-recommender.streamlit.app/) for more details.
+See the "Help" section for more details.
