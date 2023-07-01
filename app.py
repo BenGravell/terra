@@ -405,11 +405,6 @@ def first_run_per_session():
     state.initialized = True
 
 
-def clear_cache_callback():
-    st.cache_data.clear()
-    st.cache_resource.clear()
-
-
 def reset_options_callback():
     app_options = AppOptions()
     initialize_widget_state_from_app_options(app_options)
@@ -1361,12 +1356,6 @@ def main():
         first_run_per_session()
 
     app_options = get_options()
-
-    # TODO move to function
-    with st.sidebar:
-        st.divider()
-        st.header("Utilities")
-        st.button("Clear Cache", use_container_width=True, on_click=clear_cache_callback)
 
     if check_if_app_options_are_default(app_options):
         st.info(
