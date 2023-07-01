@@ -411,28 +411,27 @@ def reset_options_callback():
 
 
 def get_options():
-    with st.sidebar:
-        st.header("Options")
+    st.header("Options")
 
-        # Reference Country
-        culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
-        st.selectbox(
-            "Reference Country",
-            options=culture_fit_reference_country_options,
-            key="culture_fit_reference_country",
-        )
-        st.button(
-            label="Set Culture Fit Preferences to Reference Country",
-            on_click=culture_fit_reference_callback,
-            use_container_width=True,
-        )
+    # Reference Country
+    culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
+    st.selectbox(
+        "Reference Country",
+        options=culture_fit_reference_country_options,
+        key="culture_fit_reference_country",
+    )
+    st.button(
+        label="Set Culture Fit Preferences to Reference Country",
+        on_click=culture_fit_reference_callback,
+        use_container_width=True,
+    )
 
-        # Options
-        with st.form(key="options_form"):
-            app_options = get_options_from_ui()
-            st.form_submit_button(label="Update Options", use_container_width=True)
+    # Options
+    with st.form(key="options_form"):
+        app_options = get_options_from_ui()
+        st.form_submit_button(label="Update Options", use_container_width=True)
 
-        st.button("Reset Options to Default", use_container_width=True, on_click=reset_options_callback)
+    st.button("Reset Options to Default", use_container_width=True, on_click=reset_options_callback)
 
     return app_options
 
@@ -758,17 +757,17 @@ def run_ui_section_best_match(df, app_options, num_total):
 
     expander_checkbox_spinner_execute(
         func=detailed_country_breakdown,
-        label="Overall Scores",
+        label="Overall Score Distribution",
         func_kwargs=dict(fields=overall_fields, name="Overall Scores"),
     )
     expander_checkbox_spinner_execute(
         func=detailed_country_breakdown,
-        label="Culture Dimensions",
+        label="Culture Dimension Distribution",
         func_kwargs=dict(fields=culture_fields, name="Culture Dimensions"),
     )
     expander_checkbox_spinner_execute(
         func=detailed_country_breakdown,
-        label="Quality-of-Life Scores",
+        label="Quality-of-Life Score Distribution",
         func_kwargs=dict(fields=score_fields, name="Quality-of-Life Scores"),
     )
 
@@ -1340,14 +1339,6 @@ def teardown(app_options):
     return
 
 
-def check_if_app_options_are_default(app_options):
-    app_options_default = AppOptions()
-    for key in dataclasses.asdict(app_options_default):
-        if getattr(app_options, key) != getattr(app_options_default, key):
-            return False
-    return True
-
-
 ################################################################################
 ## Main
 ################################################################################
@@ -1355,12 +1346,12 @@ def main():
     if not "initialized" in state:
         first_run_per_session()
 
-    app_options = get_options()
+    tab_names = ["Welcome", "Options", "Results", "Help", "Share"]
+    tabs = st.tabs(tab_names)
+    container_dict = {tab_name: tab for tab_name, tab in zip(tab_names, tabs)}
 
-    if check_if_app_options_are_default(app_options):
-        st.info(
-            "It looks like you are using the default app options. Try opening the sidebar and changing some things! :blush:"
-        )
+    with container_dict["Options"]:
+        app_options = get_options()
 
     if not app_options.are_overall_weights_valid:
         st.warning(
@@ -1380,16 +1371,15 @@ def main():
     if no_matches:
         st.warning("No matches found! Try adjusting the filters to be less strict.")
     else:
-        tabs = st.tabs(["Welcome", "Options", "Results", "Help", "Share"])
-        with tabs[0]:
+        with container_dict["Welcome"]:
             run_ui_section_welcome()
-        with tabs[2]:
+        with container_dict["Results"]:
             run_ui_section_best_match(df, app_options, num_total)
             run_ui_section_top_n_matches(df, app_options, num_total)
             run_ui_section_all_matches(df)
-        with tabs[3]:
+        with container_dict["Help"]:
             run_ui_section_help()
-        with tabs[4]:
+        with container_dict["Share"]:
             run_ui_section_share(app_options)
 
     teardown(app_options)
