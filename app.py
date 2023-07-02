@@ -145,7 +145,7 @@ def load_data():
     )
 
 
-# Load data
+# Load data and expose in the outermost scope of this script
 (
     culture_fit_data_dict,
     culture_fit_df,
@@ -917,7 +917,6 @@ def run_ui_section_results(df, app_options, num_total):
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
-    
 
     # Special handling for language
     if "english_ratio" in df.columns:
