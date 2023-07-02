@@ -1069,7 +1069,7 @@ def run_ui_section_all_matches(df):
                 if clustering_method_name == "HDBSCAN":
                     cols = st.columns(3)
                     with cols[0]:
-                        min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2, help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
+                        min_cluster_size = st.slider("Min Cluster Size", min_value=2, max_value=20, step=1, value=2, help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
                     with cols[1]:
                         min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2, help="How conservative you want you clustering to be. The larger the value you provide, the more conservative the clustering - more points will be declared as noise, and clusters will be restricted to progressively more dense areas. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
                 elif clustering_method_name == "Hierarchical":
