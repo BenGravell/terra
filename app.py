@@ -3,7 +3,7 @@ from copy import deepcopy
 from functools import partial
 from urllib.parse import urlencode
 
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FastICA, NMF, MiniBatchSparsePCA, SparsePCA, TruncatedSVD
 from sklearn.manifold import TSNE
 from umap import UMAP
 import hdbscan
@@ -242,6 +242,11 @@ english_speaking_ratio_help = (
 
 dimensionality_reducer_name_to_class_map = {
     "PCA": PCA,
+    "FastICA": FastICA,
+    "NMF": NMF,
+    "MiniBatchSparsePCA": MiniBatchSparsePCA,
+    "SparsePCA": SparsePCA,
+    "TruncatedSVD": TruncatedSVD,
     "t-SNE": TSNE,
     "UMAP": UMAP,
 }
@@ -1012,13 +1017,13 @@ def run_ui_section_results(df, app_options, num_total):
             df_for_dr = df.set_index("country")[dr_fields]
 
             dimensionality_reducer_name = st.selectbox(
-                "Dimensionality Reduction Method", options=["UMAP", "t-SNE", "PCA"]
+                "Dimensionality Reduction Method",
+                options=["UMAP", "t-SNE", "PCA", "SparsePCA", "TruncatedSVD", "FastICA", "NMF"],
             )
-
             with st.form("dimesionality_reduction_options"):
                 dimensionality_reducer_kwargs = {}
 
-                if dimensionality_reducer_name == "PCA":
+                if dimensionality_reducer_name in ["PCA", "SparsePCA", "TruncatedSVD", "FastICA", "NMF"]:
                     cols = st.columns(0 + 1)
 
                 elif dimensionality_reducer_name == "t-SNE":
@@ -1027,9 +1032,9 @@ def run_ui_section_results(df, app_options, num_total):
                         perplexity = st.slider(
                             "Perplexity",
                             min_value=1.0,
-                            max_value=20.0,
-                            value=5.0,
-                            help="The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets usually require a larger perplexity. Consider selecting a value between 5 and 50. Different values can result in significantly different results. The perplexity must be less than the number of samples. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html",
+                            max_value=30.0,
+                            value=10.0,
+                            help="The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets usually require a larger perplexity. Different values can result in significantly different results. The perplexity must be less than the number of samples. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html",
                         )
                     with cols[1]:
                         early_exaggeration = st.slider(
@@ -1086,7 +1091,7 @@ def run_ui_section_results(df, app_options, num_total):
                             min_value=2,
                             max_value=20,
                             step=1,
-                            value=2,
+                            value=3,
                             help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.",
                         )
                     with cols[1]:
@@ -1102,7 +1107,7 @@ def run_ui_section_results(df, app_options, num_total):
                         cluster_selection_epsilon = st.slider(
                             "Cluster Selection Epsilon",
                             min_value=0.0,
-                            max_value=4.0,
+                            max_value=1.0,
                             value=0.0,
                             help="Ensures that clusters below the given threshold are not split up any further. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-cluster-selection-epsilon.",
                         )
@@ -1148,8 +1153,8 @@ def run_ui_section_results(df, app_options, num_total):
                     marker_size_power = st.slider(
                         "Marker Size Power",
                         min_value=0.0,
-                        max_value=10.0,
-                        value=4.0,
+                        max_value=20.0,
+                        value=5.0,
                         step=0.5,
                         help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
                     )
@@ -1256,7 +1261,7 @@ def run_ui_section_results(df, app_options, num_total):
     check_to_execute(func=execute_score_contributions, label="Score Contributions")
     check_to_execute(func=execute_world_map, label="World Map")
     check_to_execute(func=execute_dimred_and_clustering, label="Dimensionality Reduction & Clustering")
-    check_to_execute(func=execute_pair_plot, label="Scatter Plots")
+    check_to_execute(func=execute_pair_plot, label="Pair Plots")
     check_to_execute(func=execute_results_data, label="Results Table")
 
 
