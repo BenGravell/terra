@@ -3,7 +3,7 @@ DIMENSIONS = ["pdi", "idv", "mas", "uai", "lto", "ind"]
 DIMENSIONS_INFO = {
     "pdi": {
         "name": "Power Distance",
-        "question": "To which extent do you accept that individuals in societies are not equal?",
+        "question": "To which extent do you accept that power should not be distributed equally amongst individuals in a society?",
         "hofstede_youtube_video_url": "https://youtu.be/DqAJclwfyCw",
     },
     "idv": {
@@ -29,7 +29,7 @@ DIMENSIONS_INFO = {
     },
     "ind": {
         "name": "Indulgence",
-        "question": "To which extent would you like to express your desires and impulses?",
+        "question": "To which extent is it important for you to be able to express your desires and impulses?",
         "hofstede_youtube_video_url": "https://youtu.be/V0YgGdzmFtA",
     },
 }
