@@ -731,8 +731,10 @@ def run_ui_section_best_match(df, app_options, num_total):
     best_match_country_row = df.set_index("country").loc[best_match_country]
 
     with focus_container:
-        st.header("Selected Country", anchor=False)
-        st.header(f":blue[{selected_country}] ({selected_country_emoji})", anchor=False)
+        selected_country_header_str = "Selected Country"
+        if selected_country == best_match_country:
+            selected_country_header_str += " (Best Match)"
+        st.header(f"{selected_country_header_str}: :blue[{selected_country}] ({selected_country_emoji})", anchor=False)
 
     def execute_world_factbook():
         # CIA World Factbook viewer
