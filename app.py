@@ -769,7 +769,12 @@ def run_ui_section_best_match(df, app_options, num_total):
     check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
 
     def detailed_country_breakdown(fields, name):
-        cols = st.columns(len(fields))
+        if name == "Culture Dimensions":
+            cols_row1 = st.columns(len(fields) // 2)
+            cols_row2 = st.columns(len(fields) // 2)
+            cols = cols_row1 + cols_row2
+        else:
+            cols = st.columns(len(fields))
         for col, field in zip(cols, fields):
             with col:
                 st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
