@@ -252,6 +252,7 @@ def get_dimension_reduced_df(df, dimensionality_reducer_name, dimensionality_red
 
     projection = dimensionality_reducer.fit_transform(df)
     df_projection = pd.DataFrame(projection).rename(columns={0: "x", 1: "y"})
+    df_projection.index = df.index
     return df_projection
 
 
@@ -1022,14 +1023,15 @@ def run_ui_section_all_matches(df):
                     args=[score_fields],
                 )
 
-            df_for_dr = df[dr_fields]
+            df_for_dr = df.set_index("country")[dr_fields]
 
             dimensionality_reducer_name = st.selectbox("Dimensionality Reduction Method", options=["UMAP", "t-SNE"])
 
             with st.form("dimesionality_reduction_options"):
                 dimensionality_reducer_kwargs = {}
-                cols = st.columns(3)
+
                 if dimensionality_reducer_name == "t-SNE":
+                    cols = st.columns(3)
                     with cols[0]:
                         perplexity = st.slider(
                             "Perplexity",
@@ -1051,6 +1053,7 @@ def run_ui_section_all_matches(df):
                     dimensionality_reducer_kwargs["early_exaggeration"] = early_exaggeration
 
                 elif dimensionality_reducer_name == "UMAP":
+                    cols = st.columns(3)
                     with cols[0]:
                         n_neighbors = st.slider(
                             "Number of Neighbors",
@@ -1081,14 +1084,31 @@ def run_ui_section_all_matches(df):
                 df_for_dr, dimensionality_reducer_name, dimensionality_reducer_kwargs
             )
 
+            clustering_method_name = st.selectbox("Clustering Method", options=["HDBSCAN", "Hierarchical"])
+
             with st.form("clustering_options"):
-                # TODO expose different clustering methods
-                cols = st.columns(3)
-                with cols[0]:
-                    min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
-                with cols[1]:
-                    min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
-                with cols[2]:
+                if clustering_method_name == "HDBSCAN":
+                    cols = st.columns(3)
+                    with cols[0]:
+                        min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
+                    with cols[1]:
+                        min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
+                elif clustering_method_name == "Hierarchical":
+                    cols = st.columns(3)
+                    with cols[0]:
+                        distance_metric = st.selectbox(
+                            "Distance Metric",
+                            options=pdist_metric_options,
+                            help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html",
+                        )
+                    with cols[1]:
+                        linkage_method = st.selectbox(
+                            "Linkage Method",
+                            options=linkage_method_options,
+                            help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html",
+                        )
+
+                with cols[-1]:
                     cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
 
                 st.form_submit_button("Update Clustering Options", use_container_width=True)
@@ -1097,64 +1117,27 @@ def run_ui_section_all_matches(df):
             df_for_clustering = df_projection
         else:
             df_for_clustering = df_for_dr
-        clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
-        clusterer.fit(df_for_clustering)
-        df_clusters = pd.DataFrame(clusterer.labels_).rename(columns={0: "cluster"}).astype(str)
-
-        df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
 
         with st.form("dim_red_cluster_plot_options"):
-            cols = st.columns(3)
-            with cols[0]:
-                show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
-            with cols[1]:
-                marker_size_field = st.selectbox(
-                    "Marker Size Field", options=plottable_fields, format_func=df_format_func
-                )
-            with cols[2]:
-                marker_size_power = st.slider(
-                    "Marker Size Power",
-                    min_value=0.0,
-                    max_value=10.0,
-                    value=4.0,
-                    step=0.5,
-                    help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
-                )
-            st.form_submit_button("Update Clustering Plot Options", use_container_width=True)
-
-        df_for_dr_plot["marker_size"] = df_for_dr_plot[marker_size_field] ** marker_size_power
-
-        category_orders = {"cluster": [str(i) for i in range(-1, max(clusterer.labels_))]}
-
-        scatter_kwargs = dict(
-            x="x",
-            y="y",
-            hover_name="country",
-            hover_data=["overall_score"],
-            color="cluster",
-            color_discrete_map=color_options.CLUSTER_COLOR_SEQUENCE_MAP,
-            category_orders=category_orders,
-            size="marker_size",
-        )
-
-        if show_country_text:
-            scatter_kwargs["text"] = "country"
-
-        with plot_container:
-            fig = px.scatter(df_for_dr_plot, **scatter_kwargs)
-            if show_country_text:
-                fig.update_traces(textposition="top center")
-            st.plotly_chart(fig, use_container_width=True)
-
-    def execute_hierarchical_clustering():
-        # Use containers to have the dendrogram above the options, since the options will take up a lot of space
-        clustering_plot_container = st.container()
-        clustering_options_container = st.container()
-        dfh = df.set_index("country")
-        with clustering_options_container:
-            with st.form("hierarchical_clustering_options"):
-                clusterion_options_submit_container = st.container()
-                cols = st.columns(4)
+            if clustering_method_name == "HDBSCAN":
+                cols = st.columns(3)
+                with cols[0]:
+                    show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
+                with cols[1]:
+                    marker_size_field = st.selectbox(
+                        "Marker Size Field", options=plottable_fields, format_func=df_format_func
+                    )
+                with cols[2]:
+                    marker_size_power = st.slider(
+                        "Marker Size Power",
+                        min_value=0.0,
+                        max_value=10.0,
+                        value=4.0,
+                        step=0.5,
+                        help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
+                    )
+            elif clustering_method_name == "Hierarchical":
+                cols = st.columns(2)
                 with cols[0]:
                     color_threshold = st.slider(
                         "Cluster Color Threshold",
@@ -1164,45 +1147,56 @@ def run_ui_section_all_matches(df):
                         help="Lower values will result in more clusters.",
                     )
                 with cols[1]:
-                    distance_metric = st.selectbox(
-                        "Distance Metric",
-                        options=pdist_metric_options,
-                        help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html",
+                    orientation = st.selectbox(
+                        "Plot Orientation",
+                        options=["bottom", "top", "right", "left"],
                     )
-                with cols[2]:
-                    linkage_method = st.selectbox(
-                        "Linkage Method",
-                        options=linkage_method_options,
-                        help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html",
-                    )
-                with cols[3]:
-                    orientation = st.selectbox("Plot Orientation", options=["bottom", "top", "right", "left"])
 
-                fields_for_clustering = st.multiselect(
-                    "Fields for Clustering",
-                    options=culture_fields + score_fields,
-                    default=culture_fields,
-                    format_func=df_format_func,
-                )
+            st.form_submit_button("Update Clustering Plot Options", use_container_width=True)
 
-                clusterion_options_submit_container.form_submit_button(
-                    "Update Hierarchical Clustering Options", use_container_width=True
-                )
+        if clustering_method_name == "HDBSCAN":
+            clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
+            clusterer.fit(df_for_clustering)
+            df_clusters = pd.DataFrame(clusterer.labels_).rename(columns={0: "cluster"}).astype(str)
+            df_clusters.index = df_for_clustering.index
+            df_for_dr_plot = pd.concat([df.set_index("country"), df_projection, df_clusters], axis=1).reset_index()
+            df_for_dr_plot["marker_size"] = df_for_dr_plot[marker_size_field] ** marker_size_power
+            category_orders = {"cluster": [str(i) for i in range(-1, max(clusterer.labels_))]}
+            scatter_kwargs = dict(
+                x="x",
+                y="y",
+                hover_name="country",
+                hover_data=["overall_score"],
+                color="cluster",
+                color_discrete_map=color_options.CLUSTER_COLOR_SEQUENCE_MAP,
+                category_orders=category_orders,
+                size="marker_size",
+            )
+
+            if show_country_text:
+                scatter_kwargs["text"] = "country"
+
+            with plot_container:
+                fig = px.scatter(df_for_dr_plot, **scatter_kwargs)
+                if show_country_text:
+                    fig.update_traces(textposition="top center")
+                st.plotly_chart(fig, use_container_width=True)
+
+        elif clustering_method_name == "Hierarchical":
             distfun = partial(distance.pdist, metric=distance_metric)
             linkagefun = partial(hierarchy.linkage, method=linkage_method)
-            X = dfh[fields_for_clustering]
             fig = ff.create_dendrogram(
-                X,
+                df_for_clustering,
                 orientation=orientation,
-                labels=dfh.index,
+                labels=df_for_clustering.index,
                 distfun=distfun,
                 linkagefun=linkagefun,
                 color_threshold=color_threshold,
             )
             fig.add_hline(y=color_threshold, line_dash="dash", line_color="white", opacity=0.5)
 
-        with clustering_plot_container:
-            st.plotly_chart(fig, use_container_width=True)
+            with plot_container:
+                st.plotly_chart(fig, use_container_width=True)
 
     def execute_flag_plot():
         with st.form("plot_options"):
@@ -1266,7 +1260,6 @@ def run_ui_section_all_matches(df):
     expander_checkbox_spinner_execute(
         func=execute_dimensionality_reduction_and_clustering, label="Dimensionality Reduction & Clustering"
     )
-    expander_checkbox_spinner_execute(func=execute_hierarchical_clustering, label="Hierarchical Clustering")
     expander_checkbox_spinner_execute(func=execute_flag_plot, label="Flag Plot")
     expander_checkbox_spinner_execute(func=execute_pair_plot, label="Pair Plot")
 
