@@ -767,71 +767,68 @@ def run_ui_section_best_match(df, app_options, num_total):
     check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
 
     def detailed_country_breakdown(fields, name):
-        for field in fields:
-            cols = st.columns(2)
-            with cols[0]:
+        cols = st.columns(len(fields))
+        for col, field in zip(cols, fields):
+            with col:
                 st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
-            with cols[1]:
                 rank = selected_country_row[f"{field}_rank"]
-
                 st.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
 
-            fig = px.box(
-                df, y=field, labels={field: df_format_func(field)}, points="all", hover_name="country", orientation="v"
-            )
-
-            fig.add_hline(
-                best_match_country_row[field],
-                line_dash="dash",
-                line_color="gold",
-                opacity=0.5,
-                annotation_text=f"{best_match_country} (Best Match)",
-                annotation_position="top right",
-                annotation_font_color="gold",
-            )
-
-            fig.add_hline(
-                selected_country_row[field],
-                line_dash="dash",
-                line_color="white",
-                opacity=0.5,
-                annotation_text=f"{selected_country} (Selected)",
-                annotation_position="bottom right",
-                annotation_font_color="white",
-            )
-
-            if name == "Culture Dimensions":
-                ref_val = getattr(app_options, f"culture_fit_preference_{field}") * 0.01
-                fig.add_hline(
-                    ref_val,
-                    line_dash="dash",
-                    line_color="orange",
-                    opacity=0.5,
-                    annotation_text=f"(User Ideal)",
-                    annotation_position="top left",
-                    annotation_font_color="orange",
+                fig = px.box(
+                    df, y=field, labels={field: df_format_func(field)}, points="all", hover_name="country", orientation="v"
                 )
-            fig.update_layout(showlegend=True)
-            st.plotly_chart(fig, use_container_width=True)
+
+                fig.add_hline(
+                    best_match_country_row[field],
+                    line_dash="dash",
+                    line_color="gold",
+                    opacity=0.5,
+                    annotation_text=f"{best_match_country} (Best Match)",
+                    annotation_position="top right",
+                    annotation_font_color="gold",
+                )
+
+                fig.add_hline(
+                    selected_country_row[field],
+                    line_dash="dash",
+                    line_color="white",
+                    opacity=0.5,
+                    annotation_text=f"{selected_country} (Selected)",
+                    annotation_position="bottom right",
+                    annotation_font_color="white",
+                )
+
+                if name == "Culture Dimensions":
+                    ref_val = getattr(app_options, f"culture_fit_preference_{field}") * 0.01
+                    fig.add_hline(
+                        ref_val,
+                        line_dash="dash",
+                        line_color="orange",
+                        opacity=0.5,
+                        annotation_text=f"(User Ideal)",
+                        annotation_position="top left",
+                        annotation_font_color="orange",
+                    )
+                fig.update_layout(showlegend=True)
+                st.plotly_chart(fig, use_container_width=True)
+    
+    def execute_score_distributions():
+        st.subheader("Overall Score Distributions", anchor=False)
+        detailed_country_breakdown(fields=overall_fields, name="Overall Scores")
+
+        st.subheader("Culture Dimension Distributions", anchor=False)
+        detailed_country_breakdown(fields=culture_fields, name="Culture Dimensions")
+
+        st.subheader("Quality-of-Life Score Distributions", anchor=False)
+        detailed_country_breakdown(fields=score_fields, name="Quality-of-Life Scores")
 
     check_to_execute(
-        func=detailed_country_breakdown,
-        label="Overall Score Distribution",
-        func_kwargs=dict(fields=overall_fields, name="Overall Scores"),
-    )
-    check_to_execute(
-        func=detailed_country_breakdown,
-        label="Culture Dimension Distribution",
-        func_kwargs=dict(fields=culture_fields, name="Culture Dimensions"),
-    )
-    check_to_execute(
-        func=detailed_country_breakdown,
-        label="Quality-of-Life Score Distribution",
-        func_kwargs=dict(fields=score_fields, name="Quality-of-Life Scores"),
+        func=execute_score_distributions,
+        label="Score Distributions",
     )
 
 
-def run_ui_section_top_n_matches(df, app_options, num_total):
+def run_ui_section_top_n_matches(df):
     def execute_overall_score_contributions(df_top_N):
         fig = px.bar(
             df_top_N,
@@ -1376,7 +1373,7 @@ def main():
             run_ui_section_welcome()
         with container_dict["Results"]:
             run_ui_section_best_match(df, app_options, num_total)
-            run_ui_section_top_n_matches(df, app_options, num_total)
+            run_ui_section_top_n_matches(df)
             run_ui_section_all_matches(df)
         with container_dict["Help"]:
             run_ui_section_help()
