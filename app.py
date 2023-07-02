@@ -1211,26 +1211,9 @@ def run_ui_section_results(df, app_options, num_total):
             with plot_container:
                 st.plotly_chart(fig, use_container_width=True)
 
-    def execute_flag_plot():
-        with st.form("plot_options"):
-            cols = st.columns(2)
-            with cols[0]:
-                x_column = st.selectbox(
-                    "x-axis",
-                    options=plottable_fields,
-                    index=plottable_fields.index("hp_score"),
-                    format_func=df_format_func,
-                )
-            with cols[1]:
-                y_column = st.selectbox(
-                    "y-axis",
-                    options=plottable_fields,
-                    index=plottable_fields.index("hf_score"),
-                    format_func=df_format_func,
-                )
-            st.form_submit_button("Update Flag Plot Options")
-        scatterplot = visualisation.generate_scatterplot(df.set_index("country"), x_column, y_column)
-        st.bokeh_chart(scatterplot, use_container_width=True)
+
+
+
 
     def execute_pair_plot():
         with st.form("pairplot_options"):
@@ -1242,19 +1225,29 @@ def run_ui_section_results(df, app_options, num_total):
             )
             st.form_submit_button("Update Pair Plot Options")
 
-        if len(fields_for_pairplot) < 3:
-            st.warning("Need at least 3 fields for pair plot!")
+        if len(fields_for_pairplot) < 2:
+            st.warning("Need at least 2 fields for pair plot!")
         else:
-            df_for_pairplot = df.rename(columns=df_format_dict)
-            fig = px.scatter_matrix(
-                df_for_pairplot,
-                dimensions=[df_format_dict[x] for x in fields_for_pairplot],
-                hover_name="Country with Emoji",
-            )
-            fig.update_traces(diagonal_visible=False, showupperhalf=False)
-            fig.update_layout(
-                height=600,
-            )
+            df_for_plot = df.rename(columns=df_format_dict)
+
+            if len(fields_for_pairplot) == 2:
+                fig = px.scatter(
+                    df_for_plot,
+                    x=df_format_func(fields_for_pairplot[0]),
+                    y=df_format_func(fields_for_pairplot[1]),
+                    hover_name="Country with Emoji",
+                )
+            else:
+                fig = px.scatter_matrix(
+                    df_for_plot,
+                    dimensions=[df_format_dict[x] for x in fields_for_pairplot],
+                    hover_name="Country with Emoji",
+                )
+                fig.update_traces(diagonal_visible=False, showupperhalf=False)
+
+            # fig.update_layout(
+            #     height=600,
+            # )
             st.plotly_chart(fig, use_container_width=True)
 
     check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
@@ -1262,8 +1255,7 @@ def run_ui_section_results(df, app_options, num_total):
     check_to_execute(func=execute_score_contributions, label="Score Contributions")
     check_to_execute(func=execute_world_map, label="World Map")
     check_to_execute(func=execute_dimred_and_clustering, label="Dimensionality Reduction & Clustering")
-    check_to_execute(func=execute_flag_plot, label="Flag Plot")
-    check_to_execute(func=execute_pair_plot, label="Pair Plot")
+    check_to_execute(func=execute_pair_plot, label="Scatter Plots")
     check_to_execute(func=execute_results_data, label="Results Table")
 
 
