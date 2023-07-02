@@ -881,7 +881,7 @@ def run_ui_section_top_n_matches(df):
         with cols[0]:
             N = st.number_input("Number of Top Matching Countries to show", min_value=1, max_value=100, value=10)
         with cols[1]:
-            sort_by_field = st.selectbox("Sort By", options=["overall_score", "ql_score"], format_func=df_format_func)
+            sort_by_field = st.selectbox("Sort By", options=["overall_score", "cf_score", "ql_score", "hp_score", "sp_score", "hf_score"], format_func=df_format_func)
 
         # Create the top N dataframe
         df_top_N = df.head(N)
