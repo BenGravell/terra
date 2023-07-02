@@ -648,7 +648,7 @@ def process_data(app_options):
     df = process_data_language_prevalence(df, app_options)
     df = process_data_overall_score(df, app_options)
     df = process_data_ranks(df, app_options)
-    df['country_with_emoji'] = df['country'].apply(lambda x: f'{x} ({country_to_emoji[x]})')
+    df["country_with_emoji"] = df["country"].apply(lambda x: f"{x} ({country_to_emoji[x]})")
     num_total = df.shape[0]  # do this before filtering to get all rows
     df = process_data_filters(df, app_options)
 
@@ -682,7 +682,7 @@ def run_ui_section_welcome():
         st.image("./assets/data_to_recommendation.png", use_column_width=True)
 
 
-def run_ui_section_best_match(df, app_options, num_total):
+def run_ui_section_results(df, app_options, num_total):
     focus_container = st.container()
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
@@ -767,8 +767,6 @@ def run_ui_section_best_match(df, app_options, num_total):
         st.subheader("Google Maps", anchor=False)
         execute_google_maps()
 
-    check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
-
     def detailed_country_breakdown(fields, name):
         if name == "Culture Dimensions":
             cols_row1 = st.columns(len(fields) // 2)
@@ -835,13 +833,6 @@ def run_ui_section_best_match(df, app_options, num_total):
         st.subheader("Quality-of-Life Score Distributions", anchor=False)
         detailed_country_breakdown(fields=score_fields, name="Quality-of-Life Scores")
 
-    check_to_execute(
-        func=execute_score_distributions,
-        label="Score Distributions",
-    )
-
-
-def run_ui_section_top_n_matches(df):
     def execute_overall_score_contributions(df_top_N):
         fig = px.bar(
             df_top_N,
@@ -912,13 +903,6 @@ def run_ui_section_top_n_matches(df):
         execute_overall_score_contributions(df_top_N)
         execute_ql_score_contributions(df_top_N)
 
-    check_to_execute(
-        func=execute_score_contributions,
-        label="Score Contributions",
-    )
-
-
-def run_ui_section_all_matches(df):
     def generate_choropleth(df, name):
         df = df.reset_index()
         fig = px.choropleth(
@@ -980,7 +964,7 @@ def run_ui_section_all_matches(df):
     def set_dr_fields_callback(fields):
         st.session_state.dr_fields = fields
 
-    def execute_dimensionality_reduction_and_clustering():
+    def execute_dimred_and_clustering():
         # Use containers to have the plot above the options, since the options will take up a lot of space
         plot_container = st.container()
         options_container = st.container()
@@ -1267,7 +1251,7 @@ def run_ui_section_all_matches(df):
             fig = px.scatter_matrix(
                 df_for_pairplot,
                 dimensions=[df_format_dict[x] for x in fields_for_pairplot],
-                hover_name='Country with Emoji',
+                hover_name="Country with Emoji",
             )
             fig.update_traces(diagonal_visible=False, showupperhalf=False)
             fig.update_layout(
@@ -1275,10 +1259,11 @@ def run_ui_section_all_matches(df):
             )
             st.plotly_chart(fig, use_container_width=True)
 
+    check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
+    check_to_execute(func=execute_score_distributions, label="Score Distributions")
+    check_to_execute(func=execute_score_contributions, label="Score Contributions")
     check_to_execute(func=execute_world_map, label="World Map")
-    check_to_execute(
-        func=execute_dimensionality_reduction_and_clustering, label="Dimensionality Reduction & Clustering"
-    )
+    check_to_execute(func=execute_dimred_and_clustering, label="Dimensionality Reduction & Clustering")
     check_to_execute(func=execute_flag_plot, label="Flag Plot")
     check_to_execute(func=execute_pair_plot, label="Pair Plot")
     check_to_execute(func=execute_results_data, label="Results Table")
@@ -1415,9 +1400,7 @@ def main():
         with container_dict["Welcome"]:
             run_ui_section_welcome()
         with container_dict["Results"]:
-            run_ui_section_best_match(df, app_options, num_total)
-            run_ui_section_top_n_matches(df)
-            run_ui_section_all_matches(df)
+            run_ui_section_results(df, app_options, num_total)
         with container_dict["Help"]:
             run_ui_section_help()
         with container_dict["Share"]:
