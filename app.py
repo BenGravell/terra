@@ -1211,10 +1211,6 @@ def run_ui_section_results(df, app_options, num_total):
             with plot_container:
                 st.plotly_chart(fig, use_container_width=True)
 
-
-
-
-
     def execute_pair_plot():
         with st.form("pairplot_options"):
             fields_for_pairplot = st.multiselect(
@@ -1245,9 +1241,6 @@ def run_ui_section_results(df, app_options, num_total):
                 )
                 fig.update_traces(diagonal_visible=False, showupperhalf=False)
 
-            # fig.update_layout(
-            #     height=600,
-            # )
             st.plotly_chart(fig, use_container_width=True)
 
     check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
