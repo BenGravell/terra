@@ -3,6 +3,7 @@ from copy import deepcopy
 from functools import partial
 from urllib.parse import urlencode
 
+from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from umap import UMAP
 import hdbscan
@@ -43,9 +44,7 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 state = st.session_state
 
 
-def check_to_execute(
-    func, label="", checkbox_value=False, expanded=False, func_args=None, func_kwargs=None
-):
+def check_to_execute(func, label="", checkbox_value=False, expanded=False, func_args=None, func_kwargs=None):
     """Conditionally execute func if an st.checkbox is checked."""
     if func_args is None:
         func_args = ()
@@ -241,6 +240,7 @@ english_speaking_ratio_help = (
 
 
 dimensionality_reducer_name_to_class_map = {
+    "PCA": PCA,
     "t-SNE": TSNE,
     "UMAP": UMAP,
 }
@@ -777,7 +777,12 @@ def run_ui_section_best_match(df, app_options, num_total):
                 st.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
 
                 fig = px.box(
-                    df, y=field, labels={field: df_format_func(field)}, points="all", hover_name="country", orientation="v"
+                    df,
+                    y=field,
+                    labels={field: df_format_func(field)},
+                    points="all",
+                    hover_name="country",
+                    orientation="v",
                 )
 
                 fig.add_hline(
@@ -813,7 +818,7 @@ def run_ui_section_best_match(df, app_options, num_total):
                     )
                 fig.update_layout(showlegend=True)
                 st.plotly_chart(fig, use_container_width=True)
-    
+
     def execute_score_distributions():
         st.subheader("Overall Score Distributions", anchor=False)
         detailed_country_breakdown(fields=overall_fields, name="Overall Scores")
@@ -881,23 +886,29 @@ def run_ui_section_top_n_matches(df):
         with cols[0]:
             N = st.number_input("Number of Top Matching Countries to show", min_value=1, max_value=100, value=10)
         with cols[1]:
-            sort_by_field = st.selectbox("Sort By", options=["overall_score", "cf_score", "ql_score", "hp_score", "sp_score", "hf_score"], format_func=df_format_func)
+            sort_by_field = st.selectbox(
+                "Sort By",
+                options=["overall_score", "cf_score", "ql_score", "hp_score", "sp_score", "hf_score"],
+                format_func=df_format_func,
+            )
 
         # Create the top N dataframe
         df_top_N = df.head(N)
         df_top_N["country_with_overall_score_rank"] = (
             df_top_N["country"] + " (" + df_top_N["overall_score_rank"].astype(str) + ")"
         )
-        df_top_N["country_with_ql_score_rank"] = df_top_N["country"] + " (" + df_top_N["ql_score_rank"].astype(str) + ")"
+        df_top_N["country_with_ql_score_rank"] = (
+            df_top_N["country"] + " (" + df_top_N["ql_score_rank"].astype(str) + ")"
+        )
         df_top_N = df_top_N.rename(columns=df_format_dict)
         df_top_N = df_top_N.sort_values(df_format_func(sort_by_field), ascending=False)
 
         execute_overall_score_contributions(df_top_N)
         execute_ql_score_contributions(df_top_N)
 
-
     check_to_execute(
-        func=execute_score_contributions, label="Score Contributions",
+        func=execute_score_contributions,
+        label="Score Contributions",
     )
 
 
@@ -1004,13 +1015,18 @@ def run_ui_section_all_matches(df):
 
             df_for_dr = df.set_index("country")[dr_fields]
 
-            dimensionality_reducer_name = st.selectbox("Dimensionality Reduction Method", options=["UMAP", "t-SNE"])
+            dimensionality_reducer_name = st.selectbox(
+                "Dimensionality Reduction Method", options=["UMAP", "t-SNE", "PCA"]
+            )
 
             with st.form("dimesionality_reduction_options"):
                 dimensionality_reducer_kwargs = {}
 
-                if dimensionality_reducer_name == "t-SNE":
-                    cols = st.columns(3)
+                if dimensionality_reducer_name == "PCA":
+                    cols = st.columns(0 + 1)
+
+                elif dimensionality_reducer_name == "t-SNE":
+                    cols = st.columns(2 + 1)
                     with cols[0]:
                         perplexity = st.slider(
                             "Perplexity",
@@ -1032,7 +1048,7 @@ def run_ui_section_all_matches(df):
                     dimensionality_reducer_kwargs["early_exaggeration"] = early_exaggeration
 
                 elif dimensionality_reducer_name == "UMAP":
-                    cols = st.columns(3)
+                    cols = st.columns(2 + 1)
                     with cols[0]:
                         n_neighbors = st.slider(
                             "Number of Neighbors",
@@ -1067,11 +1083,33 @@ def run_ui_section_all_matches(df):
 
             with st.form("clustering_options"):
                 if clustering_method_name == "HDBSCAN":
-                    cols = st.columns(3)
+                    cols = st.columns(4)
                     with cols[0]:
-                        min_cluster_size = st.slider("Min Cluster Size", min_value=2, max_value=20, step=1, value=2, help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
+                        min_cluster_size = st.slider(
+                            "Min Cluster Size",
+                            min_value=2,
+                            max_value=20,
+                            step=1,
+                            value=2,
+                            help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.",
+                        )
                     with cols[1]:
-                        min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2, help="How conservative you want you clustering to be. The larger the value you provide, the more conservative the clustering - more points will be declared as noise, and clusters will be restricted to progressively more dense areas. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
+                        min_samples = st.slider(
+                            "Min Samples",
+                            min_value=1,
+                            max_value=20,
+                            step=1,
+                            value=2,
+                            help="How conservative you want you clustering to be. The larger the value you provide, the more conservative the clustering - more points will be declared as noise, and clusters will be restricted to progressively more dense areas. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.",
+                        )
+                    with cols[2]:
+                        cluster_selection_epsilon = st.slider(
+                            "Cluster Selection Epsilon",
+                            min_value=0.0,
+                            max_value=4.0,
+                            value=0.0,
+                            help="Ensures that clusters below the given threshold are not split up any further. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-cluster-selection-epsilon.",
+                        )
                 elif clustering_method_name == "Hierarchical":
                     cols = st.columns(3)
                     with cols[0]:
@@ -1088,7 +1126,11 @@ def run_ui_section_all_matches(df):
                         )
 
                 with cols[-1]:
-                    cluster_in_projected_space = st.checkbox("Cluster in Projected Space", value=True)
+                    cluster_in_projected_space = st.checkbox(
+                        "Cluster in Projected Space",
+                        value=False,
+                        help="If False, clustering will occur in the original pre-dimension-reduced space. If True, clustering will occur in the projected post-dimension-reduced space. Because t-SNE and UMAP do not preserve distances, clustering in the projected space is not as meaningful/principled, but can give more intuitive clusterings when viewed on the plot.",
+                    )
 
                 st.form_submit_button("Update Clustering Options", use_container_width=True)
 
@@ -1134,7 +1176,11 @@ def run_ui_section_all_matches(df):
             st.form_submit_button("Update Clustering Plot Options", use_container_width=True)
 
         if clustering_method_name == "HDBSCAN":
-            clusterer = hdbscan.HDBSCAN(min_cluster_size=min_cluster_size, min_samples=min_samples)
+            clusterer = hdbscan.HDBSCAN(
+                min_cluster_size=min_cluster_size,
+                min_samples=min_samples,
+                cluster_selection_epsilon=cluster_selection_epsilon,
+            )
             clusterer.fit(df_for_clustering)
             df_clusters = pd.DataFrame(clusterer.labels_).rename(columns={0: "cluster"}).astype(str)
             df_clusters.index = df_for_clustering.index
