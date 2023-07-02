@@ -1233,12 +1233,12 @@ def run_ui_section_all_matches(df):
         st.pyplot(fig, use_container_width=True)
 
     check_to_execute(func=execute_world_map, label="World Map")
-    check_to_execute(func=execute_results_data, label="Results Data")
     check_to_execute(
         func=execute_dimensionality_reduction_and_clustering, label="Dimensionality Reduction & Clustering"
     )
     check_to_execute(func=execute_flag_plot, label="Flag Plot")
     check_to_execute(func=execute_pair_plot, label="Pair Plot")
+    check_to_execute(func=execute_results_data, label="Results Table")
 
 
 def run_ui_subsection_culture_fit_help():
