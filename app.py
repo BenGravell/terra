@@ -262,115 +262,138 @@ def get_options_from_query_params():
 def get_options_from_ui():
     app_options = AppOptions()
 
-    with st.expander("Culture Fit Preferences"):
-        for dimension in dimensions_info.DIMENSIONS:
-            dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
+    with st.expander("Culture Fit Preferences", expanded=True):
+        cols = st.columns(len(dimensions_info.DIMENSIONS))
+        for col, dimension in zip(cols, dimensions_info.DIMENSIONS):
+            with col:
+                dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
 
-            slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
-            help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): *{dimension_info["question"]}* \n\n {dimension_info["description"]}'
+                slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
+                help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): *{dimension_info["question"]}* \n\n {dimension_info["description"]}'
 
-            preference_val = st.slider(slider_str, min_value=0, max_value=100, step=5, help=help_str, key=dimension)
+                preference_val = st.slider(slider_str, min_value=0, max_value=100, step=5, help=help_str, key=dimension)
 
-            setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
+                setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
     # TODO construct these programmatically
-    with st.expander("Quality-of-Life Preferences"):
-        app_options.hp_score_weight = st.slider(
-            "Happy Planet Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=happy_planet_score_help,
-            key="hp_score_weight",
-        )
-        app_options.sp_score_weight = st.slider(
-            "Social Progress Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=social_progress_score_help,
-            key="sp_score_weight",
-        )
-        app_options.hf_score_weight = st.slider(
-            "Human Freedom Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=human_freedom_score_help,
-            key="hf_score_weight",
-        )
+    with st.expander("Quality-of-Life Preferences", expanded=True):
+        cols = st.columns(3)
+        with cols[0]:
+            app_options.hp_score_weight = st.slider(
+                "Happy Planet Score Weight",
+                min_value=0.0,
+                max_value=1.0,
+                step=0.05,
+                help=happy_planet_score_help,
+                key="hp_score_weight",
+            )
+        with cols[1]:
+            app_options.sp_score_weight = st.slider(
+                "Social Progress Score Weight",
+                min_value=0.0,
+                max_value=1.0,
+                step=0.05,
+                help=social_progress_score_help,
+                key="sp_score_weight",
+            )
+        with cols[2]:
+            app_options.hf_score_weight = st.slider(
+                "Human Freedom Score Weight",
+                min_value=0.0,
+                max_value=1.0,
+                step=0.05,
+                help=human_freedom_score_help,
+                key="hf_score_weight",
+            )
 
-    with st.expander("Overall Preferences"):
-        app_options.cf_score_weight = st.slider(
-            "Culture Fit Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=culture_fit_score_help,
-            key="cf_score_weight",
-        )
-        app_options.ql_score_weight = st.slider(
-            "Quality-of-Life Score Weight",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.05,
-            help=quality_of_life_score_help,
-            key="ql_score_weight",
-        )
+    with st.expander("Overall Preferences", expanded=True):
+        cols = st.columns(2)
+        with cols[0]:
+            app_options.cf_score_weight = st.slider(
+                "Culture Fit Score Weight",
+                min_value=0.0,
+                max_value=1.0,
+                step=0.05,
+                help=culture_fit_score_help,
+                key="cf_score_weight",
+            )
+        with cols[1]:
+            app_options.ql_score_weight = st.slider(
+                "Quality-of-Life Score Weight",
+                min_value=0.0,
+                max_value=1.0,
+                step=0.05,
+                help=quality_of_life_score_help,
+                key="ql_score_weight",
+            )
 
     # TODO construct these programmatically
     with st.expander("Filters"):
-        app_options.cf_score_min = st.slider(
-            "Culture Fit Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=culture_fit_score_help,
-            key="cf_score_min",
-        )
-        app_options.ql_score_min = st.slider(
-            "Quality-of-Life Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=quality_of_life_score_help,
-            key="ql_score_min",
-        )
+        cols = st.columns(3)
+        with cols[0]:
+            app_options.hp_score_min = st.slider(
+                "Happy Planet Score Min",
+                min_value=0.0,
+                max_value=1.0,
+                help=happy_planet_score_help,
+                key="hp_score_min",
+            )
+        with cols[1]:
+            app_options.bn_score_min = st.slider(
+                "Social Progress Score Min",
+                min_value=0.0,
+                max_value=1.0,
+                help=social_progress_score_help,
+                key="sp_score_min",
+            )
+        with cols[2]:
+            app_options.hf_score_min = st.slider(
+                "Human Freedom Score Min",
+                min_value=0.0,
+                max_value=1.0,
+                help=human_freedom_score_help,
+                key="hf_score_min",
+            )
+        
         st.divider()
-        app_options.hp_score_min = st.slider(
-            "Happy Planet Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=happy_planet_score_help,
-            key="hp_score_min",
-        )
-        app_options.bn_score_min = st.slider(
-            "Social Progress Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=social_progress_score_help,
-            key="sp_score_min",
-        )
-        app_options.hf_score_min = st.slider(
-            "Human Freedom Score Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=human_freedom_score_help,
-            key="hf_score_min",
-        )
+
+        cols = st.columns(2)
+        with cols[0]:
+            app_options.cf_score_min = st.slider(
+                "Culture Fit Score Min",
+                min_value=0.0,
+                max_value=1.0,
+                help=culture_fit_score_help,
+                key="cf_score_min",
+            )
+        with cols[1]:
+            app_options.ql_score_min = st.slider(
+                "Quality-of-Life Score Min",
+                min_value=0.0,
+                max_value=1.0,
+                help=quality_of_life_score_help,
+                key="ql_score_min",
+            )
+        
         st.divider()
-        app_options.english_ratio_min = st.slider(
-            "English Speaking Ratio Min",
-            min_value=0.0,
-            max_value=1.0,
-            help=english_speaking_ratio_help,
-            key="english_ratio_min",
-        )
-        app_options.year_min, app_options.year_max = st.slider(
-            "Year Range",
-            min_value=2000,
-            max_value=2020,
-            help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
-            key="year_minmax",
-        )
+
+        cols = st.columns(2)
+        with cols[0]:
+            app_options.english_ratio_min = st.slider(
+                "English Speaking Ratio Min",
+                min_value=0.0,
+                max_value=1.0,
+                help=english_speaking_ratio_help,
+                key="english_ratio_min",
+            )
+        with cols[1]:
+            app_options.year_min, app_options.year_max = st.slider(
+                "Year Range",
+                min_value=2000,
+                max_value=2020,
+                help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
+                key="year_minmax",
+            )
     return app_options
 
 
@@ -411,7 +434,7 @@ def reset_options_callback():
 
 
 def get_options():
-    st.header("Options")
+    st.header("Options", anchor=False)
 
     # Reference Country
     culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
@@ -419,6 +442,7 @@ def get_options():
         "Reference Country",
         options=culture_fit_reference_country_options,
         key="culture_fit_reference_country",
+        help="Use this to set the Culture Fit preferences to the selected country."
     )
     st.button(
         label="Set Culture Fit Preferences to Reference Country",
@@ -773,12 +797,13 @@ def run_ui_section_best_match(df, app_options, num_total):
 
 
 
-def get_df_top_N(df):
+def get_df_top_N(df, N_key):
     N = st.number_input(
         "Number of Top Matching Countries to show",
         min_value=1,
         max_value=100,
         value=10,
+        key=N_key
     )
 
     df_top_N = df.head(N)
@@ -796,7 +821,7 @@ def get_df_top_N(df):
 def run_ui_section_top_n_matches(df, app_options, num_total):
 
     def execute_overall_score_contributions(df):
-        df_top_N = get_df_top_N(df)
+        df_top_N = get_df_top_N(df, N_key="N_top_overall_score")
         fig = px.bar(
             df_top_N,
             x="country_with_overall_score_rank",
@@ -819,7 +844,7 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_ql_score_contributions(df_top_N):
-        df_top_N = get_df_top_N(df)
+        df_top_N = get_df_top_N(df, N_key="N_top_ql_score")
         sort_by_field = st.selectbox("Sort By", options=["overall_score", "ql_score"], format_func=df_format_func)
         df_top_N = df_top_N.sort_values(df_format_func(sort_by_field), ascending=False)
         fig = px.bar(
@@ -1088,6 +1113,7 @@ def run_ui_section_all_matches(df):
                 min_value=0.0,
                 max_value=10.0,
                 value=4.0,
+                step=0.5,
                 help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
             )
 
