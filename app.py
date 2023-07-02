@@ -14,7 +14,6 @@ import streamlit as st
 import plotly.express as px
 import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 import config
 from app_options import AppOptions, NONE_COUNTRY
@@ -209,6 +208,9 @@ score_fields = [
     "hf_score",
 ]
 culture_fields = dimensions_info.DIMENSIONS
+
+# note: this gets appended to later with english_speaking if it is used by filters
+plottable_fields = overall_fields + score_fields + culture_fields
 
 
 def culture_fit_reference_callback():
@@ -915,9 +917,7 @@ def run_ui_section_results(df, app_options, num_total):
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
-
-    # TODO move to config file
-    plottable_fields = overall_fields + score_fields + culture_fields
+    
 
     # Special handling for language
     if "english_ratio" in df.columns:
