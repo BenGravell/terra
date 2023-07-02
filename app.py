@@ -17,6 +17,7 @@ import seaborn as sns
 
 import config
 from app_options import AppOptions, NONE_COUNTRY
+import clustering_options
 import map_options
 import color_options
 import utils
@@ -909,42 +910,6 @@ def run_ui_section_all_matches(df):
 
     plottable_field_default_index = plottable_fields.index("overall_score")
 
-    # TODO move to config
-    pdist_metric_options = [
-        "cityblock",
-        "euclidean",
-        "cosine",
-        "braycurtis",
-        "canberra",
-        "chebyshev",
-        "correlation",
-        "dice",
-        "hamming",
-        "jaccard",
-        "jensenshannon",
-        "kulczynski1",
-        "mahalanobis",
-        "matching",
-        "minkowski",
-        "rogerstanimoto",
-        "russellrao",
-        "seuclidean",
-        "sokalmichener",
-        "sokalsneath",
-        "sqeuclidean",
-        "yule",
-    ]
-
-    linkage_method_options = [
-        "complete",
-        "average",
-        "single",
-        "weighted",
-        "centroid",
-        "median",
-        "ward",
-    ]
-
     def execute_world_map():
         cols = st.columns(3)
         with cols[0]:
@@ -1098,13 +1063,13 @@ def run_ui_section_all_matches(df):
                     with cols[0]:
                         distance_metric = st.selectbox(
                             "Distance Metric",
-                            options=pdist_metric_options,
+                            options=clustering_options.PDIST_METRIC_OPTIONS,
                             help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html",
                         )
                     with cols[1]:
                         linkage_method = st.selectbox(
                             "Linkage Method",
-                            options=linkage_method_options,
+                            options=clustering_options.LINKAGE_METHOD_OPTIONS,
                             help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html",
                         )
 
@@ -1363,9 +1328,6 @@ def teardown(app_options):
     return
 
 
-################################################################################
-## Main
-################################################################################
 def main():
     if not "initialized" in state:
         first_run_per_session()
