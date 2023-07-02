@@ -164,6 +164,7 @@ def load_data():
 # TODO move to a config file
 df_format_dict = {
     "country": "Country",
+    "country_with_emoji": "Country with Emoji",
     "overall_score": "Overall Score",
     "cf_score": "Culture Fit Score",
     "ql_score": "Quality-of-Life Score",
@@ -647,6 +648,7 @@ def process_data(app_options):
     df = process_data_language_prevalence(df, app_options)
     df = process_data_overall_score(df, app_options)
     df = process_data_ranks(df, app_options)
+    df['country_with_emoji'] = df['country'].apply(lambda x: f'{x} ({country_to_emoji[x]})')
     num_total = df.shape[0]  # do this before filtering to get all rows
     df = process_data_filters(df, app_options)
 
@@ -726,7 +728,6 @@ def run_ui_section_best_match(df, app_options, num_total):
                 "Country", options=countries, format_func=lambda x: f"{get_rank_prefix_str(x, sort_by_col)}{x}"
             )
 
-    selected_country_emoji = country_to_emoji[selected_country]
     selected_country_row = df.set_index("country").loc[selected_country]
     best_match_country_row = df.set_index("country").loc[best_match_country]
 
@@ -734,7 +735,7 @@ def run_ui_section_best_match(df, app_options, num_total):
         selected_country_header_str = "Selected Country"
         if selected_country == best_match_country:
             selected_country_header_str += " (Best Match)"
-        st.header(f"{selected_country_header_str}: :blue[{selected_country}] ({selected_country_emoji})", anchor=False)
+        st.header(f"{selected_country_header_str}: :blue[{selected_country_row['country_with_emoji']}]", anchor=False)
 
     def execute_world_factbook():
         # CIA World Factbook viewer
@@ -786,7 +787,7 @@ def run_ui_section_best_match(df, app_options, num_total):
                     y=field,
                     labels={field: df_format_func(field)},
                     points="all",
-                    hover_name="country",
+                    hover_name="country_with_emoji",
                     orientation="v",
                 )
 
@@ -925,7 +926,7 @@ def run_ui_section_all_matches(df):
             locationmode="country names",
             locations="country",
             color=name,
-            hover_name="country",
+            hover_name="country_with_emoji",
             color_continuous_scale=color_options.CHOROPLETH_COLORMAP,
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
@@ -1195,7 +1196,7 @@ def run_ui_section_all_matches(df):
             scatter_kwargs = dict(
                 x="x",
                 y="y",
-                hover_name="country",
+                hover_name="country_with_emoji",
                 hover_data=["overall_score"],
                 color="cluster",
                 color_discrete_map=color_options.CLUSTER_COLOR_SEQUENCE_MAP,
@@ -1251,39 +1252,28 @@ def run_ui_section_all_matches(df):
 
     def execute_pair_plot():
         with st.form("pairplot_options"):
-            cols = st.columns(2)
-            with cols[0]:
-                x_fields_for_pairplot = st.multiselect(
-                    "X Fields for Pair Plot",
-                    options=plottable_fields,
-                    default=score_fields,
-                    format_func=df_format_func,
-                )
-                x_len = len(x_fields_for_pairplot)
-            with cols[1]:
-                y_fields_for_pairplot = st.multiselect(
-                    "Y Fields for Pair Plot",
-                    options=plottable_fields,
-                    default=["overall_score"],
-                    format_func=df_format_func,
-                )
-                y_len = len(y_fields_for_pairplot)
-
+            fields_for_pairplot = st.multiselect(
+                "Fields for Pair Plot",
+                options=plottable_fields,
+                default=score_fields,
+                format_func=df_format_func,
+            )
             st.form_submit_button("Update Pair Plot Options")
 
-        num_plots = x_len * y_len
-        if num_plots > 10:
-            st.warning(
-                f"Selected fields will result in {num_plots} plots, rendering may take a long time (be prepared to wait or change your selection)."
+        if len(fields_for_pairplot) < 3:
+            st.warning("Need at least 3 fields for pair plot!")
+        else:
+            df_for_pairplot = df.rename(columns=df_format_dict)
+            fig = px.scatter_matrix(
+                df_for_pairplot,
+                dimensions=[df_format_dict[x] for x in fields_for_pairplot],
+                hover_name='Country with Emoji',
             )
-
-        fig = sns.pairplot(
-            data=df.rename(columns=df_format_dict),
-            x_vars=[df_format_dict[x] for x in x_fields_for_pairplot],
-            y_vars=[df_format_dict[y] for y in y_fields_for_pairplot],
-        )
-
-        st.pyplot(fig, use_container_width=True)
+            fig.update_traces(diagonal_visible=False, showupperhalf=False)
+            fig.update_layout(
+                height=600,
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     check_to_execute(func=execute_world_map, label="World Map")
     check_to_execute(
