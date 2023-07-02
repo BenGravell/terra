@@ -1038,7 +1038,7 @@ def run_ui_section_all_matches(df):
                             "Number of Neighbors",
                             min_value=1,
                             max_value=50,
-                            value=10,
+                            value=15,
                             help="This parameter controls how UMAP balances local versus global structure in the data. It does this by constraining the size of the local neighborhood UMAP will look at when attempting to learn the manifold structure of the data. This means that low values will force UMAP to concentrate on very local structure (potentially to the detriment of the big picture), while large values will push UMAP to look at larger neighborhoods of each point when estimating the manifold structure of the data, losing fine detail structure for the sake of getting the broader of the data. See https://umap-learn.readthedocs.io/en/latest/parameters.html",
                         )
                     with cols[1]:
@@ -1046,7 +1046,7 @@ def run_ui_section_all_matches(df):
                             "Minimum Distance in Projected Space",
                             min_value=0.0,
                             max_value=1.0,
-                            value=0.1,
+                            value=0.2,
                             help="This parameter controls how tightly UMAP is allowed to pack points together. It, quite literally, provides the minimum distance apart that points are allowed to be in the low dimensional representation. This means that low values will result in clumpier embeddings. This can be useful if you are interested in clustering, or in finer topological structure. Larger values will prevent UMAP from packing points together and will focus on the preservation of the broad topological structure instead. See https://umap-learn.readthedocs.io/en/latest/parameters.html",
                         )
 
@@ -1069,9 +1069,9 @@ def run_ui_section_all_matches(df):
                 if clustering_method_name == "HDBSCAN":
                     cols = st.columns(3)
                     with cols[0]:
-                        min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2)
+                        min_cluster_size = st.slider("Min Cluster Size", min_value=1, max_value=20, step=1, value=2, help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
                     with cols[1]:
-                        min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2)
+                        min_samples = st.slider("Min Samples", min_value=1, max_value=20, step=1, value=2, help="How conservative you want you clustering to be. The larger the value you provide, the more conservative the clustering - more points will be declared as noise, and clusters will be restricted to progressively more dense areas. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.")
                 elif clustering_method_name == "Hierarchical":
                     cols = st.columns(3)
                     with cols[0]:
