@@ -239,6 +239,22 @@ english_speaking_ratio_help = (
 )
 
 
+dimensionality_reducer_name_to_class_map = {
+    "t-SNE": TSNE,
+    "UMAP": UMAP,
+}
+
+
+@st.cache_data
+def get_dimension_reduced_df(df, dimensionality_reducer_name, dimensionality_reducer_kwargs):
+    dimensionality_reducer_class = dimensionality_reducer_name_to_class_map[dimensionality_reducer_name]
+    dimensionality_reducer = dimensionality_reducer_class(**dimensionality_reducer_kwargs)
+
+    projection = dimensionality_reducer.fit_transform(df)
+    df_projection = pd.DataFrame(projection).rename(columns={0: "x", 1: "y"})
+    return df_projection
+
+
 def get_options_from_query_params():
     query_params = st.experimental_get_query_params()
     app_options = AppOptions()
@@ -354,7 +370,7 @@ def get_options_from_ui():
                 help=human_freedom_score_help,
                 key="hf_score_min",
             )
-        
+
         st.divider()
 
         cols = st.columns(2)
@@ -374,7 +390,7 @@ def get_options_from_ui():
                 help=quality_of_life_score_help,
                 key="ql_score_min",
             )
-        
+
         st.divider()
 
         cols = st.columns(2)
@@ -442,7 +458,7 @@ def get_options():
         "Reference Country",
         options=culture_fit_reference_country_options,
         key="culture_fit_reference_country",
-        help="Use this to set the Culture Fit preferences to the selected country."
+        help="Use this to set the Culture Fit preferences to the selected country.",
     )
     st.button(
         label="Set Culture Fit Preferences to Reference Country",
@@ -796,15 +812,8 @@ def run_ui_section_best_match(df, app_options, num_total):
     )
 
 
-
 def get_df_top_N(df, N_key):
-    N = st.number_input(
-        "Number of Top Matching Countries to show",
-        min_value=1,
-        max_value=100,
-        value=10,
-        key=N_key
-    )
+    N = st.number_input("Number of Top Matching Countries to show", min_value=1, max_value=100, value=10, key=N_key)
 
     df_top_N = df.head(N)
 
@@ -819,7 +828,6 @@ def get_df_top_N(df, N_key):
 
 
 def run_ui_section_top_n_matches(df, app_options, num_total):
-
     def execute_overall_score_contributions(df):
         df_top_N = get_df_top_N(df, N_key="N_top_overall_score")
         fig = px.bar(
@@ -875,7 +883,6 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
     expander_checkbox_spinner_execute(
         func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df]
     )
-
 
 
 def run_ui_section_all_matches(df):
@@ -1018,10 +1025,6 @@ def run_ui_section_all_matches(df):
             df_for_dr = df[dr_fields]
 
             dimensionality_reducer_name = st.selectbox("Dimensionality Reduction Method", options=["UMAP", "t-SNE"])
-            dimensionality_reducer_name_to_class_map = {
-                "t-SNE": TSNE,
-                "UMAP": UMAP,
-            }
 
             with st.form("dimesionality_reduction_options"):
                 dimensionality_reducer_kwargs = {}
@@ -1074,11 +1077,9 @@ def run_ui_section_all_matches(df):
 
                 st.form_submit_button("Update Dimensionality Reduction Options", use_container_width=True)
 
-            dimensionality_reducer_class = dimensionality_reducer_name_to_class_map[dimensionality_reducer_name]
-            dimensionality_reducer = dimensionality_reducer_class(**dimensionality_reducer_kwargs)
-
-            projection = dimensionality_reducer.fit_transform(df_for_dr)
-            df_projection = pd.DataFrame(projection).rename(columns={0: "x", 1: "y"})
+            df_projection = get_dimension_reduced_df(
+                df_for_dr, dimensionality_reducer_name, dimensionality_reducer_kwargs
+            )
 
             with st.form("clustering_options"):
                 # TODO expose different clustering methods
@@ -1102,20 +1103,24 @@ def run_ui_section_all_matches(df):
 
         df_for_dr_plot = pd.concat([df.reset_index().drop(columns="index"), df_projection, df_clusters], axis=1)
 
-        cols = st.columns(3)
-        with cols[0]:
-            show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
-        with cols[1]:
-            marker_size_field = st.selectbox("Marker Size Field", options=plottable_fields, format_func=df_format_func)
-        with cols[2]:
-            marker_size_power = st.slider(
-                "Marker Size Power",
-                min_value=0.0,
-                max_value=10.0,
-                value=4.0,
-                step=0.5,
-                help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
-            )
+        with st.form("dim_red_cluster_plot_options"):
+            cols = st.columns(3)
+            with cols[0]:
+                show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
+            with cols[1]:
+                marker_size_field = st.selectbox(
+                    "Marker Size Field", options=plottable_fields, format_func=df_format_func
+                )
+            with cols[2]:
+                marker_size_power = st.slider(
+                    "Marker Size Power",
+                    min_value=0.0,
+                    max_value=10.0,
+                    value=4.0,
+                    step=0.5,
+                    help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
+                )
+            st.form_submit_button("Update Clustering Plot Options", use_container_width=True)
 
         df_for_dr_plot["marker_size"] = df_for_dr_plot[marker_size_field] ** marker_size_power
 
@@ -1216,7 +1221,7 @@ def run_ui_section_all_matches(df):
                     index=plottable_fields.index("hf_score"),
                     format_func=df_format_func,
                 )
-            st.form_submit_button("Update Plot Options")
+            st.form_submit_button("Update Flag Plot Options")
         scatterplot = visualisation.generate_scatterplot(df.set_index("country"), x_column, y_column)
         st.bokeh_chart(scatterplot, use_container_width=True)
 
