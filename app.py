@@ -684,18 +684,28 @@ def run_ui_section_best_match(df, app_options, num_total):
     focus_container = st.container()
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
-    with st.expander("Selection Options"):
+    with st.expander("Select Country", expanded=True):
         cols = st.columns(2)
         with cols[1]:
             sort_by_col = st.selectbox(
                 "Sort By",
-                options=["overall_score", "country"],
-                format_func=lambda x: {"overall_score": "Overall Score", "country": "Alphabetical"}[x],
+                options=[
+                    "overall_score",
+                    "cf_score",
+                    "ql_score",
+                    "country",
+                ],
+                format_func=lambda x: {
+                    "overall_score": "Overall Score",
+                    "cf_score": "Culture Fit Score",
+                    "ql_score": "Quality-of-Life Score",
+                    "country": "Alphabetical",
+                }[x],
             )
 
         if sort_by_col == "country":
             ascending = True
-        elif sort_by_col == "overall_score":
+        else:
             ascending = False
 
         df_sorted = df.sort_values(sort_by_col, ascending=ascending).reset_index().drop(columns="index")
@@ -708,7 +718,7 @@ def run_ui_section_best_match(df, app_options, num_total):
         def get_rank_prefix_str(country, sort_by_col):
             if sort_by_col == "country":
                 return ""
-            elif sort_by_col == "overall_score":
+            else:
                 return f"({get_rank_prefix(country)}) "
 
         with cols[0]:
@@ -722,11 +732,7 @@ def run_ui_section_best_match(df, app_options, num_total):
 
     with focus_container:
         st.header("Selected Country", anchor=False)
-        cols = st.columns([4, 2])
-        with cols[0]:
-            st.header(f":blue[{selected_country}] ({selected_country_emoji})", anchor=False)
-        with cols[1]:
-            st.image(visualisation.country_urls.COUNTRY_URLS[selected_country], width=100)
+        st.header(f":blue[{selected_country}] ({selected_country_emoji})", anchor=False)
 
     def execute_world_factbook():
         # CIA World Factbook viewer
@@ -734,20 +740,31 @@ def run_ui_section_best_match(df, app_options, num_total):
         st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
-    expander_checkbox_spinner_execute(func=execute_world_factbook, label="CIA World Factbook")
+    def execute_google_maps():
+        # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
+        latlon_row = df_coords.loc[selected_country]
+        lat = latlon_row.latitude
+        lon = latlon_row.longitude
 
-    # Google Maps viewer
-    # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
-    latlon_row = df_coords.loc[selected_country]
-    lat = latlon_row.latitude
-    lon = latlon_row.longitude
+        google_maps_url = get_google_maps_url(lat, lon)
 
-    google_maps_url = get_google_maps_url(lat, lon)
-    with st.expander("Google Maps"):
-        st.markdown(f"[Open in new tab]({google_maps_url})")
-        st.caption(
-            "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab."
+        st.markdown(
+            f"[Open in new tab]({google_maps_url})",
+            help="Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab.",
         )
+
+    def execute_selected_country_details():
+        # Removing since the flag is near the top in the World Factbook anyway
+        # st.subheader("Flag", anchor=False)
+        # st.image(visualisation.country_urls.COUNTRY_URLS[selected_country], width=100)
+
+        st.subheader("CIA World Factbook", anchor=False)
+        execute_world_factbook()
+
+        st.subheader("Google Maps", anchor=False)
+        execute_google_maps()
+
+    expander_checkbox_spinner_execute(func=execute_selected_country_details, label="Selected Country Details")
 
     def detailed_country_breakdown(fields, name):
         for field in fields:
