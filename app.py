@@ -209,9 +209,6 @@ score_fields = [
 ]
 culture_fields = dimensions_info.DIMENSIONS
 
-# note: this gets appended to later with english_speaking if it is used by filters
-plottable_fields = overall_fields + score_fields + culture_fields
-
 
 def culture_fit_reference_callback():
     if state.culture_fit_reference_country == NONE_COUNTRY:
@@ -917,6 +914,8 @@ def run_ui_section_results(df, app_options, num_total):
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
+
+    plottable_fields = overall_fields + score_fields + culture_fields
 
     # Special handling for language
     if "english_ratio" in df.columns:
