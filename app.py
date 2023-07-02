@@ -43,7 +43,7 @@ plt.style.use(["dark_background", "./terra.mplstyle"])
 state = st.session_state
 
 
-def expander_checkbox_spinner_execute(
+def check_to_execute(
     func, label="", checkbox_value=False, expanded=False, func_args=None, func_kwargs=None
 ):
     """Conditionally execute func if an st.checkbox is checked."""
@@ -764,7 +764,7 @@ def run_ui_section_best_match(df, app_options, num_total):
         st.subheader("Google Maps", anchor=False)
         execute_google_maps()
 
-    expander_checkbox_spinner_execute(func=execute_selected_country_details, label="Selected Country Details")
+    check_to_execute(func=execute_selected_country_details, label="Selected Country Details")
 
     def detailed_country_breakdown(fields, name):
         for field in fields:
@@ -814,41 +814,25 @@ def run_ui_section_best_match(df, app_options, num_total):
             fig.update_layout(showlegend=True)
             st.plotly_chart(fig, use_container_width=True)
 
-    expander_checkbox_spinner_execute(
+    check_to_execute(
         func=detailed_country_breakdown,
         label="Overall Score Distribution",
         func_kwargs=dict(fields=overall_fields, name="Overall Scores"),
     )
-    expander_checkbox_spinner_execute(
+    check_to_execute(
         func=detailed_country_breakdown,
         label="Culture Dimension Distribution",
         func_kwargs=dict(fields=culture_fields, name="Culture Dimensions"),
     )
-    expander_checkbox_spinner_execute(
+    check_to_execute(
         func=detailed_country_breakdown,
         label="Quality-of-Life Score Distribution",
         func_kwargs=dict(fields=score_fields, name="Quality-of-Life Scores"),
     )
 
 
-def get_df_top_N(df, N_key):
-    N = st.number_input("Number of Top Matching Countries to show", min_value=1, max_value=100, value=10, key=N_key)
-
-    df_top_N = df.head(N)
-
-    df_top_N["country_with_overall_score_rank"] = (
-        df_top_N["country"] + " (" + df_top_N["overall_score_rank"].astype(str) + ")"
-    )
-    df_top_N["country_with_ql_score_rank"] = df_top_N["country"] + " (" + df_top_N["ql_score_rank"].astype(str) + ")"
-
-    df_top_N = df_top_N.rename(columns=df_format_dict)
-
-    return df_top_N
-
-
 def run_ui_section_top_n_matches(df, app_options, num_total):
-    def execute_overall_score_contributions(df):
-        df_top_N = get_df_top_N(df, N_key="N_top_overall_score")
+    def execute_overall_score_contributions(df_top_N):
         fig = px.bar(
             df_top_N,
             x="country_with_overall_score_rank",
@@ -871,9 +855,6 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_ql_score_contributions(df_top_N):
-        df_top_N = get_df_top_N(df, N_key="N_top_ql_score")
-        sort_by_field = st.selectbox("Sort By", options=["overall_score", "ql_score"], format_func=df_format_func)
-        df_top_N = df_top_N.sort_values(df_format_func(sort_by_field), ascending=False)
         fig = px.bar(
             df_top_N,
             x="country_with_ql_score_rank",
@@ -896,11 +877,28 @@ def run_ui_section_top_n_matches(df, app_options, num_total):
             )
         st.plotly_chart(fig, use_container_width=True)
 
-    expander_checkbox_spinner_execute(
-        func=execute_overall_score_contributions, label="Overall Score Contributions", func_args=[df]
-    )
-    expander_checkbox_spinner_execute(
-        func=execute_ql_score_contributions, label="Quality-of-Life Score Contributions", func_args=[df]
+    def execute_score_contributions():
+        cols = st.columns(2)
+        with cols[0]:
+            N = st.number_input("Number of Top Matching Countries to show", min_value=1, max_value=100, value=10)
+        with cols[1]:
+            sort_by_field = st.selectbox("Sort By", options=["overall_score", "ql_score"], format_func=df_format_func)
+
+        # Create the top N dataframe
+        df_top_N = df.head(N)
+        df_top_N["country_with_overall_score_rank"] = (
+            df_top_N["country"] + " (" + df_top_N["overall_score_rank"].astype(str) + ")"
+        )
+        df_top_N["country_with_ql_score_rank"] = df_top_N["country"] + " (" + df_top_N["ql_score_rank"].astype(str) + ")"
+        df_top_N = df_top_N.rename(columns=df_format_dict)
+        df_top_N = df_top_N.sort_values(df_format_func(sort_by_field), ascending=False)
+
+        execute_overall_score_contributions(df_top_N)
+        execute_ql_score_contributions(df_top_N)
+
+
+    check_to_execute(
+        func=execute_score_contributions, label="Score Contributions",
     )
 
 
@@ -1237,13 +1235,13 @@ def run_ui_section_all_matches(df):
 
         st.pyplot(fig, use_container_width=True)
 
-    expander_checkbox_spinner_execute(func=execute_world_map, label="World Map")
-    expander_checkbox_spinner_execute(func=execute_results_data, label="Results Data")
-    expander_checkbox_spinner_execute(
+    check_to_execute(func=execute_world_map, label="World Map")
+    check_to_execute(func=execute_results_data, label="Results Data")
+    check_to_execute(
         func=execute_dimensionality_reduction_and_clustering, label="Dimensionality Reduction & Clustering"
     )
-    expander_checkbox_spinner_execute(func=execute_flag_plot, label="Flag Plot")
-    expander_checkbox_spinner_execute(func=execute_pair_plot, label="Pair Plot")
+    check_to_execute(func=execute_flag_plot, label="Flag Plot")
+    check_to_execute(func=execute_pair_plot, label="Pair Plot")
 
 
 def run_ui_subsection_culture_fit_help():
