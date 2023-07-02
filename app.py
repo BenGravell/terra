@@ -15,6 +15,7 @@ import plotly.express as px
 import plotly.figure_factory as ff
 import matplotlib.pyplot as plt
 
+from supported_countries import SUPPORTED_COUNTRIES
 import config
 from app_options import AppOptions, NONE_COUNTRY
 import clustering_options
@@ -478,6 +479,11 @@ def get_options():
     return app_options
 
 
+def process_data_init():
+    df = pd.DataFrame({"country": SUPPORTED_COUNTRIES})
+    return df
+
+
 def process_data_happy_planet(df, app_options):
     df = df.merge(happy_planet_df, on="country")
     return df
@@ -490,10 +496,12 @@ def process_data_social_progress(df, app_options):
 
 @st.cache_data
 def process_data_human_freedom(df, app_options):
+    # TODO: bake-in the year filter to 2015-2020 or something reasonable
     human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
     freedom_score_cols = ["hf_score"]
-    df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
-    df = df.reset_index()
+    human_freedom_agg_df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
+    human_freedom_agg_df = human_freedom_agg_df.reset_index()
+    df = df.merge(human_freedom_agg_df, on="country")
     return df
 
 
@@ -639,7 +647,7 @@ def process_data_filters(df, app_options):
 
 @st.cache_data
 def process_data(app_options):
-    df = None
+    df = process_data_init()
     df = process_data_human_freedom(df, app_options)
     df = process_data_happy_planet(df, app_options)
     df = process_data_social_progress(df, app_options)
@@ -1337,11 +1345,13 @@ def run_ui_section_share(app_options):
 
 
 def set_query_params(app_options):
-    # Set the query params with all the app_options
+    """Set the query params with all the app_options."""
     st.experimental_set_query_params(**dataclasses.asdict(app_options))
 
 
 def teardown(app_options):
+    """Perform all operations just before the end of the app execution."""
+
     # Update the state.
     # app_options should not be modified after this point
     state.app_options = app_options
@@ -1362,22 +1372,21 @@ def main():
     with container_dict["Options"]:
         app_options = get_options()
 
-    if not app_options.are_overall_weights_valid:
-        st.warning(
-            "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue."
-        )
-        return
+        if not app_options.are_overall_weights_valid:
+            st.warning(
+                "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue."
+            )
+            return
 
-    if not app_options.are_ql_weights_valid:
-        st.warning(
-            "The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue."
-        )
-        return
+        if not app_options.are_ql_weights_valid:
+            st.warning(
+                "The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue."
+            )
+            return
 
     df, num_total = process_data(app_options)
-
-    no_matches = df.shape[0] == 0
-    if no_matches:
+    num_matches = df.shape[0]
+    if num_matches == 0:
         st.warning("No matches found! Try adjusting the filters to be less strict.")
     else:
         with container_dict["Welcome"]:
