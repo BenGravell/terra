@@ -450,6 +450,8 @@ def first_run_per_session():
     initialize_widget_state_from_app_options(state.app_options)
 
     state.initialized = True
+    
+    st.experimental_rerun()
 
 
 def reset_options_callback():
