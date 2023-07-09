@@ -450,7 +450,7 @@ def first_run_per_session():
     initialize_widget_state_from_app_options(state.app_options)
 
     state.initialized = True
-    
+
     st.experimental_rerun()
 
 
@@ -1373,7 +1373,8 @@ def main():
         first_run_per_session()
 
     tab_names = ["Welcome", "Options", "Results", "Help", "Share"]
-    tabs = st.tabs(tab_names)
+    tab_emoji_dict = {"Welcome": "👋", "Options": "🎛️", "Results": "📈", "Help": "❓", "Share": "🔗"}
+    tabs = st.tabs([f"{tab_emoji_dict[tab_name]} {tab_name}" for tab_name in tab_names])
     container_dict = {tab_name: tab for tab_name, tab in zip(tab_names, tabs)}
 
     with container_dict["Options"]:
