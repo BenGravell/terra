@@ -1,7 +1,11 @@
+import cmocean
+import matplotlib
 import plotly.express as px
 
 
 CHOROPLETH_COLORMAP = px.colors.sequential.deep_r
+
+GLOBE_COLORMAP = matplotlib.cm.get_cmap('cmo.deep_r')
 
 CLUSTER_COLOR_SEQUENCE_MAP = {
             "-1": "#797979",

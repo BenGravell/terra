@@ -28,24 +28,38 @@ class AppOptions:
     english_ratio_min: float = 0.0
 
     # Weights
-    cf_score_weight: float = 1.0
-    ql_score_weight: float = 1.0
-    hp_score_weight: float = 1.0
-    sp_score_weight: float = 1.0
-    hf_score_weight: float = 1.0
+    cf_score_weight: float = 0.5
+    ql_score_weight: float = 0.5
+    hp_score_weight: float = 0.3
+    sp_score_weight: float = 0.4
+    hf_score_weight: float = 0.3
 
     @property
     def are_overall_weights_valid(self):
-        if all([getattr(self, field) < EPS for field in ["cf_score_weight", "ql_score_weight"]]):
+        overall_fields = ["cf_score_weight", "ql_score_weight"]
+        if all([getattr(self, field) < EPS for field in overall_fields]):
             return False
         return True
     
     @property
+    def are_overall_weights_valid_100(self):
+        overall_fields = ["cf_score_weight", "ql_score_weight"]
+        pct_sum = sum([round(100*getattr(self, field)) for field in overall_fields])
+        return pct_sum == 100, pct_sum
+
+    @property
     def are_ql_weights_valid(self):
-        if all([getattr(self, field) < EPS for field in ["hp_score_weight", "sp_score_weight", "hf_score_weight"]]):
+        ql_fields = ["hp_score_weight", "sp_score_weight", "hf_score_weight"]
+        if all([getattr(self, field) < EPS for field in ql_fields]):
             return False
         
         return True
+
+    @property
+    def are_ql_weights_valid_100(self):
+        ql_fields = ["hp_score_weight", "sp_score_weight", "hf_score_weight"]
+        pct_sum = sum([round(100*getattr(self, field)) for field in ql_fields])
+        return pct_sum == 100, pct_sum
 
     @property
     def do_filter_culture_fit(self):

@@ -3,6 +3,7 @@ from copy import deepcopy
 from functools import partial
 from urllib.parse import urlencode
 
+import numpy as np
 from sklearn.decomposition import PCA, FastICA, NMF, MiniBatchSparsePCA, SparsePCA, TruncatedSVD
 from sklearn.manifold import TSNE
 from umap import UMAP
@@ -11,9 +12,14 @@ from scipy.spatial import distance
 from scipy.cluster import hierarchy
 import pandas as pd
 import streamlit as st
+from streamlit_globe import streamlit_globe
+
 import plotly.express as px
 import plotly.figure_factory as ff
+import cmocean
 import matplotlib.pyplot as plt
+from matplotlib.colors import rgb2hex
+
 
 from supported_countries import SUPPORTED_COUNTRIES
 import config
@@ -251,6 +257,9 @@ dimensionality_reducer_name_to_class_map = {
     "UMAP": UMAP,
 }
 
+unit_interval_1pt_range_list = np.arange(0.0, 1.0 + 0.01, 0.01).round(2).tolist()
+unit_interval_5pt_range_list = np.arange(0.0, 1.0 + 0.05, 0.05).round(2).tolist()
+
 
 @st.cache_data
 def get_dimension_reduced_df(df, dimensionality_reducer_name, dimensionality_reducer_kwargs):
@@ -286,138 +295,209 @@ def get_options_from_query_params():
 def get_options_from_ui():
     app_options = AppOptions()
 
-    with st.expander("Culture Fit Preferences", expanded=True):
-        cols = st.columns(len(dimensions_info.DIMENSIONS))
-        for col, dimension in zip(cols, dimensions_info.DIMENSIONS):
-            with col:
-                dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
+    st.header("Culture Fit Preferences", anchor=False)
+    for dimension in dimensions_info.DIMENSIONS:
+        dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
 
-                slider_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]})'
-                help_str = f'{dimension_info["name"]} ({dimension_info["abbreviation"]}): *{dimension_info["question"]}* \n\n {dimension_info["description"]}'
+        slider_str = f'**{dimension_info["name"]} ({dimension_info["abbreviation"]})**'
+        caption_str = f'*{dimension_info["question"]}*'
+        help_str = f'{dimension_info["description"]}'
 
-                preference_val = st.slider(slider_str, min_value=0, max_value=100, step=5, help=help_str, key=dimension)
+        st.write(slider_str)
+        st.caption(caption_str)
+        preference_val = st.slider(
+            slider_str,
+            min_value=0,
+            max_value=100,
+            step=5,
+            help=help_str,
+            key=dimension,
+            label_visibility="collapsed",
+        )
 
-                setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
+        setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
-    # TODO construct these programmatically
-    with st.expander("Quality-of-Life Preferences", expanded=True):
-        cols = st.columns(3)
-        with cols[0]:
-            app_options.hp_score_weight = st.slider(
-                "Happy Planet Score Weight",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.05,
-                help=happy_planet_score_help,
-                key="hp_score_weight",
-            )
-        with cols[1]:
-            app_options.sp_score_weight = st.slider(
-                "Social Progress Score Weight",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.05,
-                help=social_progress_score_help,
-                key="sp_score_weight",
-            )
-        with cols[2]:
-            app_options.hf_score_weight = st.slider(
-                "Human Freedom Score Weight",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.05,
-                help=human_freedom_score_help,
-                key="hf_score_weight",
-            )
-
-    with st.expander("Overall Preferences", expanded=True):
-        cols = st.columns(2)
-        with cols[0]:
-            app_options.cf_score_weight = st.slider(
-                "Culture Fit Score Weight",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.05,
-                help=culture_fit_score_help,
-                key="cf_score_weight",
-            )
-        with cols[1]:
-            app_options.ql_score_weight = st.slider(
-                "Quality-of-Life Score Weight",
-                min_value=0.0,
-                max_value=1.0,
-                step=0.05,
-                help=quality_of_life_score_help,
-                key="ql_score_weight",
-            )
+    st.divider()
 
     # TODO construct these programmatically
-    with st.expander("Filters"):
-        cols = st.columns(3)
-        with cols[0]:
-            app_options.hp_score_min = st.slider(
-                "Happy Planet Score Min",
-                min_value=0.0,
-                max_value=1.0,
-                help=happy_planet_score_help,
-                key="hp_score_min",
-            )
-        with cols[1]:
-            app_options.bn_score_min = st.slider(
-                "Social Progress Score Min",
-                min_value=0.0,
-                max_value=1.0,
-                help=social_progress_score_help,
-                key="sp_score_min",
-            )
-        with cols[2]:
-            app_options.hf_score_min = st.slider(
-                "Human Freedom Score Min",
-                min_value=0.0,
-                max_value=1.0,
-                help=human_freedom_score_help,
-                key="hf_score_min",
-            )
+    st.header("Quality-of-Life Preferences", anchor=False)
+    st.subheader(
+        ":memo: *Make sure the weights add up to 100*",
+        anchor=False,
+        help="*Why do the weights have to add up to 100?* These are competing interests, so we need to know how important each one is relative to the others.",
+    )
 
-        st.divider()
+    slider_str = "Happy Planet Score Weight"
+    caption_str = "*How much do you value living in a country that delivers long, happy lives without damaging the environment?* (🔵 Progressive bias)"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.hp_score_weight = st.select_slider(
+        slider_str,
+        options=unit_interval_5pt_range_list,
+        help=happy_planet_score_help,
+        key="hp_score_weight",
+        label_visibility="collapsed",
+        format_func=lambda x: round(100 * x),
+    )
 
-        cols = st.columns(2)
-        with cols[0]:
-            app_options.cf_score_min = st.slider(
-                "Culture Fit Score Min",
-                min_value=0.0,
-                max_value=1.0,
-                help=culture_fit_score_help,
-                key="cf_score_min",
-            )
-        with cols[1]:
-            app_options.ql_score_min = st.slider(
-                "Quality-of-Life Score Min",
-                min_value=0.0,
-                max_value=1.0,
-                help=quality_of_life_score_help,
-                key="ql_score_min",
-            )
+    slider_str = "Social Progress Score Weight"
+    caption_str = "*How much do you value living in a country that meets basic human needs, lays the foundations of wellbeing, and creates opportunities for all individuals to reach their full potential?* (🟣 Center bias)"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.sp_score_weight = st.select_slider(
+        slider_str,
+        options=unit_interval_5pt_range_list,
+        help=social_progress_score_help,
+        key="sp_score_weight",
+        label_visibility="collapsed",
+        format_func=lambda x: round(100 * x),
+    )
 
-        st.divider()
+    slider_str = "Human Freedom Score Weight"
+    caption_str = "*How much do you value living in a country with a broad range of personal, civil, and economic freedoms?* (🔴 Libertarian-conservative bias)"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.hf_score_weight = st.select_slider(
+        slider_str,
+        options=unit_interval_5pt_range_list,
+        help=human_freedom_score_help,
+        key="hf_score_weight",
+        label_visibility="collapsed",
+        format_func=lambda x: round(100 * x),
+    )
 
-        cols = st.columns(2)
-        with cols[0]:
-            app_options.english_ratio_min = st.slider(
-                "English Speaking Ratio Min",
-                min_value=0.0,
-                max_value=1.0,
-                help=english_speaking_ratio_help,
-                key="english_ratio_min",
-            )
-        with cols[1]:
-            app_options.year_min, app_options.year_max = st.slider(
-                "Year Range",
-                min_value=2000,
-                max_value=2020,
-                help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
-                key="year_minmax",
-            )
+    st.divider()
+    st.header("Overall Preferences", anchor=False)
+    st.subheader(
+        ":memo: *Make sure the weights add up to 100*",
+        anchor=False,
+        help="*Why do the weights have to add up to 100?* These are competing interests, so we need to know how important each one is relative to the others.",
+    )
+
+    slider_str = "Culture Fit Score Weight"
+    caption_str = "*How much do you value living in a country whose culture aligns with your preferences?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.cf_score_weight = st.select_slider(
+        slider_str,
+        options=unit_interval_5pt_range_list,
+        help=culture_fit_score_help,
+        key="cf_score_weight",
+        label_visibility="collapsed",
+        format_func=lambda x: round(100 * x),
+    )
+
+    slider_str = "Quality-of-Life Score Weight"
+    caption_str = "*How much do you value living in a country with high quality-of-life?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.ql_score_weight = st.select_slider(
+        slider_str,
+        options=unit_interval_5pt_range_list,
+        help=quality_of_life_score_help,
+        key="ql_score_weight",
+        label_visibility="collapsed",
+        format_func=lambda x: round(100 * x),
+    )
+
+    st.divider()
+
+    # TODO construct these programmatically
+    st.header("Quality-of-Life Filters", anchor=False)
+
+    slider_str = "Happy Planet Score Min"
+    caption_str = "*What is the minimum Happy Planet Score you are willing to accept?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.hp_score_min = st.select_slider(
+        slider_str,
+        options=unit_interval_1pt_range_list,
+        help=happy_planet_score_help,
+        key="hp_score_min",
+        label_visibility="collapsed",
+    )
+
+    slider_str = "Social Progress Score Min"
+    caption_str = "*What is the minimum Social Progress Score you are willing to accept?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.sp_score_min = st.select_slider(
+        slider_str,
+        options=unit_interval_1pt_range_list,
+        help=social_progress_score_help,
+        key="sp_score_min",
+        label_visibility="collapsed",
+    )
+
+    slider_str = "Human Freedom Score Min"
+    caption_str = "*What is the minimum Human Freedom Score you are willing to accept?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.hf_score_min = st.select_slider(
+        slider_str,
+        options=unit_interval_1pt_range_list,
+        help=human_freedom_score_help,
+        key="hf_score_min",
+        label_visibility="collapsed",
+    )
+
+    st.divider()
+
+    st.header("Overall Score Filters", anchor=False)
+
+    slider_str = "Culture Fit Score Min"
+    caption_str = "*What is the minimum Culture Fit Score you are willing to accept?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.cf_score_min = st.select_slider(
+        slider_str,
+        options=unit_interval_1pt_range_list,
+        help=culture_fit_score_help,
+        key="cf_score_min",
+        label_visibility="collapsed",
+    )
+
+    slider_str = "Quality-of-Life Score Min"
+    caption_str = "*What is the minimum Quality-of-Life Score you are willing to accept?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.ql_score_min = st.select_slider(
+        slider_str,
+        options=unit_interval_1pt_range_list,
+        help=quality_of_life_score_help,
+        key="ql_score_min",
+        label_visibility="collapsed",
+    )
+
+    st.divider()
+
+    st.header("Auxiliary Filters", anchor=False)
+
+    slider_str = "English Speaking Ratio Min"
+    caption_str = "*What is the minimum proportion of English speakers you are willing to accept?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.english_ratio_min = st.select_slider(
+        slider_str,
+        options=unit_interval_1pt_range_list,
+        help=english_speaking_ratio_help,
+        key="english_ratio_min",
+        label_visibility="collapsed",
+    )
+
+    slider_str = "Year Range"
+    caption_str = "*What years do you want to consider?*"
+    st.write(slider_str)
+    st.caption(caption_str)
+    app_options.year_min, app_options.year_max = st.slider(
+        slider_str,
+        min_value=2000,
+        max_value=2020,
+        help="Years over which to aggregate statistics. Only affects Human Freedom scores.",
+        key="year_minmax",
+        label_visibility="collapsed",
+    )
+
     return app_options
 
 
@@ -460,7 +540,9 @@ def reset_options_callback():
 
 
 def get_options():
-    st.header("Options", anchor=False)
+    with st.form(key="options_form"):
+        app_options = get_options_from_ui()
+        st.form_submit_button(label="Update Options", use_container_width=True)
 
     # Reference Country
     culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
@@ -476,10 +558,7 @@ def get_options():
         use_container_width=True,
     )
 
-    # Options
-    with st.form(key="options_form"):
-        app_options = get_options_from_ui()
-        st.form_submit_button(label="Update Options", use_container_width=True)
+    st.divider()
 
     st.button("Reset Options to Default", use_container_width=True, on_click=reset_options_callback)
 
@@ -946,6 +1025,7 @@ def run_ui_section_results(df, app_options, num_total):
                 options=plottable_fields,
                 index=plottable_field_default_index,
                 format_func=df_format_func,
+                key="field_to_plot_world_map",
             )
         with cols[1]:
             world_map_resolution = st.selectbox(
@@ -968,6 +1048,61 @@ def run_ui_section_results(df, app_options, num_total):
         fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
         fig.update_layout(geo_bgcolor=config.STREAMLIT_CONFIG["theme"]["backgroundColor"])
         st.plotly_chart(fig, use_container_width=True)
+
+    def get_data_for_globe(df, field_for_globe):
+        # TODO just merge the df_coords and df to get the data needed
+        df = df.reset_index()
+
+        field_min = df[field_for_globe].min()
+        field_max = df[field_for_globe].max()
+        pointsData = []
+        labelsData = []
+        for idx, row in df.iterrows():
+            country = row.country
+
+            latlon_row = df_coords.loc[country]
+            lat = latlon_row.latitude
+            lon = latlon_row.longitude
+
+            field_val = row[field_for_globe]
+            field_rel_val = (field_val - field_min) / (field_max - field_min)
+
+            size_min = 0.2
+            size_max = 1.0
+            size = size_min + (size_max - size_min) * field_rel_val
+
+            color_rgba = color_options.GLOBE_COLORMAP(field_rel_val)
+            color_hex = rgb2hex(color_rgba, keep_alpha=True)
+
+            point = {"lat": lat, "lng": lon, "size": size, "color": color_hex}
+            pointsData.append(point)
+
+            label = {"lat": lat, "lng": lon, "size": 0.5, "color": color_hex, "text": f"{country} ({field_val:.2f})"}
+            labelsData.append(label)
+
+        return pointsData, labelsData
+
+    def execute_globe():
+        cols = st.columns(4)
+        with cols[0]:
+            field_for_globe = st.selectbox(
+                label="Field to Plot",
+                options=plottable_fields,
+                index=plottable_field_default_index,
+                format_func=df_format_func,
+                key="field_to_plot_globe",
+            )
+        with cols[1]:
+            day_or_night = st.selectbox("Daytime or Nighttime", options=["day", "night"])
+        with cols[2]:
+            widget_width = st.number_input("Widget Width (pixels)", min_value=100, max_value=4000, value=600)
+        with cols[3]:
+            widget_height = st.number_input("Widget Height (pixels)", min_value=100, max_value=4000, value=600)
+
+        pointsData, labelsData = get_data_for_globe(df, field_for_globe)
+        streamlit_globe(
+            pointsData=pointsData, labelsData=labelsData, daytime=day_or_night, width=widget_width, height=widget_height
+        )
 
     def execute_results_data():
         df_for_table = df.rename(columns=df_format_dict).set_index("Country").drop("Acceptable", axis="columns")
@@ -1262,6 +1397,7 @@ def run_ui_section_results(df, app_options, num_total):
     check_to_execute(func=execute_score_distributions, label="Score Distributions")
     check_to_execute(func=execute_score_contributions, label="Score Contributions")
     check_to_execute(func=execute_world_map, label="World Map")
+    check_to_execute(func=execute_globe, label="Globe")
     check_to_execute(func=execute_dimred_and_clustering, label="Dimensionality Reduction & Clustering")
     check_to_execute(func=execute_pair_plot, label="Pair Plots")
     check_to_execute(func=execute_results_data, label="Results Table")
@@ -1289,8 +1425,6 @@ def run_ui_subsection_culture_fit_help():
 
 
 def run_ui_section_help():
-    st.header("Help", anchor=False)
-
     with st.expander("Tutorial 🏫"):
         open_and_st_markdown("./help/tutorial.md")
         st.divider()
@@ -1340,7 +1474,6 @@ def run_ui_section_help():
 
 
 def run_ui_section_share(app_options):
-    st.header("Share Link")
     terra_url_base = "https://terra-country-recommender.streamlit.app"
     query_params = dataclasses.asdict(app_options)
     query_string = urlencode(query_params, doseq=True)
@@ -1377,34 +1510,56 @@ def main():
     tabs = st.tabs([f"{tab_emoji_dict[tab_name]} {tab_name}" for tab_name in tab_names])
     container_dict = {tab_name: tab for tab_name, tab in zip(tab_names, tabs)}
 
+    # Always render these tabs
+    with container_dict["Welcome"]:
+        run_ui_section_welcome()
+    with container_dict["Help"]:
+        run_ui_section_help()
+
     with container_dict["Options"]:
         app_options = get_options()
 
-        if not app_options.are_overall_weights_valid:
-            st.warning(
-                "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue."
-            )
-            return
+        invalid_app_options = False
 
         if not app_options.are_ql_weights_valid:
             st.warning(
                 "The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue."
             )
-            return
+            invalid_app_options = True
 
-    df, num_total = process_data(app_options)
-    num_matches = df.shape[0]
-    if num_matches == 0:
-        st.warning("No matches found! Try adjusting the filters to be less strict.")
-    else:
-        with container_dict["Welcome"]:
-            run_ui_section_welcome()
-        with container_dict["Results"]:
-            run_ui_section_results(df, app_options, num_total)
-        with container_dict["Help"]:
-            run_ui_section_help()
-        with container_dict["Share"]:
-            run_ui_section_share(app_options)
+        are_ql_weights_valid_100_flag, ql_weight_pct_sum = app_options.are_ql_weights_valid_100
+        if not are_ql_weights_valid_100_flag:
+            st.warning(
+                f"The Quality-of-Life Preference weights do not add up to 100 (they add up to {ql_weight_pct_sum} right now) - the Quality-of-Life Score is not well-defined! Please make sure the weights add up to 100."
+            )
+            invalid_app_options = True
+
+        if not app_options.are_overall_weights_valid:
+            st.warning(
+                "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue."
+            )
+            invalid_app_options = True
+
+        are_overall_weights_valid_100_flag, overall_weight_pct_sum = app_options.are_overall_weights_valid_100
+        if not are_overall_weights_valid_100_flag:
+            st.warning(
+                f"The Overall Preference weights do not add up to 100 (they add up to {overall_weight_pct_sum} right now) - the Overall Score is not well-defined! Please make sure the weights add up to 100."
+            )
+            invalid_app_options = True
+
+    with container_dict["Share"]:
+        run_ui_section_share(app_options)
+
+    with container_dict["Results"]:
+        if invalid_app_options:
+            st.warning("Options are invalid, please correct them to see results here.")
+        else:
+            df, num_total = process_data(app_options)
+            num_matches = df.shape[0]
+            if num_matches == 0:
+                st.warning("No matches found! Try adjusting the filters to be less strict.")
+            else:
+                run_ui_section_results(df, app_options, num_total)
 
     teardown(app_options)
 

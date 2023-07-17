@@ -14,9 +14,8 @@ The general flow of Terra goes like this:
         - Open `Google Maps` centered on the country to get a feel for the geography.
     - `Score Distributions` shows how each score is distributed across all countries.
     - `Score Contributions` shows a breakdown of the contribution of each component to the Overall Score.
-    - `World Map` shows how a field is distributed over the earth.
+    - `World Map` and `Globe` show how a field is distributed over the earth.
     - `Dimensionality Reduction & Clustering` lets you see groups of countries with similar attributes.
-    - `Flag Plot` lets you plot two fields against each other, using country flags as the markers.
     - `Pair Plot` lets you plot any two sets of fields against each other to see interactions between variables.
     - `Results Table` shows all the data for matching countries in table form. You can sort each column in the app, or take a `.csv` download of the data.
 3. Share your results:
