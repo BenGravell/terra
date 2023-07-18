@@ -769,15 +769,15 @@ def run_ui_section_welcome():
     st.title("🌎 :blue[Terra]", anchor=False)
     st.caption("Find the right country for you!")
     st.subheader("What is Terra?", anchor=False)
-    cols = st.columns((6, 2))
-    with cols[0]:
-        # Get part of the README and display it
-        whole_README_str = open("./README.md", encoding="utf8").read()
-        search_str = "Terra is an app"
-        welcome_str = whole_README_str[whole_README_str.find(search_str) :]
-        st.markdown(welcome_str)
-    with cols[1]:
-        st.image("./assets/data_to_recommendation.png", use_column_width=True)
+
+    # Get part of the README and display it
+    whole_README_str = open("./README.md", encoding="utf8").read()
+    search_str = "Terra is an app"
+    welcome_str = whole_README_str[whole_README_str.find(search_str) :]
+    st.markdown(welcome_str)
+
+    # st.image("./assets/data_to_recommendation.png", width=200)
+    st.components.v1.iframe("https://globe.gl/example/countries-population/", height=600, scrolling=False)
 
 
 def run_ui_section_results(df, app_options, num_total):
