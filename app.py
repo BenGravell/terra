@@ -190,6 +190,12 @@ def load_data():
 ) = load_data()
 
 
+def country_to_emoji_func(country):
+    if country not in country_to_emoji:
+        return country
+    return f"{country} ({country_to_emoji[country]})"
+
+
 @st.cache_data(ttl=TTL)
 def get_main_data():
     """Combine the main data for Quality-of-Life and Culture Fit into a single dataframe."""
@@ -198,15 +204,11 @@ def get_main_data():
     df = df.merge(social_progress_df, on="country")
     df = df.merge(human_freedom_df, on="country")
     df = df.merge(culture_fit_df, on="country")
+    df["country_with_emoji"] = df["country"].apply(country_to_emoji_func)
     return df
 
+
 mdf = get_main_data()
-
-
-def country_to_emoji_func(country):
-    if country not in country_to_emoji:
-        return country
-    return f"{country} ({country_to_emoji[country]})"
 
 
 # TODO move to a config file
@@ -337,7 +339,25 @@ def get_options_from_query_params():
 def get_options_from_ui():
     app_options = AppOptions()
 
+    def score_strip_plot(df, field, xmin, xmax):
+        dx = xmax - xmin
+        xmin_, xmax_ = xmin - dx / 100, xmax + dx / 100
+        fig = px.strip(
+            mdf,
+            x=field,
+            labels={dimension: df_format_func(dimension)},
+            hover_name="country_with_emoji",
+            orientation="h",
+            range_x=(-0.01, 1.01),
+            height=200,
+        )
+        fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
     def culture_fit_preferences_func():
+        mdf100 = mdf.copy()
+        mdf100[dimensions_info.DIMENSIONS] *= 100
+
         for dimension in dimensions_info.DIMENSIONS:
             dimension_info = dimensions_info.DIMENSIONS_INFO[dimension]
 
@@ -355,6 +375,7 @@ def get_options_from_ui():
                 key=dimension,
                 label_visibility="collapsed",
             )
+            score_strip_plot(mdf100, dimension, 0, 100)
 
             setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
 
@@ -446,6 +467,7 @@ def get_options_from_ui():
             key="hp_score_min",
             label_visibility="collapsed",
         )
+        score_strip_plot(mdf, "hp_score", 0.0, 1.0)
 
         slider_str = "Social Progress Score Min"
         caption_str = "*What is the minimum Social Progress Score you are willing to accept?*"
@@ -457,6 +479,7 @@ def get_options_from_ui():
             key="sp_score_min",
             label_visibility="collapsed",
         )
+        score_strip_plot(mdf, "sp_score", 0.0, 1.0)
 
         slider_str = "Human Freedom Score Min"
         caption_str = "*What is the minimum Human Freedom Score you are willing to accept?*"
@@ -468,6 +491,7 @@ def get_options_from_ui():
             key="hf_score_min",
             label_visibility="collapsed",
         )
+        score_strip_plot(mdf, "hf_score", 0.0, 1.0)
 
     def overall_filters_func():
         slider_str = "Culture Fit Score Min"
@@ -503,6 +527,7 @@ def get_options_from_ui():
             key="english_ratio_min",
             label_visibility="collapsed",
         )
+        # score_strip_plot(mdf, "english_ratio", 0.0, 1.0)  # cannot use this since we do not merge the language data until after this filter is engaged to prevent losing rows unnecessarily
 
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
@@ -580,8 +605,6 @@ def get_options():
     return app_options
 
 
-
-
 def get_user_ideal(app_options):
     user_ideal = country_data.types.CountryInfo(
         id=999,
@@ -618,7 +641,7 @@ def process_data_culture_fit(df, app_options):
     culture_fit_score = culture_fit_score.rename(columns={"index": "country", "user": "cf_score"})
 
     df = df.merge(culture_fit_score, on="country")
-    
+
     return df
 
 
@@ -725,7 +748,6 @@ def process_data(app_options):
     df = process_data_language_prevalence(df, app_options)
     df = process_data_overall_score(df, app_options)
     df = process_data_ranks(df)
-    df["country_with_emoji"] = df["country"].apply(country_to_emoji_func)
     num_total = df.shape[0]  # do this before filtering to get all rows
     df = process_data_filters(df, app_options)
 
@@ -763,7 +785,10 @@ def run_ui_section_results(df, app_options, num_total):
     show_unacceptable_container = st.container()
 
     with show_unacceptable_container:
-        show_unacceptable = st.checkbox("Show results for countries that do not satisfy filters")
+        st.write(f"Found {df[df['satisfies_filters']].shape[0]} countries that satisfy filters")
+        show_unacceptable = st.checkbox(
+            f"Show results for {df[~df['satisfies_filters']].shape[0]} more countries that do not satisfy filters"
+        )
         if not show_unacceptable:
             df = df[df["satisfies_filters"]]
 
