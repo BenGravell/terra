@@ -23,7 +23,7 @@ from matplotlib.colors import rgb2hex
 
 from supported_countries import SUPPORTED_COUNTRIES
 import config
-from app_options import AppOptions, NONE_COUNTRY
+from app_options import AppOptions, NONE_COUNTRY, TTL
 import clustering_options
 import map_options
 import color_options
@@ -90,7 +90,7 @@ def flexecute(
             func(*func_args, **func_kwargs)
 
 
-@st.cache_data
+@st.cache_data(ttl=TTL)
 def load_data():
     """Load all data sources."""
 
@@ -128,7 +128,7 @@ def load_data():
 
     culture_fit_df = pd.DataFrame.from_dict(culture_fit_data_dict, orient="index")[dimensions_info.DIMENSIONS]
     culture_fit_df *= 0.01  # Undo 100X scaling
-    culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # move country to column
+    culture_fit_df = culture_fit_df.rename_axis("country").reset_index()  # Move country to column
 
     # Happy Planet
     happy_planet_df = happy_planet_df[["country", "HPI"]]
@@ -150,6 +150,12 @@ def load_data():
 
     # Human Freedom
     human_freedom_df["hf_score"] /= human_freedom_df["hf_score"].max()  # Normalize by max value achieved in the dataset
+
+    year_min, year_max = 2015, 2020
+    human_freedom_df_year_filtered = human_freedom_df.query(f"{year_min} <= year <= {year_max}")
+    freedom_score_cols = ["hf_score"]
+    human_freedom_df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
+    human_freedom_df = human_freedom_df.reset_index()
 
     # Country emoji
     df_country_to_emoji = df_codes_alpha_3.merge(df_flag_emoji, on="country_code_alpha_3")
@@ -184,6 +190,19 @@ def load_data():
 ) = load_data()
 
 
+@st.cache_data(ttl=TTL)
+def get_main_data():
+    """Combine the main data for Quality-of-Life and Culture Fit into a single dataframe."""
+    df = pd.DataFrame({"country": SUPPORTED_COUNTRIES})
+    df = df.merge(happy_planet_df, on="country")
+    df = df.merge(social_progress_df, on="country")
+    df = df.merge(human_freedom_df, on="country")
+    df = df.merge(culture_fit_df, on="country")
+    return df
+
+mdf = get_main_data()
+
+
 def country_to_emoji_func(country):
     if country not in country_to_emoji:
         return country
@@ -212,7 +231,7 @@ df_format_dict = {
     "sp_score_weighted": "Social Progress Score (weighted)",
     "hf_score_weighted": "Human Freedom Score (weighted)",
     "english_ratio": "English Speaking Ratio",
-    "acceptable": "Acceptable",
+    "satisfies_filters": "Satisfies Filters",
 }
 for dimension in dimensions_info.DIMENSIONS:
     df_format_dict[dimension] = dimensions_info.DIMENSIONS_INFO[dimension]["name"]
@@ -473,7 +492,7 @@ def get_options_from_ui():
             label_visibility="collapsed",
         )
 
-    def auxiliary_filters_func():
+    def language_filters_func():
         slider_str = "English Speaking Ratio Min"
         caption_str = "*What is the minimum proportion of English speakers you are willing to accept?*"
         st.write(slider_str)
@@ -485,19 +504,6 @@ def get_options_from_ui():
             label_visibility="collapsed",
         )
 
-        slider_str = "Year Range"
-        caption_str = "*What years do you want to consider?*"
-        help_str = "Years over which to aggregate statistics. Only affects Human Freedom scores."
-        st.write(slider_str)
-        st.caption(caption_str, help=help_str)
-        app_options.year_min, app_options.year_max = st.slider(
-            slider_str,
-            min_value=2000,
-            max_value=2020,
-            key="year_minmax",
-            label_visibility="collapsed",
-        )
-
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
     flexecute(func=culture_fit_preferences_func, label="Culture Fit Preferences", **flexecute_kwargs)
@@ -506,7 +512,7 @@ def get_options_from_ui():
     st.divider()
     flexecute(func=quality_of_life_filters_func, label="Quality-of-Life Filters", **flexecute_kwargs)
     flexecute(func=overall_filters_func, label="Overall Score Filters", **flexecute_kwargs)
-    flexecute(func=auxiliary_filters_func, label="Auxiliary Filters", **flexecute_kwargs)
+    flexecute(func=language_filters_func, label="Language Filters", **flexecute_kwargs)
 
     return app_options
 
@@ -527,8 +533,6 @@ def initialize_widget_state_from_app_options(app_options):
         state[min_field] = getattr(app_options, min_field)
 
     state["english_ratio_min"] = getattr(app_options, "english_ratio_min")
-
-    state["year_minmax"] = (getattr(app_options, "year_min"), getattr(app_options, "year_max"))
 
 
 def first_run_per_session():
@@ -576,30 +580,6 @@ def get_options():
     return app_options
 
 
-def process_data_init():
-    df = pd.DataFrame({"country": SUPPORTED_COUNTRIES})
-    return df
-
-
-def process_data_happy_planet(df, app_options):
-    df = df.merge(happy_planet_df, on="country")
-    return df
-
-
-def process_data_social_progress(df, app_options):
-    df = df.merge(social_progress_df, on="country")
-    return df
-
-
-@st.cache_data
-def process_data_human_freedom(df, app_options):
-    # TODO: bake-in the year filter to 2015-2020 or something reasonable
-    human_freedom_df_year_filtered = human_freedom_df.query(f"{app_options.year_min} <= year <= {app_options.year_max}")
-    freedom_score_cols = ["hf_score"]
-    human_freedom_agg_df = human_freedom_df_year_filtered.groupby(["country"])[freedom_score_cols].mean()
-    human_freedom_agg_df = human_freedom_agg_df.reset_index()
-    df = df.merge(human_freedom_agg_df, on="country")
-    return df
 
 
 def get_user_ideal(app_options):
@@ -638,8 +618,7 @@ def process_data_culture_fit(df, app_options):
     culture_fit_score = culture_fit_score.rename(columns={"index": "country", "user": "cf_score"})
 
     df = df.merge(culture_fit_score, on="country")
-    df = df.merge(culture_fit_df, on="country")
-
+    
     return df
 
 
@@ -693,7 +672,7 @@ def process_data_overall_score(df, app_options):
     return df
 
 
-def process_data_ranks(df, app_options):
+def process_data_ranks(df):
     fields_to_rank = overall_fields + culture_fields + score_fields
     for field in fields_to_rank:
         df[f"{field}_rank"] = df[field].rank(ascending=False, method="min").astype(int)
@@ -711,13 +690,13 @@ human_freedom_codes = ["hf"]
 def filter_by_codes(df, app_options, codes):
     for code in codes:
         threshold = getattr(app_options, f"{code}_score_min")
-        df["acceptable"] = df["acceptable"] & (df[f"{code}_score"] > threshold)
+        df["satisfies_filters"] = df["satisfies_filters"] & (df[f"{code}_score"] > threshold)
     return df
 
 
-@st.cache_data
+@st.cache_data(ttl=TTL)
 def process_data_filters(df, app_options):
-    df["acceptable"] = True
+    df["satisfies_filters"] = True
     if app_options.do_filter_culture_fit:
         df = filter_by_codes(df, app_options, culture_fit_codes)
 
@@ -734,24 +713,18 @@ def process_data_filters(df, app_options):
         df = filter_by_codes(df, app_options, human_freedom_codes)
 
     if app_options.do_filter_english:
-        df["acceptable"] = df["acceptable"] & (df["english_ratio"] > app_options.english_ratio_min)
-
-    # Drop unacceptable rows
-    df = df[df["acceptable"]]
+        df["satisfies_filters"] = df["satisfies_filters"] & (df["english_ratio"] > app_options.english_ratio_min)
 
     return df
 
 
-@st.cache_data
+@st.cache_data(ttl=TTL)
 def process_data(app_options):
-    df = process_data_init()
-    df = process_data_human_freedom(df, app_options)
-    df = process_data_happy_planet(df, app_options)
-    df = process_data_social_progress(df, app_options)
+    df = mdf
     df = process_data_culture_fit(df, app_options)
     df = process_data_language_prevalence(df, app_options)
     df = process_data_overall_score(df, app_options)
-    df = process_data_ranks(df, app_options)
+    df = process_data_ranks(df)
     df["country_with_emoji"] = df["country"].apply(country_to_emoji_func)
     num_total = df.shape[0]  # do this before filtering to get all rows
     df = process_data_filters(df, app_options)
@@ -759,7 +732,6 @@ def process_data(app_options):
     return df, num_total
 
 
-@st.cache_data
 def get_google_maps_url(lat: float, lon: float) -> str:
     url_base = "https://www.google.com/maps"
     zoom_level = 5.0
@@ -788,6 +760,13 @@ def run_ui_section_welcome():
 
 def run_ui_section_results(df, app_options, num_total):
     focus_container = st.container()
+    show_unacceptable_container = st.container()
+
+    with show_unacceptable_container:
+        show_unacceptable = st.checkbox("Show results for countries that do not satisfy filters")
+        if not show_unacceptable:
+            df = df[df["satisfies_filters"]]
+
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
     with st.expander("Select Country", expanded=True):
@@ -1116,7 +1095,7 @@ def run_ui_section_results(df, app_options, num_total):
         )
 
     def execute_results_data():
-        df_for_table = df.rename(columns=df_format_dict).set_index("Country").drop("Acceptable", axis="columns")
+        df_for_table = df.rename(columns=df_format_dict).set_index("Country")
         st.dataframe(df_for_table, use_container_width=True)
         st.download_button("Download", df_for_table.to_csv().encode("utf-8"), "results.csv")
 

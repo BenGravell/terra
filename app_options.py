@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
+TTL = 3600  # Default time-to-live for st.cache_data, in seconds
 
 NONE_COUNTRY = "(none)"
 
-EPS = 1e-6
+EPS = 1e-6  # a small constant
 
 @dataclass
 class AppOptions:
@@ -18,8 +19,6 @@ class AppOptions:
     culture_fit_preference_ind: int = 50
 
     # Filters
-    year_min: int = 2015
-    year_max: int = 2020
     cf_score_min: float = 0.0
     ql_score_min: float = 0.0
     hp_score_min: float = 0.0
