@@ -583,6 +583,8 @@ def get_options():
         app_options = get_options_from_ui()
         st.form_submit_button(label="Update Options", use_container_width=True)
 
+    st.header("Option Modifiers", )
+
     # Reference Country
     culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
     st.selectbox(
