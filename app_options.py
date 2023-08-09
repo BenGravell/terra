@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
-TTL = 3600  # Default time-to-live for st.cache_data, in seconds
+TTL = 1 * 60 * 60  # Default time-to-live for st.cache_data, in seconds
 
 NONE_COUNTRY = "(none)"
 
 EPS = 1e-6  # a small constant
+
 
 @dataclass
 class AppOptions:
@@ -39,11 +40,11 @@ class AppOptions:
         if all([getattr(self, field) < EPS for field in overall_fields]):
             return False
         return True
-    
+
     @property
     def are_overall_weights_valid_100(self):
         overall_fields = ["cf_score_weight", "ql_score_weight"]
-        pct_sum = sum([round(100*getattr(self, field)) for field in overall_fields])
+        pct_sum = sum([round(100 * getattr(self, field)) for field in overall_fields])
         return pct_sum == 100, pct_sum
 
     @property
@@ -51,13 +52,13 @@ class AppOptions:
         ql_fields = ["hp_score_weight", "sp_score_weight", "hf_score_weight"]
         if all([getattr(self, field) < EPS for field in ql_fields]):
             return False
-        
+
         return True
 
     @property
     def are_ql_weights_valid_100(self):
         ql_fields = ["hp_score_weight", "sp_score_weight", "hf_score_weight"]
-        pct_sum = sum([round(100*getattr(self, field)) for field in ql_fields])
+        pct_sum = sum([round(100 * getattr(self, field)) for field in ql_fields])
         return pct_sum == 100, pct_sum
 
     @property

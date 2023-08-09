@@ -1,7 +1,7 @@
 import dataclasses
 import typing
 
-JSONType = typing.Union[str, int, float, bool, None, typing.Mapping[str, 'JSON'], typing.List['JSON']]
+JSONType = typing.Union[str, int, float, bool, None]
 
 
 @dataclasses.dataclass

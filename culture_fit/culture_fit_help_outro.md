@@ -7,7 +7,7 @@ In this app, we take your preferences across the 6 proposed dimensions into acco
 
 It's important to keep in mind that there are many countries without validated scores; in such cases, only educated guesses are provided.
 
-Also, Geert liked to say that: 
+Also, Geert liked to say that:
 > *Dimensions do not exist. They are a product of our imagination, used for understanding.*
 
 Finally, as stated in the `LICENSE`, this application is provided without warranty of any kind; no strong conclusions about cultures should be made based on it without further research.
@@ -25,6 +25,6 @@ Finally, as stated in the `LICENSE`, this application is provided without warran
 [Hofstede's Globe](https://exhibition.geerthofstede.com/hofstedes-globe/) can visualise dimensions scores across the world.
 
 
-## Where can I get further details about the Hofstede national culture model? 
+## Where can I get further details about the Hofstede national culture model?
 
 [Stephen Dubner](https://en.wikipedia.org/wiki/Stephen_J._Dubner) interviewed [Gert Jan Hofstede](https://geerthofstede.com/gert-jan-hofstede/) in [Episode 470 of Freakonomics Radio](https://freakonomics.com/podcast/the-pros-and-cons-of-americas-extreme-individualism-ep-470-2/), which contains excellent accessible self-contained explanations and explorations of the 6 dimensions of national culture. Note that this page contains a text transcript of the podcast.

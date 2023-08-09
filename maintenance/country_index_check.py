@@ -17,9 +17,9 @@ def diff_col(obj1, obj2, col1=None, col2=None, name1=None, name2=None):
         df2 = obj2
 
     if col1 is None:
-        col1 = 'country'
+        col1 = "country"
     if col2 is None:
-        col2 = 'country'
+        col2 = "country"
 
     if name1 is None:
         name1 = path1
@@ -78,7 +78,8 @@ diff_col("./data/happy_planet_index_2019.csv", "./data/social_progress_index_202
 # known missing: Hong Kong, Palestine, Taiwan, Vanuatu
 
 diff_col("./data/social_progress_index_2022.csv", "./data/human-freedom-index-2022.csv")
-# known missing: Afghanistan, Equatorial Guinea, Eritrea, Kyrgyzstan, Laos, Maldives, Sao Tome and Principe, Slovakia, Solomon Islands, South Sudan, Turkmenistan, Uzbekistan, West Bank and Gaza
+# known missing: Afghanistan, Equatorial Guinea, Eritrea, Kyrgyzstan, Laos, Maldives, Sao Tome and Principe,
+# Slovakia, Solomon Islands, South Sudan, Turkmenistan, Uzbekistan, West Bank and Gaza
 
 diff_col("./data/human-freedom-index-2022.csv", "./data/english_speaking.csv")
 # known missing: a lot...

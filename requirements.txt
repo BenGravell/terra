@@ -13,3 +13,6 @@ bokeh==2.4.3
 plotly~=5.11.0
 hdbscan~=0.8.29
 umap-learn~=0.5.3
+pre-commit==3.3.3
+black==23.7.0
+ruff==0.0.283

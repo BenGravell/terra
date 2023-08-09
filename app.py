@@ -4,7 +4,14 @@ from functools import partial
 from urllib.parse import urlencode
 
 import numpy as np
-from sklearn.decomposition import PCA, FastICA, NMF, MiniBatchSparsePCA, SparsePCA, TruncatedSVD
+from sklearn.decomposition import (
+    PCA,
+    FastICA,
+    NMF,
+    MiniBatchSparsePCA,
+    SparsePCA,
+    TruncatedSVD,
+)
 from sklearn.manifold import TSNE
 from umap import UMAP
 import hdbscan
@@ -16,7 +23,6 @@ from streamlit_globe import streamlit_globe
 
 import plotly.express as px
 import plotly.figure_factory as ff
-import cmocean
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex
 
@@ -29,7 +35,7 @@ import map_options
 import color_options
 import utils
 import world_factbook_utils
-from culture_fit import country_data, distance_calculations, visualisation, dimensions_info
+from culture_fit import country_data, distance_calculations, dimensions_info
 
 # Streamlit setup
 st.set_page_config(page_title="Terra", page_icon="🌎", layout="wide")
@@ -90,7 +96,7 @@ def flexecute(
             func(*func_args, **func_kwargs)
 
 
-@st.cache_data(ttl=TTL)
+@st.cache_resource(ttl=TTL)
 def load_data():
     """Load all data sources."""
 
@@ -196,7 +202,7 @@ def country_to_emoji_func(country):
     return f"{country} ({country_to_emoji[country]})"
 
 
-@st.cache_data(ttl=TTL)
+@st.cache_resource(ttl=TTL)
 def get_main_data():
     """Combine the main data for Quality-of-Life and Culture Fit into a single dataframe."""
     df = pd.DataFrame({"country": SUPPORTED_COUNTRIES})
@@ -272,17 +278,33 @@ def culture_fit_reference_callback():
 
 
 # TODO move this to a data file
-culture_fit_score_help = "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html) of the culture dimension vectors of the nation and your ideal."
+culture_fit_score_help = (
+    "Culture Fit Score measures how closely a national culture matches your preferences, as determined by [average"
+    " cityblock similarity](https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cityblock.html)"
+    " of the culture dimension vectors of the nation and your ideal."
+)
 
 quality_of_life_score_help = (
     "Quality-of-Life Score measures how high the quality of life is expected to be based on your preferences."
 )
 
-happy_planet_score_help = "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) mesaures sustainable wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental resources."
+happy_planet_score_help = (
+    "The [Happy Planet Index](https://happyplanetindex.org/learn-about-the-happy-planet-index/) mesaures sustainable"
+    " wellbeing, ranking countries by how efficiently they deliver long, happy lives using our limited environmental"
+    " resources."
+)
 
-social_progress_score_help = "The [Social Progress Index](https://www.socialprogress.org/global-index-2022overview/) measures the capacity of a society to meet the basic human needs of its citizens, establish the building blocks that allow citizens and communities to enhance and sustain the quality of their lives, and create the conditions for all individuals to reach their full potential."
+social_progress_score_help = (
+    "The [Social Progress Index](https://www.socialprogress.org/global-index-2022overview/) measures the capacity of a"
+    " society to meet the basic human needs of its citizens, establish the building blocks that allow citizens and"
+    " communities to enhance and sustain the quality of their lives, and create the conditions for all individuals to"
+    " reach their full potential."
+)
 
-human_freedom_score_help = "The [Human Freedom Index](https://www.cato.org/human-freedom-index/2022) measures the state of human freedom in the world based on a broad measure that encompasses personal, civil, and economic freedom."
+human_freedom_score_help = (
+    "The [Human Freedom Index](https://www.cato.org/human-freedom-index/2022) measures the state of human freedom in"
+    " the world based on a broad measure that encompasses personal, civil, and economic freedom."
+)
 
 
 english_speaking_ratio_help = (
@@ -305,7 +327,7 @@ unit_interval_1pt_range_list = np.arange(0.0, 1.0 + 0.01, 0.01).round(2).tolist(
 unit_interval_5pt_range_list = np.arange(0.0, 1.0 + 0.05, 0.05).round(2).tolist()
 
 
-@st.cache_data
+@st.cache_data(ttl=TTL)
 def get_dimension_reduced_df(df, dimensionality_reducer_name, dimensionality_reducer_kwargs):
     dimensionality_reducer_class = dimensionality_reducer_name_to_class_map[dimensionality_reducer_name]
     dimensionality_reducer = dimensionality_reducer_class(**dimensionality_reducer_kwargs)
@@ -323,7 +345,8 @@ def get_options_from_query_params():
         if field.name in query_params:
             query_param_val = query_params[field.name]
 
-            # This takes care of extracting singleton lists (required due to experimental_get_query_params implementation)
+            # This takes care of extracting singleton lists
+            # (required due to experimental_get_query_params implementation)
             if len(query_param_val) == 1:
                 query_param_val = query_param_val[0]
 
@@ -339,9 +362,7 @@ def get_options_from_query_params():
 def get_options_from_ui():
     app_options = AppOptions()
 
-    def score_strip_plot(df, field, xmin, xmax):
-        dx = xmax - xmin
-        xmin_, xmax_ = xmin - dx / 100, xmax + dx / 100
+    def score_strip_plot(mdf, field):
         fig = px.strip(
             mdf,
             x=field,
@@ -384,11 +405,17 @@ def get_options_from_ui():
         st.subheader(
             ":memo: *Make sure the weights add up to 100*",
             anchor=False,
-            help="*Why do the weights have to add up to 100?* These are competing interests, so we need to know how important each one is relative to the others.",
+            help=(
+                "*Why do the weights have to add up to 100?* These are competing interests, so we need to know how"
+                " important each one is relative to the others."
+            ),
         )
 
         slider_str = "Happy Planet Score Weight"
-        caption_str = "*How much do you value living in a country that delivers long, happy lives without damaging the environment?* (🔵 Progressive bias)"
+        caption_str = (
+            "*How much do you value living in a country that delivers long, happy lives without damaging the"
+            " environment?* (🔵 Progressive bias)"
+        )
         st.write(slider_str)
         st.caption(caption_str, help=happy_planet_score_help)
         app_options.hp_score_weight = st.select_slider(
@@ -400,7 +427,10 @@ def get_options_from_ui():
         )
 
         slider_str = "Social Progress Score Weight"
-        caption_str = "*How much do you value living in a country that meets basic human needs, lays the foundations of wellbeing, and creates opportunities for all individuals to reach their full potential?* (🟣 Center bias)"
+        caption_str = (
+            "*How much do you value living in a country that meets basic human needs, lays the foundations of"
+            " wellbeing, and creates opportunities for all individuals to reach their full potential?* (🟣 Center bias)"
+        )
         st.write(slider_str)
         st.caption(caption_str, help=social_progress_score_help)
         app_options.sp_score_weight = st.select_slider(
@@ -412,7 +442,10 @@ def get_options_from_ui():
         )
 
         slider_str = "Human Freedom Score Weight"
-        caption_str = "*How much do you value living in a country with a broad range of personal, civil, and economic freedoms?* (🔴 Libertarian-conservative bias)"
+        caption_str = (
+            "*How much do you value living in a country with a broad range of personal, civil, and economic freedoms?*"
+            " (🔴 Libertarian-conservative bias)"
+        )
         st.write(slider_str)
         st.caption(caption_str, help=human_freedom_score_help)
         app_options.hf_score_weight = st.select_slider(
@@ -427,7 +460,10 @@ def get_options_from_ui():
         st.subheader(
             ":memo: *Make sure the weights add up to 100*",
             anchor=False,
-            help="*Why do the weights have to add up to 100?* These are competing interests, so we need to know how important each one is relative to the others.",
+            help=(
+                "*Why do the weights have to add up to 100?* These are competing interests, so we need to know how"
+                " important each one is relative to the others."
+            ),
         )
 
         slider_str = "Culture Fit Score Weight"
@@ -527,15 +563,26 @@ def get_options_from_ui():
             key="english_ratio_min",
             label_visibility="collapsed",
         )
-        # score_strip_plot(mdf, "english_ratio", 0.0, 1.0)  # cannot use this since we do not merge the language data until after this filter is engaged to prevent losing rows unnecessarily
 
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
-    flexecute(func=culture_fit_preferences_func, label="Culture Fit Preferences", **flexecute_kwargs)
-    flexecute(func=quality_of_life_preferences_func, label="Quality-of-Life Preferences", **flexecute_kwargs)
+    flexecute(
+        func=culture_fit_preferences_func,
+        label="Culture Fit Preferences",
+        **flexecute_kwargs,
+    )
+    flexecute(
+        func=quality_of_life_preferences_func,
+        label="Quality-of-Life Preferences",
+        **flexecute_kwargs,
+    )
     flexecute(func=overall_preferences_func, label="Overall Preferences", **flexecute_kwargs)
     st.divider()
-    flexecute(func=quality_of_life_filters_func, label="Quality-of-Life Filters", **flexecute_kwargs)
+    flexecute(
+        func=quality_of_life_filters_func,
+        label="Quality-of-Life Filters",
+        **flexecute_kwargs,
+    )
     flexecute(func=overall_filters_func, label="Overall Score Filters", **flexecute_kwargs)
     flexecute(func=language_filters_func, label="Language Filters", **flexecute_kwargs)
 
@@ -583,7 +630,7 @@ def get_options():
         app_options = get_options_from_ui()
         st.form_submit_button(label="Update Options", use_container_width=True)
 
-    st.header("Option Modifiers", )
+    st.header("Option Modifiers", anchor=False)
 
     # Reference Country
     culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
@@ -602,7 +649,11 @@ def get_options():
 
     st.divider()
 
-    st.button("Reset Options to Default", use_container_width=True, on_click=reset_options_callback)
+    st.button(
+        "Reset Options to Default",
+        use_container_width=True,
+        on_click=reset_options_callback,
+    )
 
     return app_options
 
@@ -629,7 +680,9 @@ def process_data_culture_fit(df, app_options):
     all_countries = list(culture_fit_data_dict.values())
 
     distances, max_distance = distance_calculations.compute_distances(
-        countries_from=[user_ideal], countries_to=all_countries, distance_metric="Manhattan"
+        countries_from=[user_ideal],
+        countries_to=all_countries,
+        distance_metric="Manhattan",
     )
     distances = distances.sort_values("user")
     distances = (
@@ -787,16 +840,16 @@ def run_ui_section_results(df, app_options, num_total):
     show_unacceptable_container = st.container()
 
     with show_unacceptable_container:
-        st.write(f"Found {df[df['satisfies_filters']].shape[0]} countries that satisfy filters")
+        st.success(f"Found {df[df['satisfies_filters']].shape[0]} countries that satisfy filters.")
         show_unacceptable = st.checkbox(
-            f"Show results for {df[~df['satisfies_filters']].shape[0]} more countries that do not satisfy filters"
+            f"Show results for {df[~df['satisfies_filters']].shape[0]} more countries that do not satisfy filters."
         )
         if not show_unacceptable:
             df = df[df["satisfies_filters"]]
 
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
-    with st.expander("Select Country", expanded=True):
+    with st.expander("Select Country", expanded=False):
         cols = st.columns(2)
         with cols[1]:
             sort_by_col = st.selectbox(
@@ -835,7 +888,9 @@ def run_ui_section_results(df, app_options, num_total):
 
         with cols[0]:
             selected_country = st.selectbox(
-                "Country", options=countries, format_func=lambda x: f"{get_rank_prefix_str(x, sort_by_col)}{x}"
+                "Country",
+                options=countries,
+                format_func=lambda x: f"{get_rank_prefix_str(x, sort_by_col)}{x}",
             )
 
     selected_country_row = df.set_index("country").loc[selected_country]
@@ -845,7 +900,10 @@ def run_ui_section_results(df, app_options, num_total):
         selected_country_header_str = "Selected Country"
         if selected_country == best_match_country:
             selected_country_header_str += " (Best Match)"
-        st.header(f"{selected_country_header_str}: :blue[{selected_country_row['country_with_emoji']}]", anchor=False)
+        st.header(
+            f"{selected_country_header_str}: :blue[{selected_country_row['country_with_emoji']}]",
+            anchor=False,
+        )
 
     def execute_world_factbook():
         # CIA World Factbook viewer
@@ -854,7 +912,7 @@ def run_ui_section_results(df, app_options, num_total):
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
     def execute_google_maps():
-        # Getting the coords here instead of merging the df_coords earlier helps avoid potential data loss for missing rows.
+        # Getting the coords here instead of merging df_coords earlier helps avoid data loss for missing rows.
         latlon_row = df_coords.loc[selected_country]
         lat = latlon_row.latitude
         lon = latlon_row.longitude
@@ -863,14 +921,13 @@ def run_ui_section_results(df, app_options, num_total):
 
         st.markdown(
             f"[Open in new tab]({google_maps_url})",
-            help="Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this app. As an alternative, simply open the link in a new tab.",
+            help=(
+                "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this"
+                " app. As an alternative, simply open the link in a new tab."
+            ),
         )
 
     def execute_selected_country_details():
-        # Removing since the flag is near the top in the World Factbook anyway
-        # st.subheader("Flag", anchor=False)
-        # st.image(visualisation.country_urls.COUNTRY_URLS[selected_country], width=100)
-
         st.subheader("CIA World Factbook", anchor=False)
         execute_world_factbook()
 
@@ -926,7 +983,7 @@ def run_ui_section_results(df, app_options, num_total):
                         line_dash="dash",
                         line_color="orange",
                         opacity=0.5,
-                        annotation_text=f"(User Ideal)",
+                        annotation_text="(User Ideal)",
                         annotation_position="top left",
                         annotation_font_color="orange",
                     )
@@ -991,11 +1048,23 @@ def run_ui_section_results(df, app_options, num_total):
     def execute_score_contributions():
         cols = st.columns(2)
         with cols[0]:
-            N = st.number_input("Number of Top Matching Countries to show", min_value=1, max_value=100, value=10)
+            N = st.number_input(
+                "Number of Top Matching Countries to show",
+                min_value=1,
+                max_value=100,
+                value=10,
+            )
         with cols[1]:
             sort_by_field = st.selectbox(
                 "Sort By",
-                options=["overall_score", "cf_score", "ql_score", "hp_score", "sp_score", "hf_score"],
+                options=[
+                    "overall_score",
+                    "cf_score",
+                    "ql_score",
+                    "hp_score",
+                    "sp_score",
+                    "hf_score",
+                ],
                 format_func=df_format_func,
             )
 
@@ -1049,7 +1118,10 @@ def run_ui_section_results(df, app_options, num_total):
                 "Resolution",
                 options=[50, 110],
                 index=1,
-                help="Lower numbers will render finer details, but will run slower. Resolution 50 needed for small countries e.g. Singapore.",
+                help=(
+                    "Lower numbers will render finer details, but will run slower. Resolution 50 needed for small"
+                    " countries e.g. Singapore."
+                ),
             )
         with cols[2]:
             world_map_projection_type = st.selectbox(
@@ -1057,7 +1129,10 @@ def run_ui_section_results(df, app_options, num_total):
                 options=map_options.PLOTLY_MAP_PROJECTION_TYPES,
                 index=map_options.PLOTLY_MAP_PROJECTION_TYPES.index("robinson"),
                 format_func=lambda s: s.title(),
-                help='See the "Map Projections" section of https://plotly.com/python/map-configuration/ for more details.',
+                help=(
+                    'See the "Map Projections" section of https://plotly.com/python/map-configuration/ for more'
+                    " details."
+                ),
             )
         fig = generate_choropleth(df, field_for_world_map)
         fig.update_geos(resolution=world_map_resolution)
@@ -1094,7 +1169,13 @@ def run_ui_section_results(df, app_options, num_total):
             point = {"lat": lat, "lng": lon, "size": size, "color": color_hex}
             pointsData.append(point)
 
-            label = {"lat": lat, "lng": lon, "size": 0.5, "color": color_hex, "text": f"{country} ({field_val:.2f})"}
+            label = {
+                "lat": lat,
+                "lng": lon,
+                "size": 0.5,
+                "color": color_hex,
+                "text": f"{country} ({field_val:.2f})",
+            }
             labelsData.append(label)
 
         return pointsData, labelsData
@@ -1110,7 +1191,7 @@ def run_ui_section_results(df, app_options, num_total):
                 key="field_to_plot_globe",
             )
         with cols[1]:
-            day_or_night = st.selectbox("Daytime or Nighttime", options=["day", "night"])
+            day_or_night = st.selectbox("Day or Night", options=["day", "night"])
         with cols[2]:
             widget_width = st.number_input("Widget Width (pixels)", min_value=100, max_value=4000, value=600)
         with cols[3]:
@@ -1118,7 +1199,11 @@ def run_ui_section_results(df, app_options, num_total):
 
         pointsData, labelsData = get_data_for_globe(df, field_for_globe)
         streamlit_globe(
-            pointsData=pointsData, labelsData=labelsData, daytime=day_or_night, width=widget_width, height=widget_height
+            pointsData=pointsData,
+            labelsData=labelsData,
+            daytime=day_or_night,
+            width=widget_width,
+            height=widget_height,
         )
 
     def execute_results_data():
@@ -1151,7 +1236,10 @@ def run_ui_section_results(df, app_options, num_total):
             cols = st.columns(3)
             with cols[0]:
                 st.button(
-                    "Set Fields to All", use_container_width=True, on_click=set_dr_fields_callback, args=[dr_fields_all]
+                    "Set Fields to All",
+                    use_container_width=True,
+                    on_click=set_dr_fields_callback,
+                    args=[dr_fields_all],
                 )
             with cols[1]:
                 st.button(
@@ -1172,12 +1260,26 @@ def run_ui_section_results(df, app_options, num_total):
 
             dimensionality_reducer_name = st.selectbox(
                 "Dimensionality Reduction Method",
-                options=["UMAP", "t-SNE", "PCA", "SparsePCA", "TruncatedSVD", "FastICA", "NMF"],
+                options=[
+                    "UMAP",
+                    "t-SNE",
+                    "PCA",
+                    "SparsePCA",
+                    "TruncatedSVD",
+                    "FastICA",
+                    "NMF",
+                ],
             )
             with st.form("dimesionality_reduction_options"):
                 dimensionality_reducer_kwargs = {}
 
-                if dimensionality_reducer_name in ["PCA", "SparsePCA", "TruncatedSVD", "FastICA", "NMF"]:
+                if dimensionality_reducer_name in [
+                    "PCA",
+                    "SparsePCA",
+                    "TruncatedSVD",
+                    "FastICA",
+                    "NMF",
+                ]:
                     cols = st.columns(0 + 1)
 
                 elif dimensionality_reducer_name == "t-SNE":
@@ -1188,7 +1290,13 @@ def run_ui_section_results(df, app_options, num_total):
                             min_value=1.0,
                             max_value=30.0,
                             value=10.0,
-                            help="The perplexity is related to the number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets usually require a larger perplexity. Different values can result in significantly different results. The perplexity must be less than the number of samples. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html",
+                            help=(
+                                "The perplexity is related to the number of nearest neighbors that is used in other"
+                                " manifold learning algorithms. Larger datasets usually require a larger perplexity."
+                                " Different values can result in significantly different results. The perplexity must"
+                                " be less than the number of samples. See"
+                                " https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html"
+                            ),
                         )
                     with cols[1]:
                         early_exaggeration = st.slider(
@@ -1196,7 +1304,14 @@ def run_ui_section_results(df, app_options, num_total):
                             min_value=1.0,
                             max_value=30.0,
                             value=10.0,
-                            help="Controls how tight natural clusters in the original space are in the embedded space and how much space will be between them. For larger values, the space between natural clusters will be larger in the embedded space. Again, the choice of this parameter is not very critical. If the cost function increases during initial optimization, the early exaggeration factor or the learning rate might be too high. See https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html",
+                            help=(
+                                "Controls how tight natural clusters in the original space are in the embedded space"
+                                " and how much space will be between them. For larger values, the space between natural"
+                                " clusters will be larger in the embedded space. Again, the choice of this parameter is"
+                                " not very critical. If the cost function increases during initial optimization, the"
+                                " early exaggeration factor or the learning rate might be too high. See"
+                                " https://scikit-learn.org/stable/modules/generated/sklearn.manifold.TSNE.html"
+                            ),
                         )
 
                     dimensionality_reducer_kwargs["perplexity"] = perplexity
@@ -1210,7 +1325,16 @@ def run_ui_section_results(df, app_options, num_total):
                             min_value=1,
                             max_value=50,
                             value=15,
-                            help="This parameter controls how UMAP balances local versus global structure in the data. It does this by constraining the size of the local neighborhood UMAP will look at when attempting to learn the manifold structure of the data. This means that low values will force UMAP to concentrate on very local structure (potentially to the detriment of the big picture), while large values will push UMAP to look at larger neighborhoods of each point when estimating the manifold structure of the data, losing fine detail structure for the sake of getting the broader of the data. See https://umap-learn.readthedocs.io/en/latest/parameters.html",
+                            help=(
+                                "This parameter controls how UMAP balances local versus global structure in the data."
+                                " It does this by constraining the size of the local neighborhood UMAP will look at"
+                                " when attempting to learn the manifold structure of the data. This means that low"
+                                " values will force UMAP to concentrate on very local structure (potentially to the"
+                                " detriment of the big picture), while large values will push UMAP to look at larger"
+                                " neighborhoods of each point when estimating the manifold structure of the data,"
+                                " losing fine detail structure for the sake of getting the broader of the data. See"
+                                " https://umap-learn.readthedocs.io/en/latest/parameters.html"
+                            ),
                         )
                     with cols[1]:
                         min_dist = st.slider(
@@ -1218,7 +1342,15 @@ def run_ui_section_results(df, app_options, num_total):
                             min_value=0.0,
                             max_value=1.0,
                             value=0.2,
-                            help="This parameter controls how tightly UMAP is allowed to pack points together. It, quite literally, provides the minimum distance apart that points are allowed to be in the low dimensional representation. This means that low values will result in clumpier embeddings. This can be useful if you are interested in clustering, or in finer topological structure. Larger values will prevent UMAP from packing points together and will focus on the preservation of the broad topological structure instead. See https://umap-learn.readthedocs.io/en/latest/parameters.html",
+                            help=(
+                                "This parameter controls how tightly UMAP is allowed to pack points together. It, quite"
+                                " literally, provides the minimum distance apart that points are allowed to be in the"
+                                " low dimensional representation. This means that low values will result in clumpier"
+                                " embeddings. This can be useful if you are interested in clustering, or in finer"
+                                " topological structure. Larger values will prevent UMAP from packing points together"
+                                " and will focus on the preservation of the broad topological structure instead. See"
+                                " https://umap-learn.readthedocs.io/en/latest/parameters.html"
+                            ),
                         )
 
                     dimensionality_reducer_kwargs["n_neighbors"] = n_neighbors
@@ -1246,7 +1378,10 @@ def run_ui_section_results(df, app_options, num_total):
                             max_value=20,
                             step=1,
                             value=3,
-                            help="The smallest size grouping that you wish to consider a cluster. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.",
+                            help=(
+                                "The smallest size grouping that you wish to consider a cluster. See"
+                                " https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size."
+                            ),
                         )
                     with cols[1]:
                         min_samples = st.slider(
@@ -1255,7 +1390,12 @@ def run_ui_section_results(df, app_options, num_total):
                             max_value=20,
                             step=1,
                             value=2,
-                            help="How conservative you want you clustering to be. The larger the value you provide, the more conservative the clustering - more points will be declared as noise, and clusters will be restricted to progressively more dense areas. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size.",
+                            help=(
+                                "How conservative you want you clustering to be. The larger the value you provide, the"
+                                " more conservative the clustering - more points will be declared as noise, and"
+                                " clusters will be restricted to progressively more dense areas. See"
+                                " https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-min-cluster-size."
+                            ),
                         )
                     with cols[2]:
                         cluster_selection_epsilon = st.slider(
@@ -1263,7 +1403,10 @@ def run_ui_section_results(df, app_options, num_total):
                             min_value=0.0,
                             max_value=1.0,
                             value=0.0,
-                            help="Ensures that clusters below the given threshold are not split up any further. See https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-cluster-selection-epsilon.",
+                            help=(
+                                "Ensures that clusters below the given threshold are not split up any further. See"
+                                " https://hdbscan.readthedocs.io/en/latest/parameter_selection.html#selecting-cluster-selection-epsilon."
+                            ),
                         )
                 elif clustering_method_name == "Hierarchical":
                     cols = st.columns(3)
@@ -1271,20 +1414,29 @@ def run_ui_section_results(df, app_options, num_total):
                         distance_metric = st.selectbox(
                             "Distance Metric",
                             options=clustering_options.PDIST_METRIC_OPTIONS,
-                            help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html",
+                            help=(
+                                "See https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html"
+                            ),
                         )
                     with cols[1]:
                         linkage_method = st.selectbox(
                             "Linkage Method",
                             options=clustering_options.LINKAGE_METHOD_OPTIONS,
-                            help="See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html",
+                            help=(
+                                "See https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html"
+                            ),
                         )
 
                 with cols[-1]:
                     cluster_in_projected_space = st.checkbox(
                         "Cluster in Projected Space",
                         value=False,
-                        help="If False, clustering will occur in the original pre-dimension-reduced space. If True, clustering will occur in the projected post-dimension-reduced space. Because t-SNE and UMAP do not preserve distances, clustering in the projected space is not as meaningful/principled, but can give more intuitive clusterings when viewed on the plot.",
+                        help=(
+                            "If False, clustering will occur in the original pre-dimension-reduced space. If True,"
+                            " clustering will occur in the projected post-dimension-reduced space. Because t-SNE and"
+                            " UMAP do not preserve distances, clustering in the projected space is not as"
+                            " meaningful/principled, but can give more intuitive clusterings when viewed on the plot."
+                        ),
                     )
 
                 st.form_submit_button("Update Clustering Options", use_container_width=True)
@@ -1301,7 +1453,9 @@ def run_ui_section_results(df, app_options, num_total):
                     show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
                 with cols[1]:
                     marker_size_field = st.selectbox(
-                        "Marker Size Field", options=plottable_fields, format_func=df_format_func
+                        "Marker Size Field",
+                        options=plottable_fields,
+                        format_func=df_format_func,
                     )
                 with cols[2]:
                     marker_size_power = st.slider(
@@ -1310,7 +1464,12 @@ def run_ui_section_results(df, app_options, num_total):
                         max_value=20.0,
                         value=5.0,
                         step=0.5,
-                        help="Power to which to raise the field's value. Higher powers will exaggerate differences between points, while lower values will diminish them. A power of 1 will make the marker size linearly proportional to the field value. A power of 0 will make all points the same size, regardless of the field value.",
+                        help=(
+                            "Power to which to raise the field's value. Higher powers will exaggerate differences"
+                            " between points, while lower values will diminish them. A power of 1 will make the marker"
+                            " size linearly proportional to the field value. A power of 0 will make all points the same"
+                            " size, regardless of the field value."
+                        ),
                     )
             elif clustering_method_name == "Hierarchical":
                 cols = st.columns(2)
@@ -1410,12 +1569,20 @@ def run_ui_section_results(df, app_options, num_total):
 
             st.plotly_chart(fig, use_container_width=True)
 
-    flexecute(func=execute_selected_country_details, label="Selected Country Details")
+    flexecute(
+        func=execute_selected_country_details,
+        label="Selected Country Details",
+        expanded=True,
+        checkbox_value=True,
+    )
     flexecute(func=execute_score_distributions, label="Score Distributions")
     flexecute(func=execute_score_contributions, label="Score Contributions")
     flexecute(func=execute_world_map, label="World Map")
     flexecute(func=execute_globe, label="Globe")
-    flexecute(func=execute_dimred_and_clustering, label="Dimensionality Reduction & Clustering")
+    flexecute(
+        func=execute_dimred_and_clustering,
+        label="Dimensionality Reduction & Clustering",
+    )
     flexecute(func=execute_pair_plot, label="Pair Plots")
     flexecute(func=execute_results_data, label="Results Table")
 
@@ -1446,7 +1613,8 @@ def run_ui_section_help():
         open_and_st_markdown("./help/tutorial.md")
         st.divider()
         st.success(
-            "Now that you know the general flow, you can either jump right in and start playing with the app! For a better understanding, we highly recommend reading the rest of the help section. :blush:"
+            "Now that you know the general flow, you can either jump right in and start playing with the app! For a"
+            " better understanding, we highly recommend reading the rest of the help section. :blush:"
         )
 
     with st.expander("Culture Fit 🗺️"):
@@ -1461,22 +1629,31 @@ def run_ui_section_help():
             "The [Social Progress Imperative website](https://www.socialprogress.org/) cannot be embedded in this app."
         )
         st.caption(
-            "As an alternative, the [Harvard Business School Institute for Strategy and Competitiveness page](https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx) is embedded here."
+            "As an alternative, the [Harvard Business School Institute for Strategy and Competitiveness"
+            " page](https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx) is embedded here."
         )
         st.components.v1.iframe(
-            "https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx", height=600, scrolling=True
+            "https://www.isc.hbs.edu/research-areas/Pages/social-progress-index.aspx",
+            height=600,
+            scrolling=True,
         )
         open_and_st_markdown("./help/social_progress_help.md")
 
     with st.expander("Human Freedom 🎊"):
         st.caption(
-            "Neither the [Cato Institute website](https://www.cato.org/human-freedom-index/2022) nor the [Fraser Institute website](https://www.fraserinstitute.org/studies/human-freedom-index-2022) can be embedded in this app."
+            "Neither the [Cato Institute website](https://www.cato.org/human-freedom-index/2022) nor the [Fraser"
+            " Institute website](https://www.fraserinstitute.org/studies/human-freedom-index-2022) can be embedded in"
+            " this app."
         )
         st.caption(
-            "As an alternative, the [Wikipedia article on freedom indices](https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices), which references the Human Freedom Index, is embedded here."
+            "As an alternative, the [Wikipedia article on freedom"
+            " indices](https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices), which references the"
+            " Human Freedom Index, is embedded here."
         )
         st.components.v1.iframe(
-            "https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices", height=600, scrolling=True
+            "https://en.wikipedia.org/wiki/List_of_freedom_indices#Prominent_indices",
+            height=600,
+            scrolling=True,
         )
         open_and_st_markdown("./help/human_freedom_help.md")
 
@@ -1496,7 +1673,8 @@ def run_ui_section_share(app_options):
     query_string = urlencode(query_params, doseq=True)
     url = f"{terra_url_base}/?{query_string}"
     st.write(
-        f"Copy the link by using the copy-to-clipboard button below, or secondary-click and copy this [link address]({url})."
+        "Copy the link by using the copy-to-clipboard button below, or secondary-click and copy this [link"
+        f" address]({url})."
     )
     st.code(url, language="http")
 
@@ -1523,27 +1701,37 @@ def check_and_handle_invalid_app_options(app_options):
 
     if not app_options.are_ql_weights_valid:
         st.warning(
-            "The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined! Please set at least one weight greater than zero to continue."
+            "The Quality-of-Life Preference weights are all zero - the Quality-of-Life Score is not well-defined!"
+            " Please set at least one weight greater than zero to continue."
         )
         invalid_app_options = True
 
-    are_ql_weights_valid_100_flag, ql_weight_pct_sum = app_options.are_ql_weights_valid_100
+    (
+        are_ql_weights_valid_100_flag,
+        ql_weight_pct_sum,
+    ) = app_options.are_ql_weights_valid_100
     if not are_ql_weights_valid_100_flag:
         st.warning(
-            f"The Quality-of-Life Preference weights do not add up to 100 (they add up to {ql_weight_pct_sum} right now) - the Quality-of-Life Score is not well-defined! Please make sure the weights add up to 100."
+            f"The Quality-of-Life Preference weights do not add up to 100 (they add up to {ql_weight_pct_sum} right"
+            " now) - the Quality-of-Life Score is not well-defined! Please make sure the weights add up to 100."
         )
         invalid_app_options = True
 
     if not app_options.are_overall_weights_valid:
         st.warning(
-            "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least one weight greater than zero to continue."
+            "The Overall Preference weights are all zero - the Overall Score is not well-defined! Please set at least"
+            " one weight greater than zero to continue."
         )
         invalid_app_options = True
 
-    are_overall_weights_valid_100_flag, overall_weight_pct_sum = app_options.are_overall_weights_valid_100
+    (
+        are_overall_weights_valid_100_flag,
+        overall_weight_pct_sum,
+    ) = app_options.are_overall_weights_valid_100
     if not are_overall_weights_valid_100_flag:
         st.warning(
-            f"The Overall Preference weights do not add up to 100 (they add up to {overall_weight_pct_sum} right now) - the Overall Score is not well-defined! Please make sure the weights add up to 100."
+            f"The Overall Preference weights do not add up to 100 (they add up to {overall_weight_pct_sum} right now) -"
+            " the Overall Score is not well-defined! Please make sure the weights add up to 100."
         )
         invalid_app_options = True
 
@@ -1551,11 +1739,17 @@ def check_and_handle_invalid_app_options(app_options):
 
 
 def main():
-    if not "initialized" in state:
+    if "initialized" not in state:
         first_run_per_session()
 
     tab_names = ["Welcome", "Options", "Results", "Help", "Share"]
-    tab_emoji_dict = {"Welcome": "👋", "Options": "🎛️", "Results": "📈", "Help": "❓", "Share": "🔗"}
+    tab_emoji_dict = {
+        "Welcome": "👋",
+        "Options": "🎛️",
+        "Results": "📈",
+        "Help": "❓",
+        "Share": "🔗",
+    }
     tabs = st.tabs([f"{tab_emoji_dict[tab_name]} {tab_name}" for tab_name in tab_names])
     container_dict = {tab_name: tab for tab_name, tab in zip(tab_names, tabs)}
 
