@@ -362,14 +362,17 @@ def get_options_from_query_params():
 def get_options_from_ui():
     app_options = AppOptions()
 
-    def score_strip_plot(mdf, field):
+    def score_strip_plot(df, field, xmin, xmax):
+        # Add a little buffer to the plot limits to catch endpoints
+        dx = xmax - xmin
+        xmin_, xmax_ = xmin - (dx / 100), xmax + (dx / 100)
         fig = px.strip(
-            mdf,
+            df,
             x=field,
             labels={dimension: df_format_func(dimension)},
             hover_name="country_with_emoji",
             orientation="h",
-            range_x=(-0.01, 1.01),
+            range_x=(xmin_, xmax_),
             height=200,
         )
         fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
