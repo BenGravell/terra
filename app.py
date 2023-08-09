@@ -908,6 +908,22 @@ def run_ui_section_results(df, app_options, num_total):
             anchor=False,
         )
 
+        # Display a warning if default options are detected
+        if app_options == AppOptions():
+            st.warning(
+                'It looks like you are using the default options, try going to the "Options" tab and changing some'
+                " things! :blush:"
+            )
+
+    # Prep lists for later
+    plottable_fields = overall_fields + score_fields + culture_fields
+
+    # Special handling for language
+    if "english_ratio" in df.columns:
+        plottable_fields += ["english_ratio"]
+
+    plottable_field_default_index = plottable_fields.index("overall_score")
+
     def execute_world_factbook():
         # CIA World Factbook viewer
         cia_world_factbook_url = world_factbook_utils.get_world_factbook_url(selected_country)
@@ -1097,14 +1113,6 @@ def run_ui_section_results(df, app_options, num_total):
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
-
-    plottable_fields = overall_fields + score_fields + culture_fields
-
-    # Special handling for language
-    if "english_ratio" in df.columns:
-        plottable_fields += ["english_ratio"]
-
-    plottable_field_default_index = plottable_fields.index("overall_score")
 
     def execute_world_map():
         cols = st.columns(3)
