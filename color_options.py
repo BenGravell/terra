@@ -1,4 +1,5 @@
 import matplotlib
+import cmocean  # noqa
 import plotly.express as px
 
 
