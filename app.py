@@ -1020,6 +1020,7 @@ def run_ui_section_results(df, app_options, num_total):
         detailed_country_breakdown(fields=score_fields, name="Quality-of-Life Scores")
 
     def execute_overall_score_contributions(df_top_N):
+        st.subheader("Overall Score Contributions", anchor=False)
         fig = px.bar(
             df_top_N,
             x="country_with_overall_score_rank",
@@ -1042,6 +1043,7 @@ def run_ui_section_results(df, app_options, num_total):
         st.plotly_chart(fig, use_container_width=True)
 
     def execute_ql_score_contributions(df_top_N):
+        st.subheader("Quality-of-Life Score Contributions", anchor=False)
         fig = px.bar(
             df_top_N,
             x="country_with_ql_score_rank",
