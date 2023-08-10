@@ -259,7 +259,7 @@ overall_fields = [
     "cf_score",
     "ql_score",
 ]
-score_fields = [
+quality_of_life_fields = [
     "hp_score",
     "sp_score",
     "hf_score",
@@ -754,7 +754,7 @@ def process_data_overall_score(df, app_options):
 
 
 def process_data_ranks(df):
-    fields_to_rank = overall_fields + culture_fields + score_fields
+    fields_to_rank = overall_fields + culture_fields + quality_of_life_fields
     for field in fields_to_rank:
         df[f"{field}_rank"] = df[field].rank(ascending=False, method="min").astype(int)
     return df
@@ -916,7 +916,7 @@ def run_ui_section_results(df, app_options, num_total):
             )
 
     # Prep lists for later
-    plottable_fields = overall_fields + score_fields + culture_fields
+    plottable_fields = overall_fields + quality_of_life_fields + culture_fields
 
     # Special handling for language
     if "english_ratio" in df.columns:
@@ -1017,7 +1017,7 @@ def run_ui_section_results(df, app_options, num_total):
         detailed_country_breakdown(fields=culture_fields, name="Culture Dimensions")
 
         st.subheader("Quality-of-Life Score Distributions", anchor=False)
-        detailed_country_breakdown(fields=score_fields, name="Quality-of-Life Scores")
+        detailed_country_breakdown(fields=quality_of_life_fields, name="Quality-of-Life Scores")
 
     def execute_overall_score_contributions(df_top_N):
         st.subheader("Overall Score Contributions", anchor=False)
@@ -1232,7 +1232,7 @@ def run_ui_section_results(df, app_options, num_total):
         plot_container = st.container()
         options_container = st.container()
 
-        dr_fields_all = culture_fields + score_fields
+        dr_fields_all = culture_fields + quality_of_life_fields
 
         # Set default for multiselect
         if "dr_fields" not in st.session_state:
@@ -1263,10 +1263,10 @@ def run_ui_section_results(df, app_options, num_total):
                 )
             with cols[2]:
                 st.button(
-                    "Set Fields to Score Dimensions",
+                    "Set Fields to Quality-of-Life Dimensions",
                     use_container_width=True,
                     on_click=set_dr_fields_callback,
-                    args=[score_fields],
+                    args=[quality_of_life_fields],
                 )
 
             df_for_dr = df.set_index("country")[dr_fields]
@@ -1555,7 +1555,7 @@ def run_ui_section_results(df, app_options, num_total):
             fields_for_pairplot = st.multiselect(
                 "Fields for Pair Plot",
                 options=plottable_fields,
-                default=score_fields,
+                default=quality_of_life_fields,
                 format_func=df_format_func,
             )
             st.form_submit_button("Update Pair Plot Options")
