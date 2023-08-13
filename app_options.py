@@ -26,6 +26,8 @@ class AppOptions:
     sp_score_min: float = 0.0
     hf_score_min: float = 0.0
     english_ratio_min: float = 0.0
+    average_temperature_celsius_min: float = -10.0
+    average_temperature_celsius_max: float = 30.0
 
     # Weights
     cf_score_weight: float = 0.5
@@ -84,3 +86,9 @@ class AppOptions:
     @property
     def do_filter_english(self):
         return self.english_ratio_min > EPS
+
+    @property
+    def do_filter_temperature(self):
+        min_active = self.average_temperature_celsius_min > -10.0 + EPS
+        max_active = self.average_temperature_celsius_max < 30.0 - EPS
+        return min_active or max_active

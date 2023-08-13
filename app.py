@@ -110,6 +110,8 @@ def load_data():
     human_freedom_df = pd.read_csv("./data/human-freedom-index-2022.csv")
     # English speaking
     df_english = pd.read_csv("./data/english_speaking.csv")
+    # Temperature
+    df_temperature = pd.read_csv("./data/country_temperature.csv")
     # Coordinates
     df_coords = pd.read_csv("./data/country_coords.csv")
     df_coords = df_coords.set_index("country")
@@ -174,6 +176,7 @@ def load_data():
         social_progress_df,
         human_freedom_df,
         df_english,
+        df_temperature,
         df_coords,
         df_codes_alpha_3,
         df_flag_emoji,
@@ -189,6 +192,7 @@ def load_data():
     social_progress_df,
     human_freedom_df,
     df_english,
+    df_temperature,
     df_coords,
     df_codes_alpha_3,
     df_flag_emoji,
@@ -204,12 +208,13 @@ def country_to_emoji_func(country):
 
 @st.cache_resource(ttl=TTL)
 def get_main_data():
-    """Combine the main data for Quality-of-Life and Culture Fit into a single dataframe."""
+    """Combine the main data for Quality-of-Life and Culture Fit and Climate into a single dataframe."""
     df = pd.DataFrame({"country": SUPPORTED_COUNTRIES})
     df = df.merge(happy_planet_df, on="country")
     df = df.merge(social_progress_df, on="country")
     df = df.merge(human_freedom_df, on="country")
     df = df.merge(culture_fit_df, on="country")
+    df = df.merge(df_temperature, on="country")
     df["country_with_emoji"] = df["country"].apply(country_to_emoji_func)
     return df
 
@@ -239,6 +244,7 @@ df_format_dict = {
     "sp_score_weighted": "Social Progress Score (weighted)",
     "hf_score_weighted": "Human Freedom Score (weighted)",
     "english_ratio": "English Speaking Ratio",
+    "average_temperature_celsius": "Average Temperature (°C)",
     "satisfies_filters": "Satisfies Filters",
 }
 for dimension in dimensions_info.DIMENSIONS:
@@ -309,6 +315,12 @@ human_freedom_score_help = (
 
 english_speaking_ratio_help = (
     "Ratio of people who speak English as a mother tongue or foreign language to the total population."
+)
+
+average_temperature_help = (
+    "[Average yearly temperature](https://en.wikipedia.org/wiki/List_of_countries_by_average_yearly_temperature),"
+    " calculated by averaging the minimum and maximum daily temperatures in the country, averaged for the years"
+    " 1961-1990, based on gridded climatologies from the Climatic Research Unit elaborated in 2011."
 )
 
 
@@ -567,6 +579,22 @@ def get_options_from_ui():
             label_visibility="collapsed",
         )
 
+    def climate_filters_func():
+        slider_str = "Average Temperature (°C) Range"
+        caption_str = "*What is the range of average temperature (°C) you are willing to accept?*"
+        st.write(slider_str)
+        st.caption(caption_str, help=average_temperature_help)
+        app_options.average_temperature_celsius_min, app_options.average_temperature_celsius_max = st.slider(
+            slider_str,
+            -10,
+            30,
+            (-10, 30),
+            format="%d°C",
+            key="average_temperature_range",
+            label_visibility="collapsed",
+        )
+        score_strip_plot(mdf, "average_temperature_celsius", -10, 30)
+
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
     flexecute(
@@ -588,6 +616,7 @@ def get_options_from_ui():
     )
     flexecute(func=overall_filters_func, label="Overall Score Filters", **flexecute_kwargs)
     flexecute(func=language_filters_func, label="Language Filters", **flexecute_kwargs)
+    flexecute(func=climate_filters_func, label="Climate Filters", **flexecute_kwargs)
 
     return app_options
 
@@ -608,6 +637,8 @@ def initialize_widget_state_from_app_options(app_options):
         state[min_field] = getattr(app_options, min_field)
 
     state["english_ratio_min"] = getattr(app_options, "english_ratio_min")
+    state["average_temperature_celsius_min"] = getattr(app_options, "average_temperature_celsius_min")
+    state["average_temperature_celsius_max"] = getattr(app_options, "average_temperature_celsius_max")
 
 
 def first_run_per_session():
@@ -631,7 +662,7 @@ def reset_options_callback():
 def get_options():
     with st.form(key="options_form"):
         app_options = get_options_from_ui()
-        st.form_submit_button(label="Update Options", use_container_width=True)
+        st.form_submit_button(label="Update Options", type="primary", use_container_width=True)
 
     st.header("Option Modifiers", anchor=False)
 
@@ -796,6 +827,13 @@ def process_data_filters(df, app_options):
     if app_options.do_filter_english:
         df["satisfies_filters"] = df["satisfies_filters"] & (df["english_ratio"] > app_options.english_ratio_min)
 
+    if app_options.do_filter_temperature:
+        df["satisfies_filters"] = (
+            df["satisfies_filters"]
+            & (df["average_temperature_celsius"] > app_options.average_temperature_celsius_min)
+            & (df["average_temperature_celsius"] < app_options.average_temperature_celsius_max)
+        )
+
     return df
 
 
@@ -918,9 +956,11 @@ def run_ui_section_results(df, app_options, num_total):
     # Prep lists for later
     plottable_fields = overall_fields + quality_of_life_fields + culture_fields
 
-    # Special handling for language
+    # Special handling for optional fields
     if "english_ratio" in df.columns:
         plottable_fields += ["english_ratio"]
+    if "average_temperature_celsius" in df.columns:
+        plottable_fields += ["average_temperature_celsius"]
 
     plottable_field_default_index = plottable_fields.index("overall_score")
 
@@ -1073,7 +1113,7 @@ def run_ui_section_results(df, app_options, num_total):
                 "Number of Top Matching Countries to show",
                 min_value=1,
                 max_value=100,
-                value=10,
+                value=20,
             )
         with cols[1]:
             sort_by_field = st.selectbox(

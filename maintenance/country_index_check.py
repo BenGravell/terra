@@ -68,6 +68,8 @@ diff_col("./data/human-freedom-index-2022.csv", "./data/country_codes_alpha_3.cs
 diff_col("./data/english_speaking.csv", "./data/country_codes_alpha_3.csv")
 # known missing: None
 
+diff_col("./data/country_temperature.csv", "./data/country_codes_alpha_3.csv")
+# known missing: None
 
 # Checks from source-to-source (sequential)
 
