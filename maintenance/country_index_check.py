@@ -71,6 +71,9 @@ diff_col("./data/english_speaking.csv", "./data/country_codes_alpha_3.csv")
 diff_col("./data/country_temperature.csv", "./data/country_codes_alpha_3.csv")
 # known missing: None
 
+diff_col("./data/country_sunshine_hours_per_day.csv", "./data/country_codes_alpha_3.csv")
+# known missing: None
+
 # Checks from source-to-source (sequential)
 
 diff_col(culture_fit_df, "./data/happy_planet_index_2019.csv", name1="culture_fit_df")
@@ -85,3 +88,6 @@ diff_col("./data/social_progress_index_2022.csv", "./data/human-freedom-index-20
 
 diff_col("./data/human-freedom-index-2022.csv", "./data/english_speaking.csv")
 # known missing: a lot...
+
+diff_col("./data/human-freedom-index-2022.csv", "./data/country_temperature.csv")
+# known missing: Taiwan

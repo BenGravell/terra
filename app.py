@@ -112,6 +112,10 @@ def load_data():
     df_english = pd.read_csv("./data/english_speaking.csv")
     # Temperature
     df_temperature = pd.read_csv("./data/country_temperature.csv")
+    # Sunshine
+    df_sunshine = pd.read_csv("./data/country_sunshine_hours_per_day.csv")
+    df_sunshine = df_sunshine.rename(columns={"year": "average_sunshine_hours_per_day"})
+    df_sunshine = df_sunshine[["country", "average_sunshine_hours_per_day"]]
     # Coordinates
     df_coords = pd.read_csv("./data/country_coords.csv")
     df_coords = df_coords.set_index("country")
@@ -177,6 +181,7 @@ def load_data():
         human_freedom_df,
         df_english,
         df_temperature,
+        df_sunshine,
         df_coords,
         df_codes_alpha_3,
         df_flag_emoji,
@@ -193,6 +198,7 @@ def load_data():
     human_freedom_df,
     df_english,
     df_temperature,
+    df_sunshine,
     df_coords,
     df_codes_alpha_3,
     df_flag_emoji,
@@ -215,6 +221,7 @@ def get_main_data():
     df = df.merge(human_freedom_df, on="country")
     df = df.merge(culture_fit_df, on="country")
     df = df.merge(df_temperature, on="country")
+    df = df.merge(df_sunshine, on="country")
     df["country_with_emoji"] = df["country"].apply(country_to_emoji_func)
     return df
 
@@ -245,6 +252,7 @@ df_format_dict = {
     "hf_score_weighted": "Human Freedom Score (weighted)",
     "english_ratio": "English Speaking Ratio",
     "average_temperature_celsius": "Average Temperature (°C)",
+    "average_sunshine_hours_per_day": "Average Daily Hours of Sunshine",
     "satisfies_filters": "Satisfies Filters",
 }
 for dimension in dimensions_info.DIMENSIONS:
@@ -321,6 +329,12 @@ average_temperature_help = (
     "[Average yearly temperature](https://en.wikipedia.org/wiki/List_of_countries_by_average_yearly_temperature),"
     " calculated by averaging the minimum and maximum daily temperatures in the country, averaged for the years"
     " 1961-1990, based on gridded climatologies from the Climatic Research Unit elaborated in 2011."
+)
+
+average_sunshine_help = (
+    "[Average daily hours of sunshine](https://en.wikipedia.org/wiki/List_of_cities_by_sunshine_duration) are the"
+    " number of hours of sunshine per day, averaged over the entire year for one or more years, with the median taken"
+    " over one or more cities in a country."
 )
 
 
@@ -568,7 +582,7 @@ def get_options_from_ui():
         )
 
     def language_filters_func():
-        slider_str = "English Speaking Ratio Min"
+        slider_str = ":speaking_head_in_silhouette: English Speaking Ratio Min"
         caption_str = "*What is the minimum proportion of English speakers you are willing to accept?*"
         st.write(slider_str)
         st.caption(caption_str, help=english_speaking_ratio_help)
@@ -580,7 +594,7 @@ def get_options_from_ui():
         )
 
     def climate_filters_func():
-        slider_str = "Average Temperature (°C) Range"
+        slider_str = ":thermometer: Average Temperature (°C) Range"
         caption_str = "*What is the range of average temperature (°C) you are willing to accept?*"
         st.write(slider_str)
         st.caption(caption_str, help=average_temperature_help)
@@ -590,10 +604,26 @@ def get_options_from_ui():
             30,
             (-10, 30),
             format="%d°C",
-            key="average_temperature_range",
+            key="average_temperature_celsius_range",
             label_visibility="collapsed",
         )
         score_strip_plot(mdf, "average_temperature_celsius", -10, 30)
+
+        slider_str = ":sunny: Average Daily Hours of Sunshine Range"
+        caption_str = "*What is the range of average daily hours of sunshine you are willing to accept?*"
+        st.write(slider_str)
+        st.caption(caption_str, help=average_sunshine_help)
+        app_options.average_sunshine_hours_per_day_min, app_options.average_sunshine_hours_per_day_max = st.slider(
+            slider_str,
+            3.0,
+            10.0,
+            (3.0, 10.0),
+            step=0.1,
+            format="%.1f hours/day",
+            key="average_sunshine_hours_per_day_range",
+            label_visibility="collapsed",
+        )
+        score_strip_plot(mdf, "average_sunshine_hours_per_day", 3.0, 10.0)
 
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
@@ -637,8 +667,15 @@ def initialize_widget_state_from_app_options(app_options):
         state[min_field] = getattr(app_options, min_field)
 
     state["english_ratio_min"] = getattr(app_options, "english_ratio_min")
-    state["average_temperature_celsius_min"] = getattr(app_options, "average_temperature_celsius_min")
-    state["average_temperature_celsius_max"] = getattr(app_options, "average_temperature_celsius_max")
+    # Special handling for (min, max) range params
+    state["average_temperature_celsius_range"] = (
+        getattr(app_options, "average_temperature_celsius_min"),
+        getattr(app_options, "average_temperature_celsius_max"),
+    )
+    state["average_sunshine_hours_per_day_range"] = (
+        getattr(app_options, "average_sunshine_hours_per_day_min"),
+        getattr(app_options, "average_sunshine_hours_per_day_max"),
+    )
 
 
 def first_run_per_session():
@@ -834,6 +871,13 @@ def process_data_filters(df, app_options):
             & (df["average_temperature_celsius"] < app_options.average_temperature_celsius_max)
         )
 
+    if app_options.do_filter_sunshine:
+        df["satisfies_filters"] = (
+            df["satisfies_filters"]
+            & (df["average_sunshine_hours_per_day"] > app_options.average_sunshine_hours_per_day_min)
+            & (df["average_sunshine_hours_per_day"] < app_options.average_sunshine_hours_per_day_max)
+        )
+
     return df
 
 
@@ -957,10 +1001,14 @@ def run_ui_section_results(df, app_options, num_total):
     plottable_fields = overall_fields + quality_of_life_fields + culture_fields
 
     # Special handling for optional fields
-    if "english_ratio" in df.columns:
-        plottable_fields += ["english_ratio"]
-    if "average_temperature_celsius" in df.columns:
-        plottable_fields += ["average_temperature_celsius"]
+    optional_fields = [
+        "english_ratio",
+        "average_temperature_celsius",
+        "average_sunshine_hours_per_day",
+    ]
+    for field in optional_fields:
+        if field in df.columns:
+            plottable_fields += [field]
 
     plottable_field_default_index = plottable_fields.index("overall_score")
 

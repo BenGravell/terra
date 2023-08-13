@@ -28,6 +28,8 @@ class AppOptions:
     english_ratio_min: float = 0.0
     average_temperature_celsius_min: float = -10.0
     average_temperature_celsius_max: float = 30.0
+    average_sunshine_hours_per_day_min: float = 3.0
+    average_sunshine_hours_per_day_max: float = 10.0
 
     # Weights
     cf_score_weight: float = 0.5
@@ -91,4 +93,10 @@ class AppOptions:
     def do_filter_temperature(self):
         min_active = self.average_temperature_celsius_min > -10.0 + EPS
         max_active = self.average_temperature_celsius_max < 30.0 - EPS
+        return min_active or max_active
+
+    @property
+    def do_filter_sunshine(self):
+        min_active = self.average_sunshine_hours_per_day_min > 3.0 + EPS
+        max_active = self.average_sunshine_hours_per_day_max < 10.0 - EPS
         return min_active or max_active
