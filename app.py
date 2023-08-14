@@ -1,5 +1,6 @@
 import dataclasses
 from copy import deepcopy
+from math import floor
 from functools import partial
 from urllib.parse import urlencode
 
@@ -282,13 +283,23 @@ culture_fields = dimensions_info.DIMENSIONS
 
 
 def culture_fit_reference_callback():
-    if state.culture_fit_reference_country == NONE_COUNTRY:
+    if state.reference_country == NONE_COUNTRY:
         return
 
-    country_info = culture_fit_data_dict[state.culture_fit_reference_country]
+    country_info = culture_fit_data_dict[state.reference_country]
 
     for dimension in dimensions_info.DIMENSIONS:
         state[dimension] = getattr(country_info, dimension)
+
+
+def quality_of_life_reference_callback():
+    if state.reference_country == NONE_COUNTRY:
+        return
+
+    fields = ["hp_score_min", "sp_score_min", "hf_score_min"]
+    dfs = [happy_planet_df, social_progress_df, human_freedom_df]
+    for field, df in zip(fields, dfs):
+        state[field] = floor(df.set_index("country").loc[state.reference_country].item() * 100) / 100
 
 
 # TODO move this to a data file
@@ -627,6 +638,7 @@ def get_options_from_ui():
 
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
+    st.subheader("Preferences", anchor=False)
     flexecute(
         func=culture_fit_preferences_func,
         label="Culture Fit Preferences",
@@ -638,7 +650,7 @@ def get_options_from_ui():
         **flexecute_kwargs,
     )
     flexecute(func=overall_preferences_func, label="Overall Preferences", **flexecute_kwargs)
-    st.divider()
+    st.subheader("Filters", anchor=False)
     flexecute(
         func=quality_of_life_filters_func,
         label="Quality-of-Life Filters",
@@ -704,17 +716,23 @@ def get_options():
     st.header("Option Modifiers", anchor=False)
 
     # Reference Country
-    culture_fit_reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
+    reference_country_options = [NONE_COUNTRY] + sorted(list(culture_fit_data_dict))
     st.selectbox(
         "Reference Country",
-        options=culture_fit_reference_country_options,
+        options=reference_country_options,
         format_func=country_to_emoji_func,
-        key="culture_fit_reference_country",
-        help="Use this to set the Culture Fit preferences to the selected country.",
+        key="reference_country",
+        help="Use this to set certain preferences to the selected country.",
     )
     st.button(
         label="Set Culture Fit Preferences to Reference Country",
         on_click=culture_fit_reference_callback,
+        use_container_width=True,
+    )
+
+    st.button(
+        label="Set Quality-of-Life Filters to Reference Country",
+        on_click=quality_of_life_reference_callback,
         use_container_width=True,
     )
 

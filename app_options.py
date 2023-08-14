@@ -4,7 +4,7 @@ TTL = 1 * 60 * 60  # Default time-to-live for st.cache_data, in seconds
 
 NONE_COUNTRY = "(none)"
 
-EPS = 1e-6  # a small constant
+EPS = 1e-3  # a small constant
 
 
 @dataclass
