@@ -1,5 +1,5 @@
 import dataclasses
-from copy import deepcopy
+from copy import copy, deepcopy
 from math import floor
 from functools import partial
 from urllib.parse import urlencode
@@ -66,6 +66,7 @@ def flexecute(
     checkbox_value=False,
     conditional=True,
     header=False,
+    subheader=False,
 ):
     """Execute func in streamlit expander.
 
@@ -85,6 +86,8 @@ def flexecute(
     with st.expander(label, expanded=expanded):
         if header:
             st.header(label, anchor=False)
+        if subheader:
+            st.subheader(label, anchor=False)
 
         if conditional:
             if st.checkbox(checkbox_label, value=checkbox_value):
@@ -280,6 +283,7 @@ quality_of_life_fields = [
     "hf_score",
 ]
 culture_fields = dimensions_info.DIMENSIONS
+climate_fields = ["average_temperature_celsius", "average_sunshine_hours_per_day"]
 
 
 def culture_fit_reference_callback():
@@ -443,7 +447,7 @@ def get_options_from_ui():
     def quality_of_life_preferences_func():
         # TODO construct these programmatically
         st.subheader(
-            ":memo: *Make sure the weights add up to 100*",
+            ":memo: :orange[*Make sure the weights add up to 100*]",
             anchor=False,
             help=(
                 "*Why do the weights have to add up to 100?* These are competing interests, so we need to know how"
@@ -498,7 +502,7 @@ def get_options_from_ui():
 
     def overall_preferences_func():
         st.subheader(
-            ":memo: *Make sure the weights add up to 100*",
+            ":memo: :orange[*Make sure the weights add up to 100*]",
             anchor=False,
             help=(
                 "*Why do the weights have to add up to 100?* These are competing interests, so we need to know how"
@@ -637,8 +641,8 @@ def get_options_from_ui():
         score_strip_plot(mdf, "average_sunshine_hours_per_day", 3.0, 10.0)
 
     st.title("Options", anchor=False)
-    flexecute_kwargs = dict(expanded=False, conditional=False, header=True)
-    st.subheader("Preferences", anchor=False)
+    flexecute_kwargs = dict(expanded=False, conditional=False, subheader=True)
+    st.header("Preferences", anchor=False)
     flexecute(
         func=culture_fit_preferences_func,
         label="Culture Fit Preferences",
@@ -650,7 +654,7 @@ def get_options_from_ui():
         **flexecute_kwargs,
     )
     flexecute(func=overall_preferences_func, label="Overall Preferences", **flexecute_kwargs)
-    st.subheader("Filters", anchor=False)
+    st.header("Filters", anchor=False)
     flexecute(
         func=quality_of_life_filters_func,
         label="Quality-of-Life Filters",
@@ -1209,7 +1213,7 @@ def run_ui_section_results(df, app_options, num_total):
         execute_overall_score_contributions(df_top_N)
         execute_ql_score_contributions(df_top_N)
 
-    def generate_choropleth(df, name):
+    def generate_choropleth(df, name, cmap):
         df = df.reset_index()
         fig = px.choropleth(
             df,
@@ -1217,13 +1221,13 @@ def run_ui_section_results(df, app_options, num_total):
             locations="country",
             color=name,
             hover_name="country_with_emoji",
-            color_continuous_scale=color_options.CHOROPLETH_COLORMAP,
+            color_continuous_scale=cmap,
         )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
         return fig
 
     def execute_world_map():
-        cols = st.columns(3)
+        cols = st.columns(4)
         with cols[0]:
             field_for_world_map = st.selectbox(
                 label="Field to Plot",
@@ -1253,7 +1257,27 @@ def run_ui_section_results(df, app_options, num_total):
                     " details."
                 ),
             )
-        fig = generate_choropleth(df, field_for_world_map)
+
+        default_colormap = color_options.CHOROPLETH_COLORMAP
+        default_colormap_not_reversed = copy(default_colormap)
+        if default_colormap_not_reversed.endswith("r"):
+            default_colormap_not_reversed = default_colormap_not_reversed.split("_r")[0]
+
+        plotly_colormaps = list(px.colors.named_colorscales())
+        plotly_colormaps.remove(default_colormap_not_reversed)
+        plotly_colormaps.insert(0, default_colormap_not_reversed)
+        colormap_options = []
+        for cmap in plotly_colormaps:
+            colormap_options.extend([cmap, f"{cmap}_r"])
+
+        with cols[3]:
+            cmap_for_world_map = st.selectbox(
+                label="Colormap",
+                options=colormap_options,
+                index=colormap_options.index(default_colormap),
+                help="See https://plotly.com/python/builtin-colorscales/",
+            )
+        fig = generate_choropleth(df, field_for_world_map, cmap_for_world_map)
         fig.update_geos(resolution=world_map_resolution)
         fig.update_geos(projection_type=world_map_projection_type)
         fig.update_geos(lataxis_showgrid=True, lonaxis_showgrid=True)
@@ -1338,8 +1362,6 @@ def run_ui_section_results(df, app_options, num_total):
         plot_container = st.container()
         options_container = st.container()
 
-        dr_fields_all = culture_fields + quality_of_life_fields
-
         # Set default for multiselect
         if "dr_fields" not in st.session_state:
             set_dr_fields_callback(culture_fields)
@@ -1347,7 +1369,7 @@ def run_ui_section_results(df, app_options, num_total):
         with options_container:
             dr_fields = st.multiselect(
                 "Fields for Dimensionality Reduction & Clustering",
-                options=dr_fields_all,
+                options=plottable_fields,
                 format_func=df_format_func,
                 key="dr_fields",
             )
@@ -1358,7 +1380,7 @@ def run_ui_section_results(df, app_options, num_total):
                     "Set Fields to All",
                     use_container_width=True,
                     on_click=set_dr_fields_callback,
-                    args=[dr_fields_all],
+                    args=[plottable_fields],
                 )
             with cols[1]:
                 st.button(

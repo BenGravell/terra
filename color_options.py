@@ -1,9 +1,8 @@
 import matplotlib
 import cmocean  # noqa
-import plotly.express as px
 
 
-CHOROPLETH_COLORMAP = px.colors.sequential.deep_r
+CHOROPLETH_COLORMAP = "deep_r"
 
 GLOBE_COLORMAP = matplotlib.cm.get_cmap("cmo.deep_r")
 
