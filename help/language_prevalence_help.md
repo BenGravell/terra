@@ -1,8 +1,8 @@
 ## What is Language Prevalence?
 
-Language Prevalence is the proportion of people in a country that speak a language.
+**Language Prevalence** is the proportion of people in a country that speak a language.
 
-Language Prevalence is an important consideration for people wishing to function in another country, as communication is critical to daily life.
+**Language Prevalence** is an important consideration for people wishing to function in another country, as communication is critical to daily life.
 
 
 ## Where did the data come from?

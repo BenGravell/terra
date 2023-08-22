@@ -1,10 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 TTL = 1 * 60 * 60  # Default time-to-live for st.cache_data, in seconds
 
 NONE_COUNTRY = "(none)"
 
 EPS = 1e-3  # a small constant
+
+CONTINENT_OPTIONS = ["Africa", "Asia", "Europe", "Oceania", "North America", "South America"]
 
 
 @dataclass
@@ -30,6 +32,7 @@ class AppOptions:
     average_temperature_celsius_max: float = 30.0
     average_sunshine_hours_per_day_min: float = 3.0
     average_sunshine_hours_per_day_max: float = 10.0
+    continents: list[str] = field(default_factory=lambda: CONTINENT_OPTIONS)
 
     # Weights
     cf_score_weight: float = 0.5
@@ -100,3 +103,7 @@ class AppOptions:
         min_active = self.average_sunshine_hours_per_day_min > 3.0 + EPS
         max_active = self.average_sunshine_hours_per_day_max < 10.0 - EPS
         return min_active or max_active
+
+    @property
+    def do_filter_continents(self):
+        return any(continent not in self.continents for continent in CONTINENT_OPTIONS)

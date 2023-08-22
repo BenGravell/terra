@@ -43,51 +43,58 @@ culture_fit_df = pd.DataFrame.from_dict(culture_fit_data_dict, orient="index").r
 country_urls_df = pd.DataFrame.from_dict(visualisation.COUNTRY_URLS, orient="index")
 country_urls_df = country_urls_df.rename_axis("country").reset_index()
 
-
+####
 # Checks against country_codes_alpha_3, which is the most complete list.
 # This is to harmonize the names that are present across all datasets.
+####
 
-diff_col("./data/country_coords.csv", "./data/country_codes_alpha_3.csv")
-# known_missing: TODO
+# diff_col("./data/country_coords.csv", "./data/country_codes_alpha_3.csv")
+# # known_missing: TODO
 
-diff_col(country_urls_df, "./data/country_codes_alpha_3.csv", name1="country_urls_df")
-# known missing: South Ossetia, Vatican City
-
-diff_col(culture_fit_df, "./data/country_codes_alpha_3.csv", name1="culture_fit_df")
+diff_col("./data/country_continents.csv", "./data/country_codes_alpha_3.csv")
 # known missing: None
 
-diff_col("./data/happy_planet_index_2019.csv", "./data/country_codes_alpha_3.csv")
-# known missing: None
+# diff_col(country_urls_df, "./data/country_codes_alpha_3.csv", name1="country_urls_df")
+# # known missing: South Ossetia, Vatican City
 
-diff_col("./data/social_progress_index_2022.csv", "./data/country_codes_alpha_3.csv")
-# known missing: West Bank and Gaza
+# diff_col(culture_fit_df, "./data/country_codes_alpha_3.csv", name1="culture_fit_df")
+# # known missing: None
 
-diff_col("./data/human-freedom-index-2022.csv", "./data/country_codes_alpha_3.csv")
-# known missing: None
+# diff_col("./data/happy_planet_index_2019.csv", "./data/country_codes_alpha_3.csv")
+# # known missing: None
 
-diff_col("./data/english_speaking.csv", "./data/country_codes_alpha_3.csv")
-# known missing: None
+# diff_col("./data/social_progress_index_2022.csv", "./data/country_codes_alpha_3.csv")
+# # known missing: West Bank and Gaza
 
-diff_col("./data/country_temperature.csv", "./data/country_codes_alpha_3.csv")
-# known missing: None
+# diff_col("./data/human-freedom-index-2022.csv", "./data/country_codes_alpha_3.csv")
+# # known missing: None
 
-diff_col("./data/country_sunshine_hours_per_day.csv", "./data/country_codes_alpha_3.csv")
-# known missing: None
+# diff_col("./data/english_speaking.csv", "./data/country_codes_alpha_3.csv")
+# # known missing: None
 
-# Checks from source-to-source (sequential)
+# diff_col("./data/country_temperature.csv", "./data/country_codes_alpha_3.csv")
+# # known missing: None
 
-diff_col(culture_fit_df, "./data/happy_planet_index_2019.csv", name1="culture_fit_df")
-# known missing: Angola, Cape Verde, Fiji, Puerto Rico, Sao Tome and Principe, Suriname, Syria
+# diff_col("./data/country_sunshine_hours_per_day.csv", "./data/country_codes_alpha_3.csv")
+# # known missing: None
 
-diff_col("./data/happy_planet_index_2019.csv", "./data/social_progress_index_2022.csv")
-# known missing: Hong Kong, Palestine, Taiwan, Vanuatu
 
-diff_col("./data/social_progress_index_2022.csv", "./data/human-freedom-index-2022.csv")
-# known missing: Afghanistan, Equatorial Guinea, Eritrea, Kyrgyzstan, Laos, Maldives, Sao Tome and Principe,
-# Slovakia, Solomon Islands, South Sudan, Turkmenistan, Uzbekistan, West Bank and Gaza
+####
+# # Checks from source-to-source (sequential)
+####
 
-diff_col("./data/human-freedom-index-2022.csv", "./data/english_speaking.csv")
-# known missing: a lot...
+# diff_col(culture_fit_df, "./data/happy_planet_index_2019.csv", name1="culture_fit_df")
+# # known missing: Angola, Cape Verde, Fiji, Puerto Rico, Sao Tome and Principe, Suriname, Syria
 
-diff_col("./data/human-freedom-index-2022.csv", "./data/country_temperature.csv")
-# known missing: Taiwan
+# diff_col("./data/happy_planet_index_2019.csv", "./data/social_progress_index_2022.csv")
+# # known missing: Hong Kong, Palestine, Taiwan, Vanuatu
+
+# diff_col("./data/social_progress_index_2022.csv", "./data/human-freedom-index-2022.csv")
+# # known missing: Afghanistan, Equatorial Guinea, Eritrea, Kyrgyzstan, Laos, Maldives, Sao Tome and Principe,
+# # Slovakia, Solomon Islands, South Sudan, Turkmenistan, Uzbekistan, West Bank and Gaza
+
+# diff_col("./data/human-freedom-index-2022.csv", "./data/english_speaking.csv")
+# # known missing: a lot...
+
+# diff_col("./data/human-freedom-index-2022.csv", "./data/country_temperature.csv")
+# # known missing: Taiwan

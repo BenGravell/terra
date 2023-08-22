@@ -1,6 +1,6 @@
 ## Provenance
 
-The Culture Fit portion of this app is largely based off of Michal Nowotka's tutorial ([Blog](https://blog.streamlit.io/how-to-make-a-culture-map/)) ([GitHub](https://github.com/streamlit/demo-culture-map)), which is partially used (with modifications).
+The **Culture Fit** portion of this app is largely based off of Michal Nowotka's tutorial ([Blog](https://blog.streamlit.io/how-to-make-a-culture-map/)) ([GitHub](https://github.com/streamlit/demo-culture-map)), which is partially used (with modifications).
 
 
 ## Caveats and Limitations

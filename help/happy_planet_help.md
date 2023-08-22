@@ -5,7 +5,7 @@ The *Happy Planet Index* is a measure of sustainable wellbeing, ranking countrie
 
 ## What are the components of the *Happy Planet Index*?
 
-The *Happy Planet Index* is computed from three high-level sub-indexes:
+The **Happy Planet Index** is computed from three high-level sub-indexes:
 - *Life Expectancy*
     - The average number of years an infant born in that country is expected to live if prevailing patterns of age-specific mortality rates at the time of birth in the country stay the same throughout the infant’s life.
     - Life expectancy is commonly used as an overall indicator of the standard of health in a country.

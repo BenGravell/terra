@@ -30,7 +30,7 @@ from matplotlib.colors import rgb2hex
 
 from supported_countries import SUPPORTED_COUNTRIES
 import config
-from app_options import AppOptions, NONE_COUNTRY, TTL
+from app_options import AppOptions, NONE_COUNTRY, TTL, CONTINENT_OPTIONS
 import clustering_options
 import map_options
 import color_options
@@ -123,6 +123,8 @@ def load_data():
     # Coordinates
     df_coords = pd.read_csv("./data/country_coords.csv")
     df_coords = df_coords.set_index("country")
+    # Continents
+    df_continents = pd.read_csv("./data/country_continents.csv")
     # Country codes alpha3
     df_codes_alpha_3 = pd.read_csv("./data/country_codes_alpha_3.csv")
     # Flag emoji
@@ -187,6 +189,7 @@ def load_data():
         df_temperature,
         df_sunshine,
         df_coords,
+        df_continents,
         df_codes_alpha_3,
         df_flag_emoji,
         country_to_emoji,
@@ -204,6 +207,7 @@ def load_data():
     df_temperature,
     df_sunshine,
     df_coords,
+    df_continents,
     df_codes_alpha_3,
     df_flag_emoji,
     country_to_emoji,
@@ -226,6 +230,7 @@ def get_main_data():
     df = df.merge(culture_fit_df, on="country")
     df = df.merge(df_temperature, on="country")
     df = df.merge(df_sunshine, on="country")
+    df = df.merge(df_continents, on="country")
     df["country_with_emoji"] = df["country"].apply(country_to_emoji_func)
     return df
 
@@ -257,6 +262,7 @@ df_format_dict = {
     "english_ratio": "English Speaking Ratio",
     "average_temperature_celsius": "Average Temperature (°C)",
     "average_sunshine_hours_per_day": "Average Daily Hours of Sunshine",
+    "continent": "Continent",
     "satisfies_filters": "Satisfies Filters",
 }
 for dimension in dimensions_info.DIMENSIONS:
@@ -284,6 +290,7 @@ quality_of_life_fields = [
 ]
 culture_fields = dimensions_info.DIMENSIONS
 climate_fields = ["average_temperature_celsius", "average_sunshine_hours_per_day"]
+geography_fields = ["continent"]
 
 
 def culture_fit_reference_callback():
@@ -352,6 +359,9 @@ average_sunshine_help = (
     " over one or more cities in a country."
 )
 
+continent_help = (
+    "[Continent in which the country is located](https://simple.wikipedia.org/wiki/List_of_countries_by_continents)."
+)
 
 dimensionality_reducer_name_to_class_map = {
     "PCA": PCA,
@@ -538,7 +548,7 @@ def get_options_from_ui():
         # TODO construct these programmatically
 
         slider_str = "Happy Planet Score Min"
-        caption_str = "*What is the minimum Happy Planet Score you are willing to accept?*"
+        caption_str = "*What is the minimum Happy Planet Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=happy_planet_score_help)
         app_options.hp_score_min = st.select_slider(
@@ -550,7 +560,7 @@ def get_options_from_ui():
         score_strip_plot(mdf, "hp_score", 0.0, 1.0)
 
         slider_str = "Social Progress Score Min"
-        caption_str = "*What is the minimum Social Progress Score you are willing to accept?*"
+        caption_str = "*What is the minimum Social Progress Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=social_progress_score_help)
         app_options.sp_score_min = st.select_slider(
@@ -562,7 +572,7 @@ def get_options_from_ui():
         score_strip_plot(mdf, "sp_score", 0.0, 1.0)
 
         slider_str = "Human Freedom Score Min"
-        caption_str = "*What is the minimum Human Freedom Score you are willing to accept?*"
+        caption_str = "*What is the minimum Human Freedom Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=human_freedom_score_help)
         app_options.hf_score_min = st.select_slider(
@@ -575,7 +585,7 @@ def get_options_from_ui():
 
     def overall_filters_func():
         slider_str = "Culture Fit Score Min"
-        caption_str = "*What is the minimum Culture Fit Score you are willing to accept?*"
+        caption_str = "*What is the minimum Culture Fit Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=culture_fit_score_help)
         app_options.cf_score_min = st.select_slider(
@@ -586,7 +596,7 @@ def get_options_from_ui():
         )
 
         slider_str = "Quality-of-Life Score Min"
-        caption_str = "*What is the minimum Quality-of-Life Score you are willing to accept?*"
+        caption_str = "*What is the minimum Quality-of-Life Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=quality_of_life_score_help)
         app_options.ql_score_min = st.select_slider(
@@ -598,7 +608,7 @@ def get_options_from_ui():
 
     def language_filters_func():
         slider_str = ":speaking_head_in_silhouette: English Speaking Ratio Min"
-        caption_str = "*What is the minimum proportion of English speakers you are willing to accept?*"
+        caption_str = "*What is the minimum proportion of English speakers you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=english_speaking_ratio_help)
         app_options.english_ratio_min = st.select_slider(
@@ -610,7 +620,7 @@ def get_options_from_ui():
 
     def climate_filters_func():
         slider_str = ":thermometer: Average Temperature (°C) Range"
-        caption_str = "*What is the range of average temperature (°C) you are willing to accept?*"
+        caption_str = "*What is the range of average temperature (°C) you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=average_temperature_help)
         app_options.average_temperature_celsius_min, app_options.average_temperature_celsius_max = st.slider(
@@ -625,7 +635,7 @@ def get_options_from_ui():
         score_strip_plot(mdf, "average_temperature_celsius", -10, 30)
 
         slider_str = ":sunny: Average Daily Hours of Sunshine Range"
-        caption_str = "*What is the range of average daily hours of sunshine you are willing to accept?*"
+        caption_str = "*What is the range of average daily hours of sunshine you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=average_sunshine_help)
         app_options.average_sunshine_hours_per_day_min, app_options.average_sunshine_hours_per_day_max = st.slider(
@@ -639,6 +649,18 @@ def get_options_from_ui():
             label_visibility="collapsed",
         )
         score_strip_plot(mdf, "average_sunshine_hours_per_day", 3.0, 10.0)
+
+    def geography_filters_func():
+        slider_str = "🌎🌍🌏 Continents"
+        caption_str = "*What continents do you want to consider?*"
+        st.write(slider_str)
+        st.caption(caption_str, help=continent_help)
+        app_options.continents = st.multiselect(
+            slider_str,
+            options=CONTINENT_OPTIONS,
+            key="continents",
+            label_visibility="collapsed",
+        )
 
     st.title("Options", anchor=False)
     flexecute_kwargs = dict(expanded=False, conditional=False, subheader=True)
@@ -663,6 +685,7 @@ def get_options_from_ui():
     flexecute(func=overall_filters_func, label="Overall Score Filters", **flexecute_kwargs)
     flexecute(func=language_filters_func, label="Language Filters", **flexecute_kwargs)
     flexecute(func=climate_filters_func, label="Climate Filters", **flexecute_kwargs)
+    flexecute(func=geography_filters_func, label="Geography Filters", **flexecute_kwargs)
 
     return app_options
 
@@ -692,6 +715,7 @@ def initialize_widget_state_from_app_options(app_options):
         getattr(app_options, "average_sunshine_hours_per_day_min"),
         getattr(app_options, "average_sunshine_hours_per_day_max"),
     )
+    state["continents"] = getattr(app_options, "continents")
 
 
 def first_run_per_session():
@@ -728,17 +752,19 @@ def get_options():
         key="reference_country",
         help="Use this to set certain preferences to the selected country.",
     )
-    st.button(
-        label="Set Culture Fit Preferences to Reference Country",
-        on_click=culture_fit_reference_callback,
-        use_container_width=True,
-    )
-
-    st.button(
-        label="Set Quality-of-Life Filters to Reference Country",
-        on_click=quality_of_life_reference_callback,
-        use_container_width=True,
-    )
+    cols = st.columns(2)
+    with cols[0]:
+        st.button(
+            label="Set :blue[**Culture Fit Preferences**] to Reference Country",
+            on_click=culture_fit_reference_callback,
+            use_container_width=True,
+        )
+    with cols[1]:
+        st.button(
+            label="Set :blue[**Quality-of-Life Filters**] to Reference Country",
+            on_click=quality_of_life_reference_callback,
+            use_container_width=True,
+        )
 
     st.divider()
 
@@ -900,6 +926,9 @@ def process_data_filters(df, app_options):
             & (df["average_sunshine_hours_per_day"] < app_options.average_sunshine_hours_per_day_max)
         )
 
+    if app_options.do_filter_continents:
+        df["satisfies_filters"] = df["satisfies_filters"] & (df["continent"].isin(app_options.continents))
+
     return df
 
 
@@ -1020,7 +1049,7 @@ def run_ui_section_results(df, app_options, num_total):
             )
 
     # Prep lists for later
-    plottable_fields = overall_fields + quality_of_life_fields + culture_fields
+    plottable_fields = overall_fields + quality_of_life_fields + culture_fields + geography_fields
 
     # Special handling for optional fields
     optional_fields = [
@@ -1032,7 +1061,10 @@ def run_ui_section_results(df, app_options, num_total):
         if field in df.columns:
             plottable_fields += [field]
 
+    numeric_plottable_fields = [x for x in plottable_fields if x != "continent"]
+
     plottable_field_default_index = plottable_fields.index("overall_score")
+    numeric_plottable_field_default_index = numeric_plottable_fields.index("overall_score")
 
     def execute_world_factbook():
         # CIA World Factbook viewer
@@ -1328,8 +1360,8 @@ def run_ui_section_results(df, app_options, num_total):
         with cols[0]:
             field_for_globe = st.selectbox(
                 label="Field to Plot",
-                options=plottable_fields,
-                index=plottable_field_default_index,
+                options=numeric_plottable_fields,
+                index=numeric_plottable_field_default_index,
                 format_func=df_format_func,
                 key="field_to_plot_globe",
             )
@@ -1800,6 +1832,27 @@ def run_ui_section_help():
 
     with st.expander("Language Prevalence 💬"):
         open_and_st_markdown("./help/language_prevalence_help.md")
+
+    with st.expander("Climate 🌡️"):
+        st.components.v1.iframe(
+            "https://education.nationalgeographic.org/resource/all-about-climate/",
+            height=600,
+            scrolling=True,
+        )
+        open_and_st_markdown("./help/climate_help.md")
+
+    with st.expander("Geography 🏞️"):
+        st.components.v1.iframe(
+            "https://www.nationalgeographic.org/education/what-is-geography/",
+            height=600,
+            scrolling=True,
+        )
+        st.components.v1.iframe(
+            "https://education.nationalgeographic.org/resource/Continent/",
+            height=600,
+            scrolling=True,
+        )
+        open_and_st_markdown("./help/geography_help.md")
 
     with st.expander("About Terra ℹ️"):
         open_and_st_markdown("./help/general_help.md")

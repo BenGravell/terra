@@ -10,3 +10,4 @@ The data included in the `data` directory was collected from the following sourc
 - `country_coords.csv`: https://developers.google.com/public-data/docs/canonical/countries_csv
 - `country_flag_emoji.csv`: various
 - `country_codes_alpha_3.csv`: various
+- `country_continents.csv`: https://simple.wikipedia.org/wiki/List_of_countries_by_continents
