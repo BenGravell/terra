@@ -302,6 +302,8 @@ def culture_fit_reference_callback():
     for dimension in dimensions_info.DIMENSIONS:
         state[dimension] = getattr(country_info, dimension)
 
+    st.toast(f"Culture Fit Preferences set to Reference Country :blue[**{state.reference_country}**]", icon="🎛️")
+
 
 def quality_of_life_reference_callback():
     if state.reference_country == NONE_COUNTRY:
@@ -311,6 +313,8 @@ def quality_of_life_reference_callback():
     dfs = [happy_planet_df, social_progress_df, human_freedom_df]
     for field, df in zip(fields, dfs):
         state[field] = floor(df.set_index("country").loc[state.reference_country].item() * 100) / 100
+
+    st.toast(f"Quality-of-Life Filters set to Reference Country :blue[**{state.reference_country}**]", icon="🎛️")
 
 
 # TODO move this to a data file
@@ -736,10 +740,16 @@ def reset_options_callback():
     initialize_widget_state_from_app_options(app_options)
 
 
+def update_options_callback():
+    st.toast("Updated Options", icon="🎛️")
+
+
 def get_options():
     with st.form(key="options_form"):
         app_options = get_options_from_ui()
-        st.form_submit_button(label="Update Options", type="primary", use_container_width=True)
+        st.form_submit_button(
+            label="Update Options", type="primary", use_container_width=True, on_click=update_options_callback
+        )
 
     st.header("Option Modifiers", anchor=False)
 
@@ -982,6 +992,10 @@ def run_ui_section_results(df, app_options, num_total):
         )
         if not show_unacceptable:
             df = df[df["satisfies_filters"]]
+
+    if df.shape[0] == 0:
+        st.warning("No matches found! Try adjusting the filters to be less strict.")
+        return
 
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
@@ -1964,11 +1978,7 @@ def main():
             st.warning("Options are invalid, please correct them to see results here.")
         else:
             df, num_total = process_data(app_options)
-            num_matches = df.shape[0]
-            if num_matches == 0:
-                st.warning("No matches found! Try adjusting the filters to be less strict.")
-            else:
-                run_ui_section_results(df, app_options, num_total)
+            run_ui_section_results(df, app_options, num_total)
 
     teardown(app_options)
 
