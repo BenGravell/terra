@@ -1415,18 +1415,18 @@ def run_ui_section_results(df, app_options, num_total):
         with options_container:
             dr_fields = st.multiselect(
                 "Fields for Dimensionality Reduction & Clustering",
-                options=plottable_fields,
+                options=numeric_plottable_fields,
                 format_func=df_format_func,
                 key="dr_fields",
             )
 
-            cols = st.columns(3)
+            cols = st.columns(4)
             with cols[0]:
                 st.button(
                     "Set Fields to All",
                     use_container_width=True,
                     on_click=set_dr_fields_callback,
-                    args=[plottable_fields],
+                    args=[numeric_plottable_fields],
                 )
             with cols[1]:
                 st.button(
@@ -1441,6 +1441,13 @@ def run_ui_section_results(df, app_options, num_total):
                     use_container_width=True,
                     on_click=set_dr_fields_callback,
                     args=[quality_of_life_fields],
+                )
+            with cols[3]:
+                st.button(
+                    "Set Fields to Climate Dimensions",
+                    use_container_width=True,
+                    on_click=set_dr_fields_callback,
+                    args=[climate_fields],
                 )
 
             df_for_dr = df.set_index("country")[dr_fields]
