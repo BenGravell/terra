@@ -1,5 +1,5 @@
 import dataclasses
-from copy import copy, deepcopy
+from copy import deepcopy
 from math import floor
 from functools import partial
 from urllib.parse import urlencode
@@ -24,9 +24,9 @@ from streamlit_globe import streamlit_globe
 
 import plotly.express as px
 import plotly.figure_factory as ff
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.colors import rgb2hex
-
 
 from supported_countries import SUPPORTED_COUNTRIES
 import config
@@ -1304,23 +1304,11 @@ def run_ui_section_results(df, app_options, num_total):
                 ),
             )
 
-        default_colormap = color_options.CHOROPLETH_COLORMAP
-        default_colormap_not_reversed = copy(default_colormap)
-        if default_colormap_not_reversed.endswith("r"):
-            default_colormap_not_reversed = default_colormap_not_reversed.split("_r")[0]
-
-        plotly_colormaps = list(px.colors.named_colorscales())
-        plotly_colormaps.remove(default_colormap_not_reversed)
-        plotly_colormaps.insert(0, default_colormap_not_reversed)
-        colormap_options = []
-        for cmap in plotly_colormaps:
-            colormap_options.extend([cmap, f"{cmap}_r"])
-
         with cols[3]:
             cmap_for_world_map = st.selectbox(
                 label="Colormap",
-                options=colormap_options,
-                index=colormap_options.index(default_colormap),
+                options=color_options.COLORMAP_OPTIONS,
+                index=color_options.COLORMAP_OPTIONS.index(color_options.DEFAULT_COLORMAP),
                 help="See https://plotly.com/python/builtin-colorscales/",
             )
         fig = generate_choropleth(df, field_for_world_map, cmap_for_world_map)
@@ -1330,7 +1318,7 @@ def run_ui_section_results(df, app_options, num_total):
         fig.update_layout(geo_bgcolor=config.STREAMLIT_CONFIG["theme"]["backgroundColor"])
         st.plotly_chart(fig, use_container_width=True)
 
-    def get_data_for_globe(df, field_for_globe):
+    def get_data_for_globe(df, field_for_globe, cmap_for_globe):
         # TODO just merge the df_coords and df to get the data needed
         df = df.reset_index()
 
@@ -1338,6 +1326,7 @@ def run_ui_section_results(df, app_options, num_total):
         field_max = df[field_for_globe].max()
         pointsData = []
         labelsData = []
+        globe_colormap = matplotlib.cm.get_cmap(f"cmo.{cmap_for_globe}")
         for idx, row in df.iterrows():
             country = row.country
 
@@ -1351,8 +1340,7 @@ def run_ui_section_results(df, app_options, num_total):
             size_min = 0.2
             size_max = 1.0
             size = size_min + (size_max - size_min) * field_rel_val
-
-            color_rgba = color_options.GLOBE_COLORMAP(field_rel_val)
+            color_rgba = globe_colormap(field_rel_val)
             color_hex = rgb2hex(color_rgba, keep_alpha=True)
 
             point = {"lat": lat, "lng": lon, "size": size, "color": color_hex}
@@ -1383,10 +1371,16 @@ def run_ui_section_results(df, app_options, num_total):
             day_or_night = st.selectbox("Day or Night", options=["day", "night"])
         with cols[2]:
             widget_width = st.number_input("Widget Width (pixels)", min_value=100, max_value=4000, value=600)
-        with cols[3]:
             widget_height = st.number_input("Widget Height (pixels)", min_value=100, max_value=4000, value=600)
+        with cols[3]:
+            cmap_for_globe = st.selectbox(
+                label="Colormap",
+                options=color_options.COLORMAP_OPTIONS,
+                index=color_options.COLORMAP_OPTIONS.index(color_options.DEFAULT_COLORMAP),
+                help="See https://matplotlib.org/cmocean/",
+            )
 
-        pointsData, labelsData = get_data_for_globe(df, field_for_globe)
+        pointsData, labelsData = get_data_for_globe(df, field_for_globe, cmap_for_globe)
         streamlit_globe(
             pointsData=pointsData,
             labelsData=labelsData,
