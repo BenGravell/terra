@@ -732,8 +732,6 @@ def first_run_per_session():
 
     state.initialized = True
 
-    st.experimental_rerun()
-
 
 def reset_options_callback():
     app_options = AppOptions()
@@ -1948,9 +1946,9 @@ def check_and_handle_invalid_app_options(app_options):
 
 
 def main():
-    if "initialized" not in state:
-        first_run_per_session()
-
+    # NOTE: It is critical to define the tabs first before other operations that
+    # conditionally modify the main body of the app to avoid the
+    # jump-to-first-tab-on-first-interaction-in-another-tab bug
     tab_names = ["Welcome", "Options", "Results", "Help", "Share"]
     tab_emoji_dict = {
         "Welcome": "👋",
@@ -1962,10 +1960,16 @@ def main():
     tabs = st.tabs([f"{tab_emoji_dict[tab_name]} {tab_name}" for tab_name in tab_names])
     container_dict = {tab_name: tab for tab_name, tab in zip(tab_names, tabs)}
 
+    # Execute static sections that do not depend on app options first before first_run_per_session()
     with container_dict["Welcome"]:
         run_ui_section_welcome()
+
+    # NOTE: There are (nested) tabs defined in run_ui_section_help()
     with container_dict["Help"]:
         run_ui_section_help()
+
+    if "initialized" not in state:
+        first_run_per_session()
 
     with container_dict["Options"]:
         app_options = get_options()
