@@ -1134,21 +1134,21 @@ def run_ui_section_results(df, app_options, num_total):
                 fig.add_hline(
                     best_match_country_row[field],
                     line_dash="dash",
-                    line_color="gold",
-                    opacity=0.5,
+                    line_color=config.STREAMLIT_CONFIG["theme"]["primaryColor"],
+                    opacity=0.7,
                     annotation_text=f"{best_match_country} (Best Match)",
                     annotation_position="top right",
-                    annotation_font_color="gold",
+                    annotation_font_color=config.STREAMLIT_CONFIG["theme"]["primaryColor"],
                 )
 
                 fig.add_hline(
                     selected_country_row[field],
                     line_dash="dash",
-                    line_color="white",
-                    opacity=0.5,
+                    line_color="black",
+                    opacity=0.7,
                     annotation_text=f"{selected_country} (Selected)",
                     annotation_position="bottom right",
-                    annotation_font_color="white",
+                    annotation_font_color="black",
                 )
 
                 if name == "Culture Dimensions":
@@ -1157,7 +1157,7 @@ def run_ui_section_results(df, app_options, num_total):
                         ref_val,
                         line_dash="dash",
                         line_color="orange",
-                        opacity=0.5,
+                        opacity=0.7,
                         annotation_text="(User Ideal)",
                         annotation_position="top left",
                         annotation_font_color="orange",

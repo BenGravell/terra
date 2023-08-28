@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 __author__ = "bgravell"
 
 from setuptools import setup

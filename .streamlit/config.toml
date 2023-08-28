@@ -1,7 +1,6 @@
 [theme]
-# Dark theme with blue accents
-primaryColor="#67B3FB"
-backgroundColor="#0E1117"
-secondaryBackgroundColor="#262730"
-textColor="#FAFAFA"
+primaryColor="#1368C5"
+backgroundColor="#FFFFFF"
+secondaryBackgroundColor="#F0F2F6"
+textColor="#262730"
 font="sans serif"
