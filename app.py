@@ -997,7 +997,7 @@ def run_ui_section_results(df, app_options, num_total):
 
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
-    with st.expander("Select Country", expanded=False):
+    with st.expander("Select Country", expanded=True):
         cols = st.columns(2)
         with cols[1]:
             sort_by_col = st.selectbox(
