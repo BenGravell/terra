@@ -1,6 +1,7 @@
 # Intended for use with Python 3.11
 streamlit~=1.25.0
 streamlit-globe~=0.2.1
+streamlit-extras==0.3.0
 requests~=2.28.1
 setuptools~=65.6.3
 pandas~=1.5.2

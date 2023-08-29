@@ -21,6 +21,7 @@ from scipy.cluster import hierarchy
 import pandas as pd
 import streamlit as st
 from streamlit_globe import streamlit_globe
+from streamlit_extras.metric_cards import style_metric_cards
 
 import plotly.express as px
 import plotly.figure_factory as ff
@@ -42,13 +43,25 @@ from culture_fit import country_data, distance_calculations, dimensions_info
 st.set_page_config(page_title="Terra", page_icon="🌎", layout="wide")
 
 # Custom CSS ("css hack") to set the background color of all iframe components to white.
-# This is needed because most websites assume a white background and will be illegible when iframed without this.
+# This is needed because most websites assume a white background and will be illegible
+# when iframed without this when a dark background is used.
 st.markdown(
     """
 <style>iframe {background-color: white;}</style>
 """,
     unsafe_allow_html=True,
 )
+
+# Style metrics
+style_metric_cards(
+    border_left_color=config.STREAMLIT_CONFIG["theme"]["primaryColor"],
+    border_color=config.STREAMLIT_CONFIG["theme"]["secondaryBackgroundColor"],
+    background_color=config.STREAMLIT_CONFIG["theme"]["backgroundColor"],
+    border_size_px=2,
+    border_radius_px=20,
+    box_shadow=False,
+)
+
 
 # Pyplot setup
 plt.style.use(["dark_background", "./terra.mplstyle"])
@@ -1116,9 +1129,10 @@ def run_ui_section_results(df, app_options, num_total):
             cols = st.columns(len(fields))
         for col, field in zip(cols, fields):
             with col:
-                st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
+                val_subcol, rank_subcol = st.columns(2)
+                val_subcol.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
                 rank = selected_country_row[f"{field}_rank"]
-                st.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
+                rank_subcol.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
 
                 fig = px.box(
                     df,
