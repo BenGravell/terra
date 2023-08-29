@@ -52,7 +52,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Style metrics
 style_metric_cards(
     border_left_color=config.STREAMLIT_CONFIG["theme"]["primaryColor"],
     border_color=config.STREAMLIT_CONFIG["theme"]["secondaryBackgroundColor"],
@@ -1129,10 +1128,9 @@ def run_ui_section_results(df, app_options, num_total):
             cols = st.columns(len(fields))
         for col, field in zip(cols, fields):
             with col:
-                val_subcol, rank_subcol = st.columns(2)
-                val_subcol.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
+                st.metric(df_format_func(field), utils.pct_fmt(selected_country_row[field]))
                 rank = selected_country_row[f"{field}_rank"]
-                rank_subcol.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
+                st.metric(f"{df_format_func(field)} Rank", f"{rank} of {num_total}")
 
                 fig = px.box(
                     df,
