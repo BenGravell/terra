@@ -75,14 +75,14 @@ def flexecute(
     expanded=False,
     func_args=None,
     func_kwargs=None,
-    checkbox_value=False,
+    toggle_value=False,
     conditional=True,
     header=False,
     subheader=False,
 ):
     """Execute func in streamlit expander.
 
-    Includes ability to conditionally execute func if an st.checkbox is checked.
+    Includes ability to conditionally execute func if an st.toggle is checked.
     """
 
     if func_args is None:
@@ -91,9 +91,9 @@ def flexecute(
         func_kwargs = {}
 
     if conditional:
-        checkbox_label = f"Show {label}"
-        spinner_label = f"Executing {label}"
-        not_shown_str = f'Enable "{checkbox_label}" to populate this section. Note this may increase render time.'
+        toggle_label = f"Show {label}"
+        spinner_label = f"Executing *{label}*"
+        not_shown_str = f'Enable "{toggle_label}" to populate this section. Note this may increase render time.'
 
     with st.expander(label, expanded=expanded):
         if header:
@@ -102,7 +102,7 @@ def flexecute(
             st.subheader(label, anchor=False)
 
         if conditional:
-            if st.checkbox(checkbox_label, value=checkbox_value):
+            if st.toggle(toggle_label, value=toggle_value):
                 with st.spinner(spinner_label):
                     func(*func_args, **func_kwargs)
             else:
@@ -997,7 +997,7 @@ def run_ui_section_results(df, app_options, num_total):
 
     with show_unacceptable_container:
         st.success(f"Found {df[df['satisfies_filters']].shape[0]} countries that satisfy filters.")
-        show_unacceptable = st.checkbox(
+        show_unacceptable = st.toggle(
             f"Show results for {df[~df['satisfies_filters']].shape[0]} more countries that do not satisfy filters."
         )
         if not show_unacceptable:
@@ -1771,7 +1771,7 @@ def run_ui_section_results(df, app_options, num_total):
         func=execute_selected_country_details,
         label="Selected Country Details",
         expanded=True,
-        checkbox_value=True,
+        toggle_value=True,
     )
     flexecute(func=execute_score_distributions, label="Score Distributions")
     flexecute(func=execute_score_contributions, label="Score Contributions")
