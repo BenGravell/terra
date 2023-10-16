@@ -3,6 +3,7 @@ from copy import deepcopy
 from math import floor
 from functools import partial
 from urllib.parse import urlencode
+from typing import Any
 
 import numpy as np
 from sklearn.decomposition import (
@@ -757,9 +758,7 @@ def update_options_callback():
 def get_options():
     with st.form(key="options_form"):
         app_options = get_options_from_ui()
-        st.form_submit_button(
-            label="Update Options", type="primary", use_container_width=True, on_click=update_options_callback
-        )
+        st.form_submit_button(label="Update Options", type="primary", on_click=update_options_callback)
 
     st.header("Option Modifiers", anchor=False)
 
@@ -790,7 +789,6 @@ def get_options():
 
     st.button(
         "Reset Options to Default",
-        use_container_width=True,
         on_click=reset_options_callback,
     )
 
@@ -992,24 +990,40 @@ def run_ui_section_welcome():
 
 
 def run_ui_section_results(df, app_options, num_total):
+    filter_info_container = st.container()
     focus_container = st.container()
-    show_unacceptable_container = st.container()
 
-    with show_unacceptable_container:
-        st.success(f"Found {df[df['satisfies_filters']].shape[0]} countries that satisfy filters.")
+    with filter_info_container:
+        # Display a warning if default options are detected
+        if app_options == AppOptions():
+            st.info(
+                'It looks like you are using the default options, try going to the "Options" tab and changing some'
+                " things! :blush:"
+            )
+
+        # Show info about the number of matching countries
+        num_countries_satisfy_filters = df[df["satisfies_filters"]].shape[0]
+        num_countries_not_satisfy_filters = df[~df["satisfies_filters"]].shape[0]
+
+        if num_countries_satisfy_filters > 0:
+            st.success(f"Found {num_countries_satisfy_filters} countries that satisfy filters.")
+        else:
+            st.warning("No countries found that satisfy filters! Try adjusting the filters to be less strict.")
+
+        # Allow user to override the filters and show results for countries that do not satify the filter criteria
         show_unacceptable = st.toggle(
-            f"Show results for {df[~df['satisfies_filters']].shape[0]} more countries that do not satisfy filters."
+            f"Show results for {num_countries_not_satisfy_filters} more countries that do not satisfy filters."
         )
         if not show_unacceptable:
             df = df[df["satisfies_filters"]]
 
-    if df.shape[0] == 0:
-        st.warning("No matches found! Try adjusting the filters to be less strict.")
-        return
+        # If after all filtering & options the df is empty, there is nothing to do, so return early
+        if df.empty:
+            return
 
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
 
-    with st.expander("Select Country", expanded=True):
+    with st.expander("Select Country", expanded=False):
         cols = st.columns(2)
         with cols[1]:
             sort_by_col = st.selectbox(
@@ -1065,13 +1079,6 @@ def run_ui_section_results(df, app_options, num_total):
             anchor=False,
         )
 
-        # Display a warning if default options are detected
-        if app_options == AppOptions():
-            st.warning(
-                'It looks like you are using the default options, try going to the "Options" tab and changing some'
-                " things! :blush:"
-            )
-
     # Prep lists for later
     plottable_fields = overall_fields + quality_of_life_fields + culture_fields + geography_fields
 
@@ -1093,7 +1100,7 @@ def run_ui_section_results(df, app_options, num_total):
     def execute_world_factbook():
         # CIA World Factbook viewer
         cia_world_factbook_url = world_factbook_utils.get_world_factbook_url(selected_country)
-        st.markdown(f"[Open in new tab]({cia_world_factbook_url})")
+        st.link_button("Open in new tab", cia_world_factbook_url)
         st.components.v1.iframe(cia_world_factbook_url, height=600, scrolling=True)
 
     def execute_google_maps():
@@ -1104,8 +1111,9 @@ def run_ui_section_results(df, app_options, num_total):
 
         google_maps_url = get_google_maps_url(lat, lon)
 
-        st.markdown(
-            f"[Open in new tab]({google_maps_url})",
+        st.link_button(
+            "Open in new tab",
+            google_maps_url,
             help=(
                 "Google Maps cannot be embedded freely; doing so requires API usage, which is not tractable for this"
                 " app. As an alternative, simply open the link in a new tab."
@@ -1767,20 +1775,12 @@ def run_ui_section_results(df, app_options, num_total):
 
             st.plotly_chart(fig, use_container_width=True)
 
-    flexecute(
-        func=execute_selected_country_details,
-        label="Selected Country Details",
-        expanded=True,
-        toggle_value=True,
-    )
+    flexecute(func=execute_selected_country_details, label="Selected Country Details")
     flexecute(func=execute_score_distributions, label="Score Distributions")
     flexecute(func=execute_score_contributions, label="Score Contributions")
     flexecute(func=execute_world_map, label="World Map")
     flexecute(func=execute_globe, label="Globe")
-    flexecute(
-        func=execute_dimred_and_clustering,
-        label="Dimensionality Reduction & Clustering",
-    )
+    flexecute(func=execute_dimred_and_clustering, label="Dimensionality Reduction & Clustering")
     flexecute(func=execute_pair_plot, label="Pair Plots")
     flexecute(func=execute_results_data, label="Results Table")
 
@@ -1811,7 +1811,7 @@ def run_ui_section_help():
         open_and_st_markdown("./help/tutorial.md")
         st.divider()
         st.success(
-            "Now that you know the general flow, you can either jump right in and start playing with the app! For a"
+            "Now that you know the general flow, you can jump right in and start playing with the app! For a"
             " better understanding, we highly recommend reading the rest of the help section. :blush:"
         )
 
@@ -1957,40 +1957,64 @@ def check_and_handle_invalid_app_options(app_options):
     return invalid_app_options
 
 
+@dataclasses.dataclass
+class ContainerInfo:
+    """Class to hold a container and info about it."""
+
+    name: str | None = None
+    container: Any = None
+    icon: str | None = None
+
+    @property
+    def icon_and_name(self):
+        return f"{self.icon} {self.name}"
+
+
+def create_container_infos():
+    container_infos = [
+        ContainerInfo(name="Welcome", icon="👋"),
+        ContainerInfo(name="Options", icon="🎛️"),
+        ContainerInfo(name="Results", icon="📈"),
+        ContainerInfo(name="Share", icon="🔗"),
+        ContainerInfo(name="Help", icon="❓"),
+    ]
+    # Create tabs and insert each tab as container in container_infos
+    tabs = st.tabs([container_info.icon_and_name for container_info in container_infos])
+    for i in range(len(container_infos)):
+        container_infos[i].container = tabs[i]
+
+    container_infos_dict = {container_info.name: container_info for container_info in container_infos}
+    return container_infos_dict
+
+
 def main():
     # NOTE: It is critical to define the tabs first before other operations that
     # conditionally modify the main body of the app to avoid the
     # jump-to-first-tab-on-first-interaction-in-another-tab bug
-    tab_names = ["Welcome", "Options", "Results", "Help", "Share"]
-    tab_emoji_dict = {
-        "Welcome": "👋",
-        "Options": "🎛️",
-        "Results": "📈",
-        "Help": "❓",
-        "Share": "🔗",
-    }
-    tabs = st.tabs([f"{tab_emoji_dict[tab_name]} {tab_name}" for tab_name in tab_names])
-    container_dict = {tab_name: tab for tab_name, tab in zip(tab_names, tabs)}
+    container_infos_dict = create_container_infos()
 
     # Execute static sections that do not depend on app options first before first_run_per_session()
-    with container_dict["Welcome"]:
+    # TODO move these after first_run_per_session() to make intent more clear,
+    #   even though it is not necessary.
+    #   Check there are no sequential operation dependencies that would be affected.
+    with container_infos_dict["Welcome"].container:
         run_ui_section_welcome()
 
     # NOTE: There are (nested) tabs defined in run_ui_section_help()
-    with container_dict["Help"]:
+    with container_infos_dict["Help"].container:
         run_ui_section_help()
 
     if "initialized" not in state:
         first_run_per_session()
 
-    with container_dict["Options"]:
+    with container_infos_dict["Options"].container:
         app_options = get_options()
         invalid_app_options = check_and_handle_invalid_app_options(app_options)
 
-    with container_dict["Share"]:
+    with container_infos_dict["Share"].container:
         run_ui_section_share(app_options)
 
-    with container_dict["Results"]:
+    with container_infos_dict["Results"].container:
         if invalid_app_options:
             st.warning("Options are invalid, please correct them to see results here.")
         else:
@@ -2002,6 +2026,8 @@ def main():
 
 main()
 
+
+# TODO move ui sections to separate py files in a ui directory and make this app.py just the setup and main ops
 
 # TODO - re-index all data by country codes
 # - https://www.cia.gov/the-world-factbook/references/country-data-codes/
