@@ -1,5 +1,5 @@
 # Intended for use with Python 3.11
-streamlit~=1.26.0
+streamlit~=1.27.2
 streamlit-globe~=0.2.1
 streamlit-extras==0.3.0
 requests~=2.28.1
