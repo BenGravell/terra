@@ -1,7 +1,7 @@
 """Wrangle city sunshine hours data to country average aggregate data.
 
 NOTE: ad-hoc adjustments to the output file country_sunshine_hours_per_day.csv were made after running this script to be
-compatible with the other data in this project.
+compatible with the other data in this project. Therefore, do not run this script without making the same adjustments.
 """
 
 import calendar
@@ -32,4 +32,4 @@ for month in months:
 
 adf["year"] = adf["year"] / sum(val for val in days_in_months.values())
 
-adf.round(2).to_csv("data/country_sunshine_hours_per_day.csv")
+adf.round(2).to_csv("data/country_sunshine_hours_per_day_NEEDS_EDITS.csv")
