@@ -221,6 +221,7 @@ class DatasetBundle:
 
 
 # TODO use maintenance script to create merged data just once & load that in a simple DataFrameDataset in the app
+@dataclasses.dataclass
 class MergedDatasetBundle(DatasetBundle):
     def __post_init__(self) -> None:
         self.merged_df: pd.DataFrame | None = None
