@@ -125,6 +125,10 @@ class ResultsSection(UISection):
 if __name__ == "__main__":
     # Use this to run just the section as a standalone app
     # TODO unit test this in isolation when streamlit unit testing framework becomes available
+    from terra import app_config
+
+    app_config.streamlit_setup()
+
     df = DATA.merged_df.copy()
     app_options = ao.AppOptions()
     num_total = len(df)

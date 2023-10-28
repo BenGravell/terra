@@ -11,7 +11,6 @@ def load_country_data() -> types.JSONType:
 
 
 if __name__ == "__main__":
-    country_data = load_country_data()
     import pprint
 
-    pprint.pprint(country_data)
+    pprint.pprint(load_country_data())

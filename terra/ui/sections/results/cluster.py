@@ -560,6 +560,7 @@ if __name__ == "__main__":
     from terra.data_handling.processing import process_data
 
     app_config.streamlit_setup()
+
     app_options = ao.AppOptions()
     df, num_total = process_data(app_options)
     selected_country = "United States"

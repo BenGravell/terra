@@ -10,7 +10,7 @@ setup(
     description="Country recommendation streamlit app",
     license="MIT",
     packages=find_packages(),
-    package_data={"terra": ["data/*", "help/*"]},
+    package_data={"terra": ["assets/*", "data/*", "help/*"]},
     include_package_data=True,
     long_description=open("README.md").read(),
 )

@@ -4,6 +4,6 @@
 
 ## What is Terra?
 
-Terra is an app designed to help you answer the question *"which country should I live in?"*
+Terra is an app designed to help you use data to answer the question *"which country is right **for me**?"*
 
-Use data to decide which country is right **for you**. Terra takes your personal preferences regarding Culture Fit, Planet Happiness, Social Progress, Human Freedom, Climate, and Language into account and recommends one or more countries that match.
+Terra takes your personal preferences and requirements into account and recommends one or more countries that match.
