@@ -394,7 +394,7 @@ class ClusteringPlotOptionsSection(UISection):
             if clustering_options.clustering_method_name == "HDBSCAN":
                 cols = st.columns(3)
                 with cols[0]:
-                    show_country_text = st.checkbox("Show Country Name Text on Plot", value=True)
+                    show_country_text = st.toggle("Show Country Name Text on Plot", value=True)
                 with cols[1]:
                     marker_size_field = st.selectbox(
                         "Marker Size Field",

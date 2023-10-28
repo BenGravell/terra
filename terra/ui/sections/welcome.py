@@ -21,7 +21,7 @@ class WelcomeSection(UISection):
             welcome_str = whole_README_str[start_index:]
             welcome_str = welcome_str.replace("Terra", ":blue[Terra]")
             st.markdown(welcome_str)
-            st.markdown(":blue[Terra] includes data regarding:")
+            st.markdown(":blue[Terra] uses data regarding:")
 
             category_array = [
                 [
