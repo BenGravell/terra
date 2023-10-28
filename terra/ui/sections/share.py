@@ -6,10 +6,12 @@ import streamlit as st
 import terra.app_options as ao
 from terra.constants import TERRA_URL_BASE
 from terra.ui.sections import UISection
+from terra import session_state_manager as ssm
 
 
 class ShareSection(UISection):
-    def run(self, app_options: ao.AppOptions) -> None:
+    def run(self) -> None:
+        app_options = ssm.get_("app_options")
         query_params = dataclasses.asdict(app_options)
         query_string = urlencode(query_params, doseq=True)
         url = f"{TERRA_URL_BASE}/?{query_string}"

@@ -1,8 +1,9 @@
-import pandas as pd
 import streamlit as st
 
 import terra.app_options as ao
 from terra.data_handling.loading import DATA
+from terra.data_handling.processing import process_data
+from terra import session_state_manager as ssm
 from terra.ui.sections import UISection, ExpanderWrappedUISection, SequentialUISection
 from terra.ui.sections.results.select_country import SelectCountrySection
 from terra.ui.sections.results.details import SelectedCountryDetailsSection
@@ -110,8 +111,13 @@ class ResultsSection(UISection):
             ]
         )
 
-    def run(self, df: pd.DataFrame, app_options: ao.AppOptions, num_total: int):
-        # TODO flesh out, pass results-specific data around
+    def run(self):
+        app_options = ssm.get_("app_options")
+        if not app_options.are_all_options_valid[0]:
+            st.warning("Options are invalid, please correct them to see results here.")
+            return
+
+        df, num_total = process_data(app_options)
         selected_country = results_prep_ops(df, app_options)
         self.seq.run(df, app_options, num_total, selected_country)
 

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import dataclasses
-from typing import Any
+from contextlib import nullcontext
+from typing import Any, ContextManager
 
 import streamlit as st
 
@@ -16,40 +17,47 @@ class UISection(ABC):
         return
 
 
+@dataclasses.dataclass(kw_only=True)
+class LabeledUISection(UISection):
+    name: str
+    icon: str | None = None
+
+    @property
+    def label(self) -> str:
+        return f"{self.icon} {self.name}" if self.icon else self.name
+
+
+@dataclasses.dataclass(kw_only=True)
+class ContainerWrappedUISection(UISection):
+    """Run child UI section in a streamlit container."""
+
+    child: UISection
+    container: ContextManager = dataclasses.field(default_factory=nullcontext)
+
+    def run(self, *args, **kwargs) -> Any:
+        with self.container:
+            self.child.run(*args, **kwargs)
+
+
+@dataclasses.dataclass(kw_only=True)
+class LabeledContainerWrappedUISection(LabeledUISection, ContainerWrappedUISection):
+    pass
+
+
 @dataclasses.dataclass
-class SequentialUISection(UISection):
-    """A sequential list of UI sections."""
-
-    sections: list[UISection]
-
-    def run(self, *args, **kwargs) -> None:
-        for section in self.sections:
-            section.run(*args, **kwargs)
-
-
-@dataclasses.dataclass
-class ExpanderWrappedUISection(UISection):
+class ExpanderWrappedUISection(LabeledUISection):
     """Run child UI section in a streamlit expander.
 
-    Includes ability to conditionally run if an stremalit toggle is enabled.
+    Includes ability to conditionally run if a streamlit toggle is enabled.
     """
 
     child: UISection
-    name: str
-    icon: str | None = None
     expanded: bool = False
     conditional: bool = False
     toggle_default: bool = False
     inform_when_toggle_disabled: bool = True
     header: bool = False
     subheader: bool = False
-
-    @property
-    def label(self) -> str:
-        x = self.name
-        if self.icon:
-            x = f"{self.icon} {x}"
-        return x
 
     def run(self, *args, **kwargs) -> Any:
         with st.expander(self.label, self.expanded):
@@ -70,3 +78,35 @@ class ExpanderWrappedUISection(UISection):
                         st.info(not_shown_str)
             else:
                 return self.child.run(*args, **kwargs)
+
+
+@dataclasses.dataclass
+class SequentialUISection(UISection):
+    """A sequential list of UI sections."""
+
+    sections: list[UISection]
+
+    def run(self, *args, **kwargs) -> None:
+        for section in self.sections:
+            section.run(*args, **kwargs)
+
+
+@dataclasses.dataclass
+class SequentialLabeledUISection(SequentialUISection):
+    """A sequential list of labeled UI sections."""
+
+    sections: list[LabeledUISection]
+
+    def asdict(self):
+        return {section.name: section for section in self.sections}
+
+
+@dataclasses.dataclass
+class SequentialLabeledContainerWrappedUISection(SequentialLabeledUISection):
+    sections: list[LabeledContainerWrappedUISection]
+
+    def create_tabs(self):
+        # Create tabs and set each tab as container in sections
+        tabs = st.tabs([section.label for section in self.sections])
+        for section, tab in zip(self.sections, tabs, strict=True):
+            section.container = tab

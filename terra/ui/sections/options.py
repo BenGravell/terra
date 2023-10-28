@@ -25,40 +25,6 @@ UNIT_INTERVAL_1PT_RANGE_LIST = create_unit_interval_pt_range_list(0.01)
 UNIT_INTERVAL_5PT_RANGE_LIST = create_unit_interval_pt_range_list(0.05)
 
 
-def culture_fit_reference_callback():
-    if st.session_state.reference_country == NONE_COUNTRY:
-        return
-
-    country_info = DATA_DICT["Culture Fit"].d[st.session_state.reference_country]
-
-    # TODO use ssm to set. Create a helper set_culture_dimensions
-    for dimension in dimensions_info.DIMENSIONS:
-        st.session_state[dimension] = getattr(country_info, dimension)
-
-    st.toast(
-        f"Culture Fit Preferences set to Reference Country :blue[**{st.session_state.reference_country}**]", icon="🎛️"
-    )
-
-
-def quality_of_life_reference_callback():
-    if st.session_state.reference_country == NONE_COUNTRY:
-        return
-
-    fields = ["hp_score_min", "sp_score_min", "hf_score_min"]
-    dataset_names = ["Happy Planet", "Social Progress", "Human Freedom"]
-    for field, dataset_name in zip(fields, dataset_names, strict=True):
-        df = DATA_DICT[dataset_name].df
-
-        # TODO use ssm to set. Create a helper set_quality_of_life_filters
-        st.session_state[field] = (
-            math.floor(df.set_index("country").loc[st.session_state.reference_country].item() * 100) / 100
-        )
-
-    st.toast(
-        f"Quality-of-Life Filters set to Reference Country :blue[**{st.session_state.reference_country}**]", icon="🎛️"
-    )
-
-
 # TODO uppercase
 # TODO move this to a data file
 culture_fit_score_help = (
@@ -126,15 +92,6 @@ def score_strip_plot(df, dimension, xmin, xmax):
     )
     fig.update_layout(margin=dict(l=0, r=0, b=0, t=0))
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
-
-def reset_options_callback():
-    app_options = ao.AppOptions()
-    ssm.set_app_options(app_options)
-
-
-def update_options_callback():
-    st.toast("Updated Options", icon="🎛️")
 
 
 class CultureFitPreferencesSection(UISection):
@@ -462,6 +419,10 @@ class OptionsFromUISection(UISection):
         return app_options
 
 
+def update_options_callback():
+    st.toast("Updated Options", icon="🎛️")
+
+
 class OptionsFormSection(UISection):
     def run(self):
         options_section = OptionsFromUISection()
@@ -469,6 +430,39 @@ class OptionsFormSection(UISection):
             app_options = options_section.run()
             st.form_submit_button("Update Options", type="primary", on_click=update_options_callback)
         return app_options
+
+
+def culture_fit_reference_callback():
+    reference_country = ssm.get_("reference_country")
+    if reference_country == NONE_COUNTRY:
+        return
+
+    country_info = DATA_DICT["Culture Fit"].d[reference_country]
+
+    for dimension in dimensions_info.DIMENSIONS:
+        ssm.set_(dimension, getattr(country_info, dimension))
+
+    st.toast(f"Culture Fit Preferences set to Reference Country :blue[**{reference_country}**]", icon="🎛️")
+
+
+def quality_of_life_reference_callback():
+    reference_country = ssm.get_("reference_country")
+    if reference_country == NONE_COUNTRY:
+        return
+
+    fields = ["hp_score_min", "sp_score_min", "hf_score_min"]
+    dataset_names = ["Happy Planet", "Social Progress", "Human Freedom"]
+    for field, dataset_name in zip(fields, dataset_names, strict=True):
+        df = DATA_DICT[dataset_name].df
+        value = math.floor(df.set_index("country").loc[reference_country].item() * 100) / 100
+        ssm.set_(field, value)
+
+    st.toast(f"Quality-of-Life Filters set to Reference Country :blue[**{reference_country}**]", icon="🎛️")
+
+
+def reset_options_callback():
+    app_options = ao.AppOptions()
+    ssm.set_app_options(app_options)
 
 
 class OptionsModifiersSection(UISection):
@@ -480,29 +474,29 @@ class OptionsModifiersSection(UISection):
         required_columns = flb.quality_of_life_fields + flb.culture_fields
         reference_country_options = [NONE_COUNTRY] + sorted(DATA.merged_df.dropna(subset=required_columns)["country"])
 
-        def country_to_emoji_func(country):
-            country_to_emoji_dict = (
+        def country_with_emoji_func(country):
+            country_with_emoji_dict = (
                 DATA.merged_df[["country", "country_with_emoji"]].set_index("country").to_dict()["country_with_emoji"]
             )
-            return country_to_emoji_dict.get(country)
+            return country_with_emoji_dict.get(country)
 
         st.selectbox(
             "Reference Country",
             options=reference_country_options,
-            format_func=country_to_emoji_func,
+            format_func=country_with_emoji_func,
             key="reference_country",
             help="Use this to set certain preferences to the selected country.",
         )
         cols = st.columns(2)
         with cols[0]:
             st.button(
-                label="Set :blue[**Culture Fit Preferences**] to Reference Country",
+                "Set :blue[**Culture Fit Preferences**] to Reference Country",
                 on_click=culture_fit_reference_callback,
                 use_container_width=True,
             )
         with cols[1]:
             st.button(
-                label="Set :blue[**Quality-of-Life Filters**] to Reference Country",
+                "Set :blue[**Quality-of-Life Filters**] to Reference Country",
                 on_click=quality_of_life_reference_callback,
                 use_container_width=True,
             )
@@ -533,7 +527,6 @@ class OptionsSection(UISection):
         ssm.set_("app_options", app_options)
         # app_options should not be modified after this point,
         # neither in the app body or in the session state.
-        return app_options
 
 
 if __name__ == "__main__":
