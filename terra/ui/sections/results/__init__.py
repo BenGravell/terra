@@ -61,7 +61,7 @@ def results_prep_ops(df, app_options):
             anchor=False,
         )
 
-    return selected_country
+    return df, selected_country
 
 
 class ResultsSection(UISection):
@@ -118,7 +118,7 @@ class ResultsSection(UISection):
             return
 
         df, num_total = process_data(app_options)
-        selected_country = results_prep_ops(df, app_options)
+        df, selected_country = results_prep_ops(df, app_options)
         self.seq.run(df, app_options, num_total, selected_country)
 
 
