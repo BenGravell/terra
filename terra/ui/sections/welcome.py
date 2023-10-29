@@ -1,6 +1,6 @@
 import streamlit as st
 
-from terra.resource_utils import get_assets_file_path
+from terra.resource_utils import get_assets_image_data
 from terra.ui.sections import UISection
 
 
@@ -43,9 +43,7 @@ class WelcomeSection(UISection):
                         subcol.metric(category, "")
 
         with cols[1]:
-            with open(get_assets_file_path("welcome.jpg"), "rb") as f:
-                welcome_image = f.read()
-            st.image(welcome_image)
+            st.image(get_assets_image_data("welcome.jpg"))
 
 
 if __name__ == "__main__":
