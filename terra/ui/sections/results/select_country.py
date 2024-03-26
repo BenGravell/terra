@@ -34,7 +34,7 @@ class SelectCountrySection(UISection):
 
         # TODO use the _rank columns of the df for this
         def get_rank_prefix(country):
-            return df_sorted[df_sorted.country == country].index[0].item() + 1
+            return df_sorted[df_sorted.country == country].index[0] + 1
 
         def get_rank_prefix_str(country, sort_by_col):
             if sort_by_col == "country":

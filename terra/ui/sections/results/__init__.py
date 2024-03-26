@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 
 import terra.app_options as ao
@@ -16,7 +17,7 @@ from terra.ui.sections.results.pair_plots import PairPlotsSection
 from terra.ui.sections.results.table import ResultsTableSection
 
 
-def results_prep_ops(df, app_options):
+def results_prep_ops(df, app_options) -> tuple[pd.DataFrame | None, str | None]:
     filter_info_container = st.container()
     focus_container = st.container()
 
@@ -46,7 +47,7 @@ def results_prep_ops(df, app_options):
 
         # If after all filtering & options the df is empty, there is nothing to do, so return early
         if df.empty:
-            return
+            return None, None
 
     best_match_country = df.iloc[0]["country"]  # We sorted by overall score previously in process_data_overall_score()
     selected_country = ExpanderWrappedUISection(child=SelectCountrySection(), name="Select Country").run(df)
@@ -119,6 +120,8 @@ class ResultsSection(UISection):
 
         df, num_total = process_data(app_options)
         df, selected_country = results_prep_ops(df, app_options)
+        if df is None or selected_country is None:
+            return
         self.seq.run(df, app_options, num_total, selected_country)
 
 
