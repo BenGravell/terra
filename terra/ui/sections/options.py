@@ -95,7 +95,7 @@ def score_strip_plot(df, dimension, xmin, xmax):
 
 
 class CultureFitPreferencesSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         merged_df100 = DATA.merged_df.copy()
         merged_df100[dimensions_info.DIMENSIONS] *= 100
 
@@ -108,7 +108,7 @@ class CultureFitPreferencesSection(UISection):
 
             st.write(slider_str)
             st.caption(caption_str, help=help_str)
-            preference_val = st.slider(
+            st.slider(
                 slider_str,
                 min_value=0,
                 max_value=100,
@@ -118,11 +118,9 @@ class CultureFitPreferencesSection(UISection):
             )
             score_strip_plot(merged_df100, dimension, 0, 100)
 
-            setattr(app_options, f"culture_fit_preference_{dimension}", preference_val)
-
 
 class QualityOfLifePreferencesSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         # TODO construct these programmatically
         st.subheader(
             ":memo: :orange[*Make sure the weights add up to 100*]",
@@ -140,7 +138,7 @@ class QualityOfLifePreferencesSection(UISection):
         )
         st.write(slider_str)
         st.caption(caption_str, help=happy_planet_score_help)
-        app_options.hp_score_weight = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_5PT_RANGE_LIST,
             key="hp_score_weight",
@@ -155,7 +153,7 @@ class QualityOfLifePreferencesSection(UISection):
         )
         st.write(slider_str)
         st.caption(caption_str, help=social_progress_score_help)
-        app_options.sp_score_weight = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_5PT_RANGE_LIST,
             key="sp_score_weight",
@@ -170,7 +168,7 @@ class QualityOfLifePreferencesSection(UISection):
         )
         st.write(slider_str)
         st.caption(caption_str, help=human_freedom_score_help)
-        app_options.hf_score_weight = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_5PT_RANGE_LIST,
             key="hf_score_weight",
@@ -180,7 +178,7 @@ class QualityOfLifePreferencesSection(UISection):
 
 
 class OverallPreferencesSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         st.subheader(
             ":memo: :orange[*Make sure the weights add up to 100*]",
             anchor=False,
@@ -194,7 +192,7 @@ class OverallPreferencesSection(UISection):
         caption_str = "*How much do you value living in a country whose culture aligns with your preferences?*"
         st.write(slider_str)
         st.caption(caption_str, help=culture_fit_score_help)
-        app_options.cf_score_weight = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_5PT_RANGE_LIST,
             key="cf_score_weight",
@@ -206,7 +204,7 @@ class OverallPreferencesSection(UISection):
         caption_str = "*How much do you value living in a country with high quality-of-life?*"
         st.write(slider_str)
         st.caption(caption_str, help=quality_of_life_score_help)
-        app_options.ql_score_weight = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_5PT_RANGE_LIST,
             key="ql_score_weight",
@@ -236,20 +234,20 @@ class PreferencesSection(UISection):
             ]
         )
 
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         st.header(self.name, anchor=False)
-        self.seq.run(app_options)
+        self.seq.run()
 
 
 class QualityOfLifeFiltersSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         # TODO construct these programmatically
 
         slider_str = "Happy Planet Score Min"
         caption_str = "*What is the minimum Happy Planet Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=happy_planet_score_help)
-        app_options.hp_score_min = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_1PT_RANGE_LIST,
             key="hp_score_min",
@@ -261,7 +259,7 @@ class QualityOfLifeFiltersSection(UISection):
         caption_str = "*What is the minimum Social Progress Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=social_progress_score_help)
-        app_options.sp_score_min = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_1PT_RANGE_LIST,
             key="sp_score_min",
@@ -273,7 +271,7 @@ class QualityOfLifeFiltersSection(UISection):
         caption_str = "*What is the minimum Human Freedom Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=human_freedom_score_help)
-        app_options.hf_score_min = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_1PT_RANGE_LIST,
             key="hf_score_min",
@@ -283,12 +281,12 @@ class QualityOfLifeFiltersSection(UISection):
 
 
 class OverallFiltersSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         slider_str = "Culture Fit Score Min"
         caption_str = "*What is the minimum Culture Fit Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=culture_fit_score_help)
-        app_options.cf_score_min = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_1PT_RANGE_LIST,
             key="cf_score_min",
@@ -299,7 +297,7 @@ class OverallFiltersSection(UISection):
         caption_str = "*What is the minimum Quality-of-Life Score you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=quality_of_life_score_help)
-        app_options.ql_score_min = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_1PT_RANGE_LIST,
             key="ql_score_min",
@@ -308,12 +306,12 @@ class OverallFiltersSection(UISection):
 
 
 class LanguageFiltersSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         slider_str = ":speaking_head_in_silhouette: English Speaking Ratio Min"
         caption_str = "*What is the minimum proportion of English speakers you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=english_speaking_ratio_help)
-        app_options.english_ratio_min = st.select_slider(
+        st.select_slider(
             slider_str,
             options=UNIT_INTERVAL_1PT_RANGE_LIST,
             key="english_ratio_min",
@@ -322,12 +320,12 @@ class LanguageFiltersSection(UISection):
 
 
 class ClimateFiltersSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         slider_str = ":thermometer: Average Temperature (°C) Range"
         caption_str = "*What is the range of average temperature (°C) you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=average_temperature_help)
-        app_options.average_temperature_celsius_min, app_options.average_temperature_celsius_max = st.slider(
+        st.slider(
             slider_str,
             -10,
             30,
@@ -342,7 +340,7 @@ class ClimateFiltersSection(UISection):
         caption_str = "*What is the range of average daily hours of sunshine you are willing to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=average_sunshine_help)
-        app_options.average_sunshine_hours_per_day_min, app_options.average_sunshine_hours_per_day_max = st.slider(
+        st.slider(
             slider_str,
             3.0,
             10.0,
@@ -356,12 +354,12 @@ class ClimateFiltersSection(UISection):
 
 
 class GeographyFiltersSection(UISection):
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         slider_str = "🌎🌍🌏 Continents"
         caption_str = "*What continents do you want to consider?*"
         st.write(slider_str)
         st.caption(caption_str, help=continent_help)
-        app_options.continents = st.multiselect(
+        st.multiselect(
             slider_str,
             options=ao.CONTINENT_OPTIONS,
             key="continents",
@@ -398,9 +396,9 @@ class FiltersSection(UISection):
             ]
         )
 
-    def run(self, app_options) -> None:
+    def run(self) -> None:
         st.header(self.name, anchor=False)
-        self.seq.run(app_options)
+        self.seq.run()
 
 
 class OptionsFromUISection(UISection):
@@ -412,11 +410,9 @@ class OptionsFromUISection(UISection):
             ]
         )
 
-    def run(self) -> ao.AppOptions:
-        app_options = ao.AppOptions()
+    def run(self) -> None:
         st.title("Options", anchor=False)
-        self.seq.run(app_options)
-        return app_options
+        self.seq.run()
 
 
 def update_options_callback():
@@ -425,11 +421,9 @@ def update_options_callback():
 
 class OptionsFormSection(UISection):
     def run(self):
-        options_section = OptionsFromUISection()
         with st.form(key="options_form"):
-            app_options = options_section.run()
+            OptionsFromUISection().run()
             st.form_submit_button("Update Options", type="primary", on_click=update_options_callback)
-        return app_options
 
 
 def culture_fit_reference_callback():
@@ -458,11 +452,6 @@ def quality_of_life_reference_callback():
         ssm.set_(field, value)
 
     st.toast(f"Quality-of-Life Filters set to Reference Country :blue[**{reference_country}**]", icon="🎛️")
-
-
-def reset_options_callback():
-    app_options = ao.AppOptions()
-    ssm.set_app_options(app_options)
 
 
 class OptionsModifiersSection(UISection):
@@ -505,7 +494,7 @@ class OptionsModifiersSection(UISection):
 
         st.button(
             "Reset Options to Default",
-            on_click=reset_options_callback,
+            on_click=ssm.reset_app_options,
         )
 
 
@@ -515,8 +504,16 @@ class OptionsSection(UISection):
         self.options_mod_section = OptionsModifiersSection()
 
     def run(self):
-        app_options = self.options_form_section.run()
-        self.options_mod_section.run()
+        # st.write(st.session_state)
+        option_form_section_container = st.container()
+        option_mod_section_container = st.container()
+        with option_mod_section_container:
+            self.options_mod_section.run()
+        with option_form_section_container:
+            self.options_form_section.run()
+
+        app_options = ssm.get_app_options_from_widget_states()
+
         for message in app_options.are_all_options_valid[1]:
             st.warning(message)
         # Make sure the app_options in the session state is in sync with the widget keys.
@@ -526,7 +523,7 @@ class OptionsSection(UISection):
         # However we have full read/write control over the app_options.
         ssm.set_("app_options", app_options)
         # app_options should not be modified after this point,
-        # neither in the app body or in the session state.
+        # neither in the app body nor in the session state.
 
 
 if __name__ == "__main__":

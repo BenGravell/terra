@@ -2,7 +2,7 @@
 
 The general flow of Terra goes like this:
 
-### Adjust your options in the "**Options**" tab to your liking
+### Adjust your options on the "**Options**" page to your liking
 
 - Adjust `Culture Fit Preferences`.
     - Either start from scratch or use a country as a reference.
@@ -11,7 +11,7 @@ The general flow of Terra goes like this:
 - Click `Update Options`.
 
 
-### Analyze the results in the "**Results**" tab
+### Analyze the results on the "**Results**" page
 
 - `Select Country` lets you select a single country of interest.
 - `Selected Country Details` gives details about the single selected country.
@@ -25,6 +25,6 @@ The general flow of Terra goes like this:
 - `Results Table` shows all the data for matching countries in table form. You can sort each column in the app, or take a `.csv` download of the data.
 
 
-### Share your results in the "**Share**" tab
+### Share your results on the "**Share**" page
 
 - Copy the URL, which contains your settings as query parameters, and share with your friends!

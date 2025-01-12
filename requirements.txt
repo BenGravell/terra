@@ -29,4 +29,4 @@ plotly==5.18.0
 # Streamlit libraries for web applications
 streamlit==1.28.1
 streamlit-globe==0.2.1
-streamlit-extras==0.3.4
+streamlit-extras==0.3.5

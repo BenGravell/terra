@@ -45,6 +45,8 @@ class WelcomeSection(UISection):
         with cols[1]:
             st.image(get_assets_image_data("welcome.jpg"))
 
+        st.info("Explore the other pages in the sidebar!", icon="↩️")
+
 
 if __name__ == "__main__":
     # Use this to run just the section as a standalone app

@@ -51,11 +51,37 @@ def set_query_params_from_app_options(app_options: ao.AppOptions):
     st.experimental_set_query_params(**dataclasses.asdict(app_options))
 
 
-def set_app_options(app_options: ao.AppOptions):
-    """Set session state fields related to app options."""
+def get_app_options_from_widget_states() -> ao.AppOptions:
+    """Get app options from widget states."""
+    app_options = ao.AppOptions()
 
-    # First set the single collection object app_options
-    set_("app_options", app_options)
+    for dimension in dimensions_info.DIMENSIONS:
+        setattr(app_options, f"culture_fit_preference_{dimension}", get_(dimension))
+
+    for code in APP_OPTIONS_CODES:
+        weight_field = f"{code}_score_weight"
+        min_field = f"{code}_score_min"
+        setattr(app_options, weight_field, get_(weight_field))
+        setattr(app_options, min_field, get_(min_field))
+
+    setattr(app_options, "english_ratio_min", get_("english_ratio_min"))
+    setattr(app_options, "continents", get_("continents"))
+
+    # Special handling for (min, max) range params
+    average_temperature_celsius_min, average_temperature_celsius_max = get_("average_temperature_celsius_range")
+    setattr(app_options, "average_temperature_celsius_min", average_temperature_celsius_min)
+    setattr(app_options, "average_temperature_celsius_max", average_temperature_celsius_max)
+    average_sunshine_hours_per_day_min, average_sunshine_hours_per_day_max = get_(
+        "average_sunshine_hours_per_day_range"
+    )
+    setattr(app_options, "average_sunshine_hours_per_day_min", average_sunshine_hours_per_day_min)
+    setattr(app_options, "average_sunshine_hours_per_day_max", average_sunshine_hours_per_day_max)
+
+    return app_options
+
+
+def set_widget_states_from_app_options(app_options: ao.AppOptions):
+    """Set session state fields related to app options widgets."""
 
     # Next, set all individual fields that are used by widgets.
     # It is critical to do this before widgets are instantiated for the first time.
@@ -67,7 +93,6 @@ def set_app_options(app_options: ao.AppOptions):
     for dimension in dimensions_info.DIMENSIONS:
         set_(dimension, getattr(app_options, f"culture_fit_preference_{dimension}"))
 
-    # TODO move list to config
     for code in APP_OPTIONS_CODES:
         weight_field = f"{code}_score_weight"
         min_field = f"{code}_score_min"
@@ -75,6 +100,7 @@ def set_app_options(app_options: ao.AppOptions):
         set_(min_field, getattr(app_options, min_field))
 
     set_("english_ratio_min", getattr(app_options, "english_ratio_min"))
+    set_("continents", getattr(app_options, "continents"))
 
     # Special handling for (min, max) range params
     set_(
@@ -91,7 +117,13 @@ def set_app_options(app_options: ao.AppOptions):
             getattr(app_options, "average_sunshine_hours_per_day_max"),
         ),
     )
-    set_("continents", getattr(app_options, "continents"))
+
+
+def reset_app_options():
+    """Reset app options."""
+    app_options = ao.AppOptions()
+    set_("app_options", app_options)
+    set_widget_states_from_app_options(app_options)
 
 
 def initialize_session():
@@ -100,7 +132,10 @@ def initialize_session():
     # Only pull the query_params on the first run e.g. to support deeplinking.
     # Otherwise, when this function is not called, only use the options that have been set in the session.
     # This helps avoid a race condition between getting options via query_params and getting options via the UI.
-    set_app_options(get_app_options_from_query_params())
+    app_options = get_app_options_from_query_params()
+    set_("app_options", app_options)
+    set_widget_states_from_app_options(app_options)
+
     set_("initialized", True)
 
 
@@ -112,10 +147,10 @@ def initialize_run():
     Uses the 'initialized' key in session state to determine if the session is fresh or not.
     """
 
-    if get_("initialized"):
-        return
+    if not get_("initialized"):
+        initialize_session()
 
-    initialize_session()
+    set_widget_states_from_app_options(get_("app_options"))
 
 
 def finalize_run():

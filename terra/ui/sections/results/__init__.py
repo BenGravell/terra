@@ -24,7 +24,7 @@ def results_prep_ops(df, app_options):
         # Display a warning if default options are detected
         if app_options == ao.AppOptions():
             st.info(
-                'It looks like you are using the default options, try going to the "Options" tab and changing some'
+                'It looks like you are using the default options, try going to the "Options" page and changing some'
                 " things! :blush:"
             )
 
